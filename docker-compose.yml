@@ -1,0 +1,132 @@
+﻿version: '3.8'
+services:
+  # Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: electricity-db
+    environment:
+      POSTGRES_USER: electricity_user
+      POSTGRES_PASSWORD: electricity_pass
+      POSTGRES_DB: electricity_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./scripts/init-db.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - electricity-network
+  # Redis for caching and real-time features
+  redis:
+    image: redis:7-alpine
+    container_name: electricity-redis
+    ports:
+      - "6379:6379"
+    networks:
+      - electricity-network
+  # Member 1: Energy Analysis Service (Python/FastAPI)
+  member1-service:
+    build: ./backend/member1-energy-analysis
+    container_name: member1-energy-service
+    ports:
+      - "8001:8000"
+    environment:
+      - DATABASE_URL=postgresql://electricity_user:electricity_pass@postgres:5432/electricity_db
+      - REDIS_URL=redis://redis:6379
+    depends_on:
+      - postgres
+      - redis
+    volumes:
+      - ./backend/member1-energy-analysis:/app
+      - member1_models:/app/models
+    networks:
+      - electricity-network
+  # Member 2: Outage System (Node.js/Express)
+  member2-service:
+    build: ./backend/member2-outage-system
+    container_name: member2-outage-service
+    ports:
+      - "8002:8000"
+    environment:
+      - DATABASE_URL=postgresql://electricity_user:electricity_pass@postgres:5432/electricity_db
+      - REDIS_URL=redis://redis:6379
+    depends_on:
+      - postgres
+      - redis
+    volumes:
+      - ./backend/member2-outage-system:/app
+    networks:
+      - electricity-network
+  # Member 3: Solar Recommendation (Python/FastAPI)
+  member3-service:
+    build: ./backend/member3-solar-recommendation
+    container_name: member3-solar-service
+    ports:
+      - "8003:8000"
+    environment:
+      - DATABASE_URL=postgresql://electricity_user:electricity_pass@postgres:5432/electricity_db
+      - REDIS_URL=redis://redis:6379
+    depends_on:
+      - postgres
+      - redis
+    volumes:
+      - ./backend/member3-solar-recommendation:/app
+      - member3_models:/app/models
+    networks:
+      - electricity-network
+  # Member 4: Safety Assistant (Python/FastAPI)
+  member4-service:
+    build: ./backend/member4-safety-assistant
+    container_name: member4-safety-service
+    ports:
+      - "8004:8000"
+    environment:
+      - DATABASE_URL=postgresql://electricity_user:electricity_pass@postgres:5432/electricity_db
+      - REDIS_URL=redis://redis:6379
+    depends_on:
+      - postgres
+      - redis
+    volumes:
+      - ./backend/member4-safety-assistant:/app
+      - member4_models:/app/models
+    networks:
+      - electricity-network
+  # Admin Panel (React)
+  admin-panel:
+    build: ./admin-panel
+    container_name: admin-panel
+    ports:
+      - "3000:3000"
+    environment:
+      - REACT_APP_API_MEMBER1=http://localhost:8001
+      - REACT_APP_API_MEMBER2=http://localhost:8002
+      - REACT_APP_API_MEMBER3=http://localhost:8003
+      - REACT_APP_API_MEMBER4=http://localhost:8004
+    volumes:
+      - ./admin-panel:/app
+      - /app/node_modules
+    networks:
+      - electricity-network
+  # Nginx Reverse Proxy
+  nginx:
+    image: nginx:alpine
+    container_name: electricity-nginx
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf
+    depends_on:
+      - member1-service
+      - member2-service
+      - member3-service
+      - member4-service
+      - admin-panel
+    networks:
+      - electricity-network
+volumes:
+  postgres_data:
+  member1_models:
+  member3_models:
+  member4_models:
+networks:
+  electricity-network:
+    driver: bridge
