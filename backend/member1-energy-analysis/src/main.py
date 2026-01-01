@@ -1,8 +1,13 @@
+"""
+src/main.py
+Updated with bill analysis routes
+"""
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from src.config import settings
 from src.database import engine, Base
-from src.api import routes
+from src.api.route import router as main_router  # ✅ Changed from routes to route
+from src.api.routes import bill_analysis  # ✅ Now imports from routes/ directory
 import logging
 import os
 
@@ -39,20 +44,21 @@ app = FastAPI(
     debug=settings.DEBUG,
     docs_url="/api/docs",
     redoc_url="/api/redoc",
-    description="API for extracting and managing electricity bill data",
+    description="API for extracting and managing electricity bill data with analysis & budget planning",
 )
 
 # CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.CORS_ORIGINS,
+    allow_origins=settings.cors_origins_list,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# Routes
-app.include_router(routes.router)
+# ✅ Include routes
+app.include_router(main_router)
+app.include_router(bill_analysis.router)
 
 logger.info(f"{settings.APP_NAME} v{settings.APP_VERSION} initialized")
 
@@ -64,6 +70,13 @@ def root():
         "version": settings.APP_VERSION,
         "status": "running",
         "docs": "/api/docs",
+        "features": [
+            "Bill Extraction (OCR + Parsing)",
+            "Past Month Analysis",
+            "Budget Planning",
+            "Progress Tracking",
+            "Tariff Calculator"
+        ]
     }
 
 
@@ -73,6 +86,12 @@ def health():
         "status": "healthy",
         "version": settings.APP_VERSION,
         "database": "PostgreSQL",
+        "features_enabled": [
+            "bill_extraction",
+            "bill_analysis",
+            "budget_planning",
+            "progress_tracking"
+        ]
     }
 
 
@@ -80,6 +99,11 @@ def health():
 async def startup_event():
     logger.info("Application startup complete")
     logger.info(f"API documentation: http://localhost:8000/api/docs")
+    logger.info("Features enabled:")
+    logger.info("  - Bill Extraction & OCR")
+    logger.info("  - Past Month Analysis")
+    logger.info("  - Budget Planning")
+    logger.info("  - Progress Tracking")
 
 
 @app.on_event("shutdown")

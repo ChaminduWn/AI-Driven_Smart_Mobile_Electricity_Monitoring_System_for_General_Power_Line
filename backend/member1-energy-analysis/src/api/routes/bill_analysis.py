@@ -1,23 +1,27 @@
 """
 api/routes/bill_analysis.py
-API routes for bill analysis and budget planning
+COMPLETE implementation with Phase 2 tracking
+Add this to your src/api/routes/ directory
 """
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from typing import Optional
-from datetime import datetime
+from datetime import datetime, timedelta
 from pydantic import BaseModel, Field
 
 from src.database import get_db
 from src.services.bill_analysis import BillAnalysisService
 from src.models.bill import ElectricityBill
+from src.models.budget_plan import BudgetPlan, MeterReading
+from fastapi import APIRouter, Depends, HTTPException, Query  # ✅ Add Query import at top
 
 
 router = APIRouter(prefix="/analysis", tags=["Bill Analysis"])
 analysis_service = BillAnalysisService()
 
 
-# Request/Response Models
+# ========== REQUEST/RESPONSE MODELS ==========
+
 class BudgetPlanRequest(BaseModel):
     bill_id: int = Field(description="Past bill ID to base planning on")
     target_budget: float = Field(gt=0, description="Target budget in Rs.")
@@ -27,7 +31,8 @@ class BudgetPlanRequest(BaseModel):
 class MeterReadingRequest(BaseModel):
     plan_id: int = Field(description="Budget plan ID")
     current_reading: int = Field(ge=0, description="Current meter reading")
-    reading_date: datetime = Field(description="Date and time of reading")
+    reading_date: datetime = Field(default_factory=datetime.now, description="Date and time of reading")
+    notes: Optional[str] = Field(None, description="Optional notes")
 
 
 class ManualBillDataRequest(BaseModel):
@@ -39,7 +44,8 @@ class ManualBillDataRequest(BaseModel):
     past_bill_days: int = Field(default=30, ge=28, le=35)
 
 
-# Routes
+# ========== PHASE 1 ENDPOINTS ==========
+
 @router.get("/past-month/{bill_id}")
 def analyze_past_month_bill(
     bill_id: int,
@@ -83,91 +89,12 @@ def analyze_past_month_bill(
     }
 
 
-@router.post("/create-budget-plan")
-def create_budget_plan(
-    request: BudgetPlanRequest,
-    db: Session = Depends(get_db)
-):
-    """
-    Create a budget plan for next billing period
-    
-    - Validates budget is within 50%-150% of past bill
-    - Creates daily and weekly targets
-    - Generates monitoring schedule
-    - Provides recommendations
-    """
-    bill = db.query(ElectricityBill).filter(
-        ElectricityBill.id == request.bill_id
-    ).first()
-    
-    if not bill:
-        raise HTTPException(status_code=404, detail="Bill not found")
-    
-    bill_data = {
-        'units_consumed': bill.units_consumed,
-        'billing_period_days': bill.billing_period_days,
-        'total_due': bill.total_due or 0
-    }
-    
-    plan = analysis_service.create_budget_plan(
-        bill_data,
-        request.target_budget,
-        request.planning_days
-    )
-    
-    # Check for errors
-    if 'error' in plan:
-        raise HTTPException(status_code=400, detail=plan['message'])
-    
-    # TODO: Save plan to database for tracking
-    # For now, return the plan
-    
-    return {
-        'success': True,
-        'message': 'Budget plan created successfully',
-        'bill_id': request.bill_id,
-        'plan': plan
-    }
-
-
-@router.post("/track-progress")
-def track_budget_progress(
-    request: MeterReadingRequest,
-    db: Session = Depends(get_db)
-):
-    """
-    Track progress against budget plan using current meter reading
-    
-    - Compares actual vs expected consumption
-    - Shows if on track, over, or under budget
-    - Projects final cost
-    - Provides actionable recommendations
-    """
-    # TODO: Retrieve plan from database using plan_id
-    # For now, this is a placeholder showing the flow
-    
-    # This would retrieve the saved plan and bill data
-    # plan_data = get_plan_from_db(request.plan_id)
-    # bill = get_bill_from_plan(plan_data)
-    
-    # Placeholder response
-    raise HTTPException(
-        status_code=501,
-        detail="Progress tracking requires storing plans in database. "
-               "Please implement BudgetPlan model first."
-    )
-
-
 @router.post("/manual-analysis")
 def analyze_manual_data(
     request: ManualBillDataRequest
 ):
     """
     Analyze manually entered bill data (for users without bills in system)
-    
-    Useful when:
-    - User hasn't uploaded past bill yet
-    - User wants quick analysis
     """
     bill_data = {
         'units_consumed': request.past_bill_units,
@@ -187,16 +114,11 @@ def analyze_manual_data(
 
 @router.get("/tariff-calculator")
 def calculate_tariff(
-    units: int = Field(ge=0, description="Units consumed"),
-    days: int = Field(default=30, ge=28, le=35, description="Billing period days")
+    units: int = Query(ge=0, description="Units consumed"),  # ✅ Changed Field to Query
+    days: int = Query(default=30, ge=28, le=35, description="Billing period days")  # ✅ Changed Field to Query
 ):
     """
     Calculate bill using CEB tariff structure
-    
-    Useful for:
-    - What-if scenarios
-    - Understanding bill components
-    - Planning consumption
     """
     result = analysis_service.tariff_calculator.calculate_bill(units, days)
     
@@ -205,6 +127,308 @@ def calculate_tariff(
         'calculation': result
     }
 
+# ========== PHASE 2 ENDPOINTS (BUDGET PLANNING & TRACKING) ==========
+
+@router.post("/create-budget-plan")
+def create_budget_plan(
+    request: BudgetPlanRequest,
+    db: Session = Depends(get_db)
+):
+    """
+    Create a budget plan for next billing period
+    
+    PHASE 2 IMPLEMENTATION:
+    - Validates budget is within 50%-150% of past bill
+    - Creates daily and weekly targets
+    - Generates monitoring schedule
+    - Saves plan to database
+    - Provides recommendations
+    """
+    bill = db.query(ElectricityBill).filter(
+        ElectricityBill.id == request.bill_id
+    ).first()
+    
+    if not bill:
+        raise HTTPException(status_code=404, detail="Bill not found")
+    
+    bill_data = {
+        'units_consumed': bill.units_consumed,
+        'billing_period_days': bill.billing_period_days,
+        'total_due': bill.total_due or 0
+    }
+    
+    # Create the plan
+    plan = analysis_service.create_budget_plan(
+        bill_data,
+        request.target_budget,
+        request.planning_days
+    )
+    
+    # Check for validation errors
+    if 'error' in plan:
+        raise HTTPException(status_code=400, detail=plan['message'])
+    
+    # ✅ PHASE 2: Save plan to database
+    try:
+        plan_record = BudgetPlan(
+            reference_bill_id=request.bill_id,
+            account_number=bill.account_number,
+            target_budget=request.target_budget,
+            planning_days=request.planning_days,
+            plan_start_date=datetime.now(),
+            plan_end_date=datetime.now() + timedelta(days=request.planning_days),
+            target_daily_units=plan['daily_targets']['units'],
+            target_daily_cost=plan['daily_targets']['cost'],
+            target_weekly_units=plan['weekly_targets'][0]['target_units'],
+            target_weekly_cost=plan['weekly_targets'][0]['target_cost'],
+            target_total_units=plan['total_targets']['units'],
+            past_bill_amount=bill.total_due,
+            past_bill_units=bill.units_consumed,
+            past_billing_days=bill.billing_period_days,
+            weekly_targets=plan['weekly_targets'],
+            monitoring_schedule=plan['monitoring_schedule'],
+            recommendations=plan['recommendations']
+        )
+        
+        db.add(plan_record)
+        db.commit()
+        db.refresh(plan_record)
+        
+        return {
+            'success': True,
+            'message': 'Budget plan created and saved successfully',
+            'plan_id': plan_record.id,
+            'bill_id': request.bill_id,
+            'plan': plan
+        }
+        
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Error saving plan: {str(e)}")
+
+
+@router.post("/track-progress")
+def track_budget_progress(
+    request: MeterReadingRequest,
+    db: Session = Depends(get_db)
+):
+    """
+    Track progress against budget plan using current meter reading
+    
+    PHASE 2 IMPLEMENTATION:
+    - Compares actual vs expected consumption
+    - Shows if on track, over, or under budget
+    - Projects final cost
+    - Provides actionable recommendations
+    - Saves meter reading to database
+    """
+    # Get the budget plan
+    plan = db.query(BudgetPlan).filter(BudgetPlan.id == request.plan_id).first()
+    
+    if not plan:
+        raise HTTPException(status_code=404, detail="Budget plan not found")
+    
+    # Get reference bill
+    bill = plan.reference_bill
+    
+    if not bill:
+        raise HTTPException(status_code=404, detail="Reference bill not found")
+    
+    # Determine starting point
+    # Check if there are previous readings
+    first_reading = db.query(MeterReading).filter(
+        MeterReading.budget_plan_id == request.plan_id
+    ).order_by(MeterReading.reading_date).first()
+    
+    if first_reading:
+        # Use first reading as baseline
+        start_reading = first_reading.reading_value
+        start_date = first_reading.reading_date
+    else:
+        # Use reference bill's current reading as baseline
+        start_reading = bill.current_reading
+        start_date = plan.plan_start_date
+    
+    # Prepare plan data for tracking
+    plan_data = {
+        'daily_targets': {
+            'units': plan.target_daily_units,
+            'cost': plan.target_daily_cost
+        },
+        'total_targets': {
+            'days': plan.planning_days
+        },
+        'budget_info': {
+            'target_budget': plan.target_budget
+        }
+    }
+    
+    # Calculate progress
+    try:
+        progress = analysis_service.track_progress(
+            plan_data,
+            request.current_reading,
+            request.reading_date,
+            start_reading,
+            start_date
+        )
+        
+        # ✅ PHASE 2: Save meter reading to database
+        variance_percentage = 0
+        if progress['current_status']['expected_cost'] > 0:
+            variance_percentage = (
+                progress['current_status']['variance_cost'] / 
+                progress['current_status']['expected_cost'] * 100
+            )
+        
+        reading_record = MeterReading(
+            budget_plan_id=request.plan_id,
+            reading_value=request.current_reading,
+            reading_date=request.reading_date,
+            units_consumed_so_far=progress['current_status']['units_used'],
+            days_elapsed=progress['current_status']['days_elapsed'],
+            actual_cost_so_far=progress['current_status']['actual_cost'],
+            expected_cost_so_far=progress['current_status']['expected_cost'],
+            variance_units=progress['current_status']['variance_units'],
+            variance_cost=progress['current_status']['variance_cost'],
+            variance_percentage=variance_percentage,
+            status=progress['current_status']['status'],
+            projected_total_units=progress['projection']['projected_total_units'],
+            projected_total_cost=progress['projection']['projected_total_cost'],
+            projected_budget_variance=progress['projection']['budget_variance'],
+            analysis_data=progress,
+            notes=request.notes
+        )
+        
+        db.add(reading_record)
+        
+        # Update plan status
+        plan.last_check_date = request.reading_date
+        plan.current_progress_status = progress['current_status']['status']
+        
+        db.commit()
+        db.refresh(reading_record)
+        
+        return {
+            'success': True,
+            'message': 'Progress tracked successfully',
+            'reading_id': reading_record.id,
+            'plan_id': request.plan_id,
+            'progress': progress
+        }
+        
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Error tracking progress: {str(e)}")
+
+
+@router.get("/plans/{plan_id}")
+def get_plan_details(
+    plan_id: int,
+    db: Session = Depends(get_db)
+):
+    """Get detailed information about a budget plan"""
+    plan = db.query(BudgetPlan).filter(BudgetPlan.id == plan_id).first()
+    
+    if not plan:
+        raise HTTPException(status_code=404, detail="Plan not found")
+    
+    # Get all meter readings for this plan
+    readings = db.query(MeterReading).filter(
+        MeterReading.budget_plan_id == plan_id
+    ).order_by(MeterReading.reading_date).all()
+    
+    return {
+        'success': True,
+        'plan': {
+            'id': plan.id,
+            'account_number': plan.account_number,
+            'target_budget': plan.target_budget,
+            'planning_days': plan.planning_days,
+            'plan_start_date': plan.plan_start_date,
+            'plan_end_date': plan.plan_end_date,
+            'status': plan.status,
+            'current_progress_status': plan.current_progress_status,
+            'target_daily_units': plan.target_daily_units,
+            'target_daily_cost': plan.target_daily_cost,
+            'weekly_targets': plan.weekly_targets,
+            'monitoring_schedule': plan.monitoring_schedule,
+            'recommendations': plan.recommendations
+        },
+        'readings_count': len(readings),
+        'latest_reading': readings[-1].reading_value if readings else None,
+        'last_check_date': plan.last_check_date
+    }
+
+
+@router.get("/plans/account/{account_number}")
+def get_plans_by_account(
+    account_number: str,
+    active_only: bool = True,
+    db: Session = Depends(get_db)
+):
+    """Get all budget plans for an account"""
+    query = db.query(BudgetPlan).filter(
+        BudgetPlan.account_number == account_number
+    )
+    
+    if active_only:
+        query = query.filter(BudgetPlan.is_active == True)
+    
+    plans = query.order_by(BudgetPlan.created_at.desc()).all()
+    
+    return {
+        'success': True,
+        'count': len(plans),
+        'plans': [
+            {
+                'id': p.id,
+                'target_budget': p.target_budget,
+                'planning_days': p.planning_days,
+                'status': p.status,
+                'progress_status': p.current_progress_status,
+                'created_at': p.created_at,
+                'plan_start_date': p.plan_start_date,
+                'plan_end_date': p.plan_end_date
+            }
+            for p in plans
+        ]
+    }
+
+
+@router.get("/readings/plan/{plan_id}")
+def get_plan_readings(
+    plan_id: int,
+    db: Session = Depends(get_db)
+):
+    """Get all meter readings for a budget plan"""
+    readings = db.query(MeterReading).filter(
+        MeterReading.budget_plan_id == plan_id
+    ).order_by(MeterReading.reading_date).all()
+    
+    return {
+        'success': True,
+        'plan_id': plan_id,
+        'count': len(readings),
+        'readings': [
+            {
+                'id': r.id,
+                'reading_value': r.reading_value,
+                'reading_date': r.reading_date,
+                'days_elapsed': r.days_elapsed,
+                'units_consumed': r.units_consumed_so_far,
+                'actual_cost': r.actual_cost_so_far,
+                'expected_cost': r.expected_cost_so_far,
+                'variance_cost': r.variance_cost,
+                'status': r.status,
+                'projected_total_cost': r.projected_total_cost
+            }
+            for r in readings
+        ]
+    }
+
+
+# ========== UTILITY ENDPOINTS ==========
 
 @router.get("/compare-periods")
 def compare_billing_periods(
@@ -212,9 +436,7 @@ def compare_billing_periods(
     bill_id_2: int,
     db: Session = Depends(get_db)
 ):
-    """
-    Compare two billing periods to identify trends
-    """
+    """Compare two billing periods to identify trends"""
     bill1 = db.query(ElectricityBill).filter(ElectricityBill.id == bill_id_1).first()
     bill2 = db.query(ElectricityBill).filter(ElectricityBill.id == bill_id_2).first()
     
@@ -274,14 +496,7 @@ def get_budget_recommendations(
     bill_id: int,
     db: Session = Depends(get_db)
 ):
-    """
-    Get smart budget recommendations based on past bill
-    
-    Suggests:
-    - Realistic budget ranges
-    - Potential savings opportunities
-    - Consumption reduction strategies
-    """
+    """Get smart budget recommendations based on past bill"""
     bill = db.query(ElectricityBill).filter(ElectricityBill.id == bill_id).first()
     
     if not bill:
@@ -314,9 +529,9 @@ def get_budget_recommendations(
         })
     
     # Budget range suggestions
-    conservative_budget = past_cost * 0.9  # 10% reduction
-    moderate_budget = past_cost * 0.8  # 20% reduction
-    aggressive_budget = past_cost * 0.7  # 30% reduction (if above threshold)
+    conservative_budget = past_cost * 0.9
+    moderate_budget = past_cost * 0.8
+    aggressive_budget = past_cost * 0.7
     
     recommendations.append({
         'type': 'budget_options',
