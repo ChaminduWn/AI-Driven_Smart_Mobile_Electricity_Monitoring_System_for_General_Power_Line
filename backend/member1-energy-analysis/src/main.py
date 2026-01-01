@@ -2,7 +2,8 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from src.config import settings
 from src.database import engine, Base
-from src.api import routes
+from src.api import routes  # ✅ Import the routes module
+from src.api.routes import bill_analysis  # ✅ Import bill_analysis submodule
 import logging
 import os
 
@@ -42,17 +43,18 @@ app = FastAPI(
     description="API for extracting and managing electricity bill data",
 )
 
-# CORS
+# CORS - FIXED: Use the property!
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.CORS_ORIGINS,
+    allow_origins=settings.cors_origins_list,  # ✅ Use the property
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
 # Routes
-app.include_router(routes.router)
+app.include_router(routes.router)  # ✅ Main routes
+app.include_router(bill_analysis.router)  # ✅ Analysis routes
 
 logger.info(f"{settings.APP_NAME} v{settings.APP_VERSION} initialized")
 
