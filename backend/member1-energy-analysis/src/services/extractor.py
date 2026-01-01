@@ -1,0 +1,171 @@
+from typing import Dict, Optional
+from datetime import datetime
+from src.services.ocr import OCRService
+from src.parsers.ceb_parser import CEBBillParser
+from src.models.bill import ElectricityBill
+from sqlalchemy.orm import Session
+
+class BillExtractionService:
+    """Service for extracting and processing electricity bills"""
+    
+    def __init__(self):
+        self.ocr_service = OCRService()
+        self.parser = CEBBillParser()
+    
+    def extract_bill_data(
+        self, 
+        file_path: str, 
+        file_name: str,
+        file_type: str,
+        db: Session
+    ) -> Dict:
+        """
+        Main extraction method
+        
+        Args:
+            file_path: Path to the uploaded file
+            file_name: Original filename
+            file_type: File extension (pdf, jpg, etc.)
+            db: Database session
+            
+        Returns:
+            Dictionary containing extraction results
+        """
+        try:
+            # Step 1: Extract text using OCR
+            raw_text = self.ocr_service.extract_text(file_path, file_type)
+            
+            if not raw_text:
+                raise Exception("No text could be extracted from the file")
+            
+            # Step 2: Parse the extracted text
+            parsed_data = self.parser.parse(raw_text)
+            
+            # Step 3: Save to database
+            bill = self._save_to_database(
+                db=db,
+                file_name=file_name,
+                file_path=file_path,
+                file_type=file_type,
+                raw_text=raw_text,
+                parsed_data=parsed_data
+            )
+            
+            return {
+                'success': True,
+                'bill_id': bill.id,
+                'extracted_data': parsed_data,
+                'confidence_score': parsed_data.get('confidence_score', 0),
+                'message': 'Bill extracted successfully'
+            }
+            
+        except Exception as e:
+            # Log error and save failed extraction to database
+            error_bill = self._save_failed_extraction(
+                db=db,
+                file_name=file_name,
+                file_path=file_path,
+                file_type=file_type,
+                error_message=str(e)
+            )
+            
+            return {
+                'success': False,
+                'bill_id': error_bill.id if error_bill else None,
+                'message': f'Extraction failed: {str(e)}',
+                'error': str(e)
+            }
+    
+    def _save_to_database(
+        self,
+        db: Session,
+        file_name: str,
+        file_path: str,
+        file_type: str,
+        raw_text: str,
+        parsed_data: Dict
+    ) -> ElectricityBill:
+        """Save extracted bill data to database"""
+        
+        # Parse meter readings
+        meter_readings = parsed_data.get('meter_readings', [])
+        previous_reading = None
+        current_reading = None
+        previous_date = None
+        current_date = None
+        
+        if len(meter_readings) >= 2:
+            previous_reading = meter_readings[0]['reading']
+            current_reading = meter_readings[1]['reading']
+            previous_date = datetime.strptime(meter_readings[0]['date'], '%Y-%m-%d')
+            current_date = datetime.strptime(meter_readings[1]['date'], '%Y-%m-%d')
+        
+        # Parse bill date
+        bill_date = None
+        if parsed_data.get('bill_date'):
+            try:
+                bill_date = datetime.strptime(parsed_data['bill_date'], '%Y-%m-%d')
+            except:
+                pass
+        
+        # Create bill record
+        bill = ElectricityBill(
+            file_name=file_name,
+            file_path=file_path,
+            file_type=file_type,
+            account_number=parsed_data.get('account_number'),
+            bill_reference=parsed_data.get('bill_reference'),
+            bill_date=bill_date,
+            units_consumed=parsed_data.get('units_consumed'),
+            units_exported=parsed_data.get('units_exported', 0),
+            billing_period_days=parsed_data.get('billing_period_days'),
+            previous_reading=previous_reading,
+            current_reading=current_reading,
+            previous_reading_date=previous_date,
+            current_reading_date=current_date,
+            fixed_charge=parsed_data.get('fixed_charge', 0.0),
+            unit_charge=parsed_data.get('unit_charge', 0.0),
+            total_due=parsed_data.get('total_due'),
+            previous_due=parsed_data.get('previous_due', 0.0),
+            customer_name=parsed_data.get('customer_name'),
+            customer_address=parsed_data.get('customer_address'),
+            tariff_type=parsed_data.get('tariff_type'),
+            connection_type=parsed_data.get('connection_type'),
+            raw_text=raw_text,
+            extracted_data=parsed_data,
+            confidence_score=parsed_data.get('confidence_score', 0.0),
+            processing_status='completed'
+        )
+        
+        db.add(bill)
+        db.commit()
+        db.refresh(bill)
+        
+        return bill
+    
+    def _save_failed_extraction(
+        self,
+        db: Session,
+        file_name: str,
+        file_path: str,
+        file_type: str,
+        error_message: str
+    ) -> Optional[ElectricityBill]:
+        """Save failed extraction attempt to database"""
+        try:
+            bill = ElectricityBill(
+                file_name=file_name,
+                file_path=file_path,
+                file_type=file_type,
+                processing_status='failed',
+                error_message=error_message
+            )
+            
+            db.add(bill)
+            db.commit()
+            db.refresh(bill)
+            
+            return bill
+        except Exception as e:
+            print(f"Error saving failed extraction: {str(e)}")
+            return None
