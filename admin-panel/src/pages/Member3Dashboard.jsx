@@ -5,12 +5,11 @@ export default function Member3Dashboard() {
   return (
     <Box>
       <Typography variant="h4" gutterBottom>
-        Solar Power Recommendations
+        Solar Power Recommendation
       </Typography>
       <Typography variant="body1">
-        Member 3 features: Climate analysis, Solar feasibility, Cost estimation
+        Member 3 features: Climate trends, Solar feasibility, ROI calculations
       </Typography>
-      {/* Add your components here */}
     </Box>
   );
 }

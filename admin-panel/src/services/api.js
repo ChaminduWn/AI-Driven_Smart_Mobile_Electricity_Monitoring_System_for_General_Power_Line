@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'http://localhost';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8002';
 
 const apiClient = axios.create({
   baseURL: API_BASE_URL,
@@ -19,6 +19,16 @@ apiClient.interceptors.request.use(
     return config;
   },
   (error) => Promise.reject(error)
+);
+
+// Response interceptor to handle errors gracefully
+apiClient.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    // Don't crash the app on API errors
+    console.error('API Error:', error);
+    return Promise.reject(error);
+  }
 );
 
 export default apiClient;
