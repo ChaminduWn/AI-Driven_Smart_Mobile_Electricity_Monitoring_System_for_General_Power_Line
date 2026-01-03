@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { BarChart, Bar, LineChart, Line, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import { Camera, TrendingDown, TrendingUp, Zap, DollarSign, Calendar, AlertCircle, CheckCircle, Target, Activity } from 'lucide-react';
+import { Camera, TrendingDown, TrendingUp, Zap, DollarSign, Calendar, AlertCircle, CheckCircle, Target, Activity, Trash2 } from 'lucide-react';
 
 const API_BASE = 'http://localhost:8000/api/v1';
 
@@ -24,6 +24,9 @@ const ElectricityDashboard = () => {
   const [budgetPlan, setBudgetPlan] = useState(null);
   const [progress, setProgress] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [file, setFile] = useState(null);
+  const [accountNumber, setAccountNumber] = useState('123456789'); // Demo account - make dynamic later
 
   // Fetch bills on load
   useEffect(() => {
@@ -33,10 +36,11 @@ const ElectricityDashboard = () => {
   const fetchBills = async () => {
     try {
       const response = await fetch(`${API_BASE}/bills`);
+      if (!response.ok) throw new Error('Failed to fetch bills');
       const data = await response.json();
       if (data.success) {
-        setBills(data.data);
-        if (data.data.length > 0) {
+        setBills(data.data || []);
+        if (data.data && data.data.length > 0) {
           setSelectedBill(data.data[0]);
           fetchAnalysis(data.data[0].id);
         }
@@ -50,6 +54,7 @@ const ElectricityDashboard = () => {
     setLoading(true);
     try {
       const response = await fetch(`${API_BASE}/analysis/past-month/${billId}`);
+      if (!response.ok) throw new Error('Failed to fetch analysis');
       const data = await response.json();
       if (data.success) {
         setAnalysis(data.analysis);
@@ -60,12 +65,135 @@ const ElectricityDashboard = () => {
     setLoading(false);
   };
 
+  // Bill Upload Handler
+  const handleUpload = async () => {
+    if (!file) {
+      alert('Please select a file');
+      return;
+    }
+    setUploading(true);
+    const formData = new FormData();
+    formData.append('file', file);
+
+    try {
+      const response = await fetch(`${API_BASE}/bills/extract`, {
+        method: 'POST',
+        body: formData,
+      });
+      const data = await response.json();
+      if (data.success) {
+        alert(`✅ Bill extracted successfully! Bill ID: ${data.bill_id}`);
+        setFile(null);
+        fetchBills(); // Refresh bills list
+      } else {
+        alert(`❌ Upload failed: ${data.message || 'Unknown error'}`);
+      }
+    } catch (error) {
+      console.error('Upload error:', error);
+      alert('❌ Failed to upload bill. Please try again.');
+    }
+    setUploading(false);
+  };
+
+  const deleteBill = async (billId, filePath) => {
+    if (!confirm('Delete this bill? This cannot be undone.')) return;
+    
+    try {
+      const response = await fetch(`${API_BASE}/bills/${billId}`, {
+        method: 'DELETE'
+      });
+      const data = await response.json();
+      if (data.success) {
+        alert('✅ Bill deleted successfully');
+        fetchBills(); // Refresh list
+        if (selectedBill?.id === billId) {
+          setSelectedBill(null);
+          setAnalysis(null);
+        }
+      }
+    } catch (error) {
+      console.error('Delete error:', error);
+      alert('Failed to delete bill');
+    }
+  };
+
+  // Bill List Component
+  const BillList = () => (
+    <div className="bg-gray-800 rounded-xl p-6 shadow-xl border border-gray-700">
+      <h3 className="text-xl font-semibold text-white mb-4 flex items-center gap-2">
+        <Zap className="w-5 h-5" />
+        Recent Bills ({bills.length})
+      </h3>
+      {bills.length === 0 ? (
+        <div className="text-center py-12 text-gray-400">
+          <Calendar className="w-12 h-12 mx-auto mb-4 opacity-50" />
+          <p>No bills uploaded yet. Upload your first bill to get started!</p>
+        </div>
+      ) : (
+        <div className="overflow-x-auto">
+          <table className="w-full text-left">
+            <thead>
+              <tr className="border-b border-gray-700">
+                <th className="py-3 px-4 text-gray-300 font-semibold">Date</th>
+                <th className="py-3 px-4 text-gray-300 font-semibold">Units</th>
+                <th className="py-3 px-4 text-gray-300 font-semibold">Cost</th>
+                <th className="py-3 px-4 text-gray-300 font-semibold">Days</th>
+                <th className="py-3 px-4 text-gray-300 font-semibold">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {bills.slice(0, 5).map((bill) => (
+                <tr key={bill.id} className="border-b border-gray-700 hover:bg-gray-750">
+                  <td className="py-3 px-4">
+                    <div>
+                      <p className="text-white font-medium">{new Date(bill.bill_date).toLocaleDateString()}</p>
+                      <p className="text-sm text-gray-400">{bill.account_number}</p>
+                    </div>
+                  </td>
+                  <td className="py-3 px-4 text-blue-400 font-semibold">{bill.units_consumed} kWh</td>
+                  <td className="py-3 px-4 text-green-400 font-semibold">Rs. {bill.total_due?.toFixed(2)}</td>
+                  <td className="py-3 px-4 text-purple-400">{bill.billing_period_days} days</td>
+                  <td className="py-3 px-4">
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => {
+                          setSelectedBill(bill);
+                          fetchAnalysis(bill.id);
+                        }}
+                        className="text-blue-400 hover:text-blue-300 p-1 hover:bg-blue-900/20 rounded transition-colors"
+                        title="Analyze"
+                      >
+                        📊
+                      </button>
+                      <button
+                        onClick={() => deleteBill(bill.id, bill.file_path)}
+                        className="text-red-400 hover:text-red-300 p-1 hover:bg-red-900/20 rounded transition-colors"
+                        title="Delete"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  );
+
   // Overview Tab
   const OverviewTab = () => {
-    if (!analysis) return <div className="text-center py-12 text-gray-400">No data available. Upload a bill to get started.</div>;
+    if (loading) return <div className="text-center py-12 text-gray-400">Loading analysis...</div>;
+    if (!analysis) return (
+      <div className="text-center py-12 text-gray-400">
+        <Zap className="w-16 h-16 mx-auto mb-4 opacity-50" />
+        <p>No analysis available. Select a bill or upload a new one to get started.</p>
+      </div>
+    );
 
     const { summary, week_breakdown, tariff_details } = analysis;
-
     return (
       <div className="space-y-6">
         {/* Stats Cards */}
@@ -113,7 +241,7 @@ const ElectricityDashboard = () => {
                 <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
                 <XAxis dataKey="week" stroke="#9CA3AF" />
                 <YAxis stroke="#9CA3AF" />
-                <Tooltip 
+                <Tooltip
                   contentStyle={{ backgroundColor: '#1F2937', border: '1px solid #374151', borderRadius: '8px' }}
                   labelStyle={{ color: '#F9FAFB' }}
                 />
@@ -133,7 +261,7 @@ const ElectricityDashboard = () => {
                 <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
                 <XAxis dataKey="week" stroke="#9CA3AF" />
                 <YAxis stroke="#9CA3AF" />
-                <Tooltip 
+                <Tooltip
                   contentStyle={{ backgroundColor: '#1F2937', border: '1px solid #374151', borderRadius: '8px' }}
                   labelStyle={{ color: '#F9FAFB' }}
                 />
@@ -170,16 +298,16 @@ const ElectricityDashboard = () => {
     }, [selectedBill]);
 
     const createBudgetPlan = async () => {
-      if (!selectedBill) return;
-
+      if (!selectedBill) {
+        alert('Please select a bill first');
+        return;
+      }
       const minBudget = selectedBill.total_due * 0.5;
       const maxBudget = selectedBill.total_due * 1.5;
-
       if (targetBudget < minBudget || targetBudget > maxBudget) {
         alert(`Budget must be between Rs. ${minBudget.toFixed(2)} and Rs. ${maxBudget.toFixed(2)}`);
         return;
       }
-
       setLoading(true);
       try {
         const response = await fetch(`${API_BASE}/analysis/create-budget-plan`, {
@@ -195,6 +323,8 @@ const ElectricityDashboard = () => {
         if (data.success) {
           setBudgetPlan(data.plan);
           alert('Budget plan created successfully!');
+        } else {
+          alert(`Error: ${data.message || 'Failed to create plan'}`);
         }
       } catch (error) {
         console.error('Error creating plan:', error);
@@ -214,7 +344,7 @@ const ElectricityDashboard = () => {
             <Target className="w-7 h-7" />
             Create Budget Plan
           </h3>
-          
+         
           {selectedBill && (
             <div className="bg-black bg-opacity-30 rounded-lg p-4 mb-6">
               <div className="grid grid-cols-3 gap-4 text-center">
@@ -233,7 +363,6 @@ const ElectricityDashboard = () => {
               </div>
             </div>
           )}
-
           <div className="grid md:grid-cols-2 gap-6">
             <div>
               <label className="block text-white mb-2 font-medium">Target Budget (Rs.)</label>
@@ -247,7 +376,6 @@ const ElectricityDashboard = () => {
               />
               <p className="text-gray-400 text-sm mt-2">Range: Rs. {minBudget} - {maxBudget}</p>
             </div>
-
             <div>
               <label className="block text-white mb-2 font-medium">Planning Period (Days)</label>
               <select
@@ -261,7 +389,6 @@ const ElectricityDashboard = () => {
               </select>
             </div>
           </div>
-
           <button
             onClick={createBudgetPlan}
             disabled={loading || !selectedBill}
@@ -301,7 +428,7 @@ const ElectricityDashboard = () => {
               </div>
             </div>
 
-            {/* Weekly Targets */}
+            {/* Weekly Targets Table */}
             <div className="bg-gray-800 rounded-xl p-6 shadow-xl border border-gray-700">
               <h4 className="text-lg font-semibold text-white mb-4">Weekly Targets</h4>
               <div className="overflow-x-auto">
@@ -379,7 +506,41 @@ const ElectricityDashboard = () => {
       </div>
 
       {/* Main Content */}
-      <div className="max-w-7xl mx-auto">
+      <div className="max-w-7xl mx-auto space-y-6">
+        {/* Bill Upload Section */}
+        <div className="bg-gray-800 rounded-xl p-6 shadow-xl border border-gray-700">
+          <h3 className="text-xl font-semibold text-white mb-4 flex items-center gap-2">
+            <Camera className="w-6 h-6 text-blue-400" />
+            Upload Electricity Bill
+          </h3>
+          <div className="flex flex-col md:flex-row gap-4 items-start md:items-center">
+            <input
+              type="file"
+              accept="image/*,.pdf"
+              onChange={(e) => setFile(e.target.files[0])}
+              className="flex-1 px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:outline-none file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-600 file:text-white hover:file:bg-blue-700"
+            />
+            <button
+              onClick={handleUpload}
+              disabled={!file || uploading}
+              className="bg-gradient-to-r from-blue-600 to-purple-600 text-white py-3 px-8 rounded-lg font-semibold hover:from-blue-700 hover:to-purple-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+            >
+              {uploading ? (
+                <>
+                  <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  Uploading...
+                </>
+              ) : (
+                'Upload & Extract'
+              )}
+            </button>
+          </div>
+          <p className="text-gray-400 text-sm mt-3">Supports PDF and images. AI will extract all data automatically.</p>
+        </div>
+
+        {/* Recent Bills List */}
+        <BillList />
+
         {/* Tabs */}
         <div className="flex gap-2 mb-6 bg-gray-800 p-2 rounded-xl">
           <TabButton active={activeTab === 'overview'} onClick={() => setActiveTab('overview')}>
@@ -388,20 +549,12 @@ const ElectricityDashboard = () => {
           <TabButton active={activeTab === 'budget'} onClick={() => setActiveTab('budget')}>
             Budget Planner
           </TabButton>
-          <TabButton active={activeTab === 'tracking'} onClick={() => setActiveTab('tracking')}>
-            Progress Tracking
-          </TabButton>
         </div>
 
         {/* Tab Content */}
         <div>
           {activeTab === 'overview' && <OverviewTab />}
           {activeTab === 'budget' && <BudgetPlannerTab />}
-          {activeTab === 'tracking' && (
-            <div className="text-center py-12 text-gray-400">
-              Coming soon: Track your daily progress here
-            </div>
-          )}
         </div>
       </div>
     </div>
@@ -416,7 +569,6 @@ const StatCard = ({ icon, label, value, trend, color }) => {
     purple: 'from-purple-600 to-purple-700',
     teal: 'from-teal-600 to-teal-700'
   };
-
   return (
     <div className={`bg-gradient-to-br ${colors[color]} rounded-xl p-6 shadow-xl`}>
       <div className="flex items-center justify-between mb-4">

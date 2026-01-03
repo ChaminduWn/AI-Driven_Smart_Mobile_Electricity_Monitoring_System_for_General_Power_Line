@@ -8,6 +8,8 @@ from src.config import settings
 from src.database import engine, Base
 from src.api.route import router as main_router  # ✅ Changed from routes to route
 from src.api.routes import bill_analysis  # ✅ Now imports from routes/ directory
+from src.api.routes import appliances  # ✅ ADD THIS LINE
+
 import logging
 import os
 
@@ -58,7 +60,10 @@ app.add_middleware(
 
 # ✅ Include routes
 app.include_router(main_router)
-app.include_router(bill_analysis.router)
+app.include_router(bill_analysis.router, prefix="/api/v1")
+app.include_router(appliances.router, prefix="/api/v1")
+# app.include_router(appliances.router)  # ✅ ADD THIS LINE
+
 
 logger.info(f"{settings.APP_NAME} v{settings.APP_VERSION} initialized")
 
@@ -75,7 +80,8 @@ def root():
             "Past Month Analysis",
             "Budget Planning",
             "Progress Tracking",
-            "Tariff Calculator"
+            "Tariff Calculator",
+             "Appliance Management" 
         ]
     }
 
@@ -90,7 +96,8 @@ def health():
             "bill_extraction",
             "bill_analysis",
             "budget_planning",
-            "progress_tracking"
+            "progress_tracking",
+            "appliance_management" 
         ]
     }
 
@@ -104,6 +111,7 @@ async def startup_event():
     logger.info("  - Past Month Analysis")
     logger.info("  - Budget Planning")
     logger.info("  - Progress Tracking")
+    logger.info("  - Appliance Management") 
 
 
 @app.on_event("shutdown")
