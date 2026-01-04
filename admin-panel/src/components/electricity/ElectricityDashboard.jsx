@@ -152,7 +152,6 @@ const ElectricityDashboard = () => {
                   <td className="py-3 px-4 text-green-400 font-semibold">
                     Rs. {(bill.total_charge || 0).toFixed(2)}
                   </td>
-                  
                   <td className="py-3 px-4 text-purple-400">{bill.billing_period_days || 0} days</td>
                   <td className="py-3 px-4">
                     <div className="flex items-center gap-2">
@@ -269,12 +268,14 @@ const ElectricityDashboard = () => {
 
         <div className="bg-gray-800 rounded-xl p-6 shadow-xl border border-gray-700">
           <h3 className="text-lg font-semibold text-white mb-4">Tariff Breakdown</h3>
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-            <TariffItem label="Category" value={tariff_details.category} />
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <TariffItem label="Energy Charge" value={`Rs. ${tariff_details.energy_charge.toFixed(2)}`} />
             <TariffItem label="Fixed Charge" value={`Rs. ${tariff_details.fixed_charge.toFixed(2)}`} />
-            <TariffItem label="SSCL (2.5%)" value={`Rs. ${tariff_details.sscl.toFixed(2)}`} />
-            <TariffItem label="Total" value={`Rs. ${tariff_details.total.toFixed(2)}`} highlight />
+            <TariffItem label="SSCL Tax (2.5%)" value={`Rs. ${tariff_details.sscl.toFixed(2)}`} />
+            <TariffItem label="Monthly Total" value={`Rs. ${tariff_details.total.toFixed(2)}`} highlight />
+          </div>
+          <div className="mt-4 text-sm text-gray-400">
+            <p>💡 Category: {tariff_details.category === 1 || tariff_details.category === '0-60 kWh (Low Consumption)' ? 'Low Consumption (0-60 kWh)' : 'High Consumption (Above 60 kWh)'}</p>
           </div>
         </div>
       </div>
@@ -570,4 +571,3 @@ const TabButton = ({ active, onClick, children }) => (
 );
 
 export default ElectricityDashboard;
-
