@@ -6,6 +6,7 @@ import { Zap } from 'lucide-react';
 import ElectricityDashboard from '../components/electricity/ElectricityDashboard';
 import ProgressTracker from '../components/electricity/ProgressTracker';
 import ApplianceManager from '../components/electricity/ApplianceManager';
+import TariffCalculator from '../components/electricity/TariffCalculator';
 
 // Navigation Button
 const NavButton = ({ active, onClick, children }) => (
@@ -54,12 +55,19 @@ export default function Member1Dashboard() {
 
         {/* Tabs */}
         <nav className="bg-gray-800 border-b border-gray-700">
-          <div className="max-w-7xl mx-auto px-6 flex gap-2">
+          <div className="max-w-7xl mx-auto px-6 flex gap-2 overflow-x-auto">
             <NavButton
               active={activeTab === 'dashboard'}
               onClick={() => setActiveTab('dashboard')}
             >
-              Electricity Dashboard
+               Dashboard
+            </NavButton>
+
+            <NavButton
+              active={activeTab === 'calculator'}
+              onClick={() => setActiveTab('calculator')}
+            >
+               Tariff Calculator
             </NavButton>
 
             <NavButton
@@ -73,7 +81,7 @@ export default function Member1Dashboard() {
               active={activeTab === 'appliances'}
               onClick={() => setActiveTab('appliances')}
             >
-              Appliances
+              🔌 Appliances
             </NavButton>
           </div>
         </nav>
@@ -81,6 +89,7 @@ export default function Member1Dashboard() {
         {/* Content */}
         <main className="p-6">
           {activeTab === 'dashboard' && <ElectricityDashboard />}
+          {activeTab === 'calculator' && <TariffCalculator />}
           {activeTab === 'tracker' && <ProgressTracker />}
           {activeTab === 'appliances' && <ApplianceManager />}
         </main>

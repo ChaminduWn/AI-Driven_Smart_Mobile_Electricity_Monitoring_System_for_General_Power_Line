@@ -16,6 +16,8 @@ class BillExtractResponse(BaseModel):
     data: Optional[Dict[str, Any]] = None
     bill_id: Optional[int] = None
     
+
+
 class BillData(BaseModel):
     id: int
     account_number: Optional[str] = None
@@ -23,7 +25,7 @@ class BillData(BaseModel):
     bill_date: Optional[datetime] = None
     units_consumed: Optional[int] = None
     billing_period_days: Optional[int] = None
-    total_due: Optional[float] = None
+    total_charge: Optional[float] = None  # ✅ Changed from total_due
     processing_status: str
     confidence_score: float
     created_at: datetime
