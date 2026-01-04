@@ -4,7 +4,6 @@ import { Camera, TrendingDown, TrendingUp, Zap, DollarSign, Calendar, AlertCircl
 
 const API_BASE = 'http://localhost:8000/api/v1';
 
-// Modern gradient colors
 const COLORS = {
   primary: '#3B82F6',
   success: '#10B981',
@@ -22,13 +21,10 @@ const ElectricityDashboard = () => {
   const [selectedBill, setSelectedBill] = useState(null);
   const [analysis, setAnalysis] = useState(null);
   const [budgetPlan, setBudgetPlan] = useState(null);
-  const [progress, setProgress] = useState(null);
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [file, setFile] = useState(null);
-  const [accountNumber, setAccountNumber] = useState('123456789'); // Demo account - make dynamic later
 
-  // Fetch bills on load
   useEffect(() => {
     fetchBills();
   }, []);
@@ -65,7 +61,6 @@ const ElectricityDashboard = () => {
     setLoading(false);
   };
 
-  // Bill Upload Handler
   const handleUpload = async () => {
     if (!file) {
       alert('Please select a file');
@@ -82,9 +77,9 @@ const ElectricityDashboard = () => {
       });
       const data = await response.json();
       if (data.success) {
-        alert(`✅ Bill extracted successfully! Bill ID: ${data.bill_id}`);
+        alert(`✅ Bill extracted successfully!\nBill ID: ${data.bill_id}\nTotal Charge: Rs. ${data.data?.total_charge || 'N/A'}`);
         setFile(null);
-        fetchBills(); // Refresh bills list
+        fetchBills();
       } else {
         alert(`❌ Upload failed: ${data.message || 'Unknown error'}`);
       }
@@ -95,7 +90,7 @@ const ElectricityDashboard = () => {
     setUploading(false);
   };
 
-  const deleteBill = async (billId, filePath) => {
+  const deleteBill = async (billId) => {
     if (!confirm('Delete this bill? This cannot be undone.')) return;
     
     try {
@@ -105,7 +100,7 @@ const ElectricityDashboard = () => {
       const data = await response.json();
       if (data.success) {
         alert('✅ Bill deleted successfully');
-        fetchBills(); // Refresh list
+        fetchBills();
         if (selectedBill?.id === billId) {
           setSelectedBill(null);
           setAnalysis(null);
@@ -117,7 +112,6 @@ const ElectricityDashboard = () => {
     }
   };
 
-  // Bill List Component
   const BillList = () => (
     <div className="bg-gray-800 rounded-xl p-6 shadow-xl border border-gray-700">
       <h3 className="text-xl font-semibold text-white mb-4 flex items-center gap-2">
@@ -146,13 +140,20 @@ const ElectricityDashboard = () => {
                 <tr key={bill.id} className="border-b border-gray-700 hover:bg-gray-750">
                   <td className="py-3 px-4">
                     <div>
-                      <p className="text-white font-medium">{new Date(bill.bill_date).toLocaleDateString()}</p>
-                      <p className="text-sm text-gray-400">{bill.account_number}</p>
+                      <p className="text-white font-medium">
+                        {bill.bill_date ? new Date(bill.bill_date).toLocaleDateString() : 'N/A'}
+                      </p>
+                      <p className="text-sm text-gray-400">{bill.account_number || 'No account'}</p>
                     </div>
                   </td>
-                  <td className="py-3 px-4 text-blue-400 font-semibold">{bill.units_consumed} kWh</td>
-                  <td className="py-3 px-4 text-green-400 font-semibold">Rs. {bill.total_due?.toFixed(2)}</td>
-                  <td className="py-3 px-4 text-purple-400">{bill.billing_period_days} days</td>
+                  <td className="py-3 px-4 text-blue-400 font-semibold">
+                    {bill.units_consumed || 0} kWh
+                  </td>
+                  <td className="py-3 px-4 text-green-400 font-semibold">
+                    Rs. {(bill.total_charge || 0).toFixed(2)}
+                  </td>
+                  
+                  <td className="py-3 px-4 text-purple-400">{bill.billing_period_days || 0} days</td>
                   <td className="py-3 px-4">
                     <div className="flex items-center gap-2">
                       <button
@@ -166,7 +167,7 @@ const ElectricityDashboard = () => {
                         📊
                       </button>
                       <button
-                        onClick={() => deleteBill(bill.id, bill.file_path)}
+                        onClick={() => deleteBill(bill.id)}
                         className="text-red-400 hover:text-red-300 p-1 hover:bg-red-900/20 rounded transition-colors"
                         title="Delete"
                       >
@@ -183,7 +184,6 @@ const ElectricityDashboard = () => {
     </div>
   );
 
-  // Overview Tab
   const OverviewTab = () => {
     if (loading) return <div className="text-center py-12 text-gray-400">Loading analysis...</div>;
     if (!analysis) return (
@@ -196,7 +196,6 @@ const ElectricityDashboard = () => {
     const { summary, week_breakdown, tariff_details } = analysis;
     return (
       <div className="space-y-6">
-        {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <StatCard
             icon={<Zap className="w-6 h-6" />}
@@ -228,9 +227,7 @@ const ElectricityDashboard = () => {
           />
         </div>
 
-        {/* Charts Row */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Weekly Consumption Chart */}
           <div className="bg-gray-800 rounded-xl p-6 shadow-xl border border-gray-700">
             <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
               <BarChart className="w-5 h-5 text-blue-400" />
@@ -250,7 +247,6 @@ const ElectricityDashboard = () => {
             </ResponsiveContainer>
           </div>
 
-          {/* Weekly Cost Chart */}
           <div className="bg-gray-800 rounded-xl p-6 shadow-xl border border-gray-700">
             <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
               <LineChart className="w-5 h-5 text-green-400" />
@@ -271,7 +267,6 @@ const ElectricityDashboard = () => {
           </div>
         </div>
 
-        {/* Tariff Breakdown */}
         <div className="bg-gray-800 rounded-xl p-6 shadow-xl border border-gray-700">
           <h3 className="text-lg font-semibold text-white mb-4">Tariff Breakdown</h3>
           <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
@@ -286,14 +281,13 @@ const ElectricityDashboard = () => {
     );
   };
 
-  // Budget Planner Tab
   const BudgetPlannerTab = () => {
     const [targetBudget, setTargetBudget] = useState(0);
     const [planningDays, setPlanningDays] = useState(30);
 
     useEffect(() => {
-      if (selectedBill) {
-        setTargetBudget((selectedBill.total_due * 0.9).toFixed(2));
+      if (selectedBill && selectedBill.total_charge) {
+        setTargetBudget((selectedBill.total_charge * 0.9).toFixed(2));
       }
     }, [selectedBill]);
 
@@ -302,8 +296,8 @@ const ElectricityDashboard = () => {
         alert('Please select a bill first');
         return;
       }
-      const minBudget = selectedBill.total_due * 0.5;
-      const maxBudget = selectedBill.total_due * 1.5;
+      const minBudget = selectedBill.total_charge * 0.5;
+      const maxBudget = selectedBill.total_charge * 1.5;
       if (targetBudget < minBudget || targetBudget > maxBudget) {
         alert(`Budget must be between Rs. ${minBudget.toFixed(2)} and Rs. ${maxBudget.toFixed(2)}`);
         return;
@@ -322,23 +316,22 @@ const ElectricityDashboard = () => {
         const data = await response.json();
         if (data.success) {
           setBudgetPlan(data.plan);
-          alert('Budget plan created successfully!');
+          alert('✅ Budget plan created successfully!');
         } else {
-          alert(`Error: ${data.message || 'Failed to create plan'}`);
+          alert(`❌ Error: ${data.message || 'Failed to create plan'}`);
         }
       } catch (error) {
         console.error('Error creating plan:', error);
-        alert('Failed to create budget plan');
+        alert('❌ Failed to create budget plan');
       }
       setLoading(false);
     };
 
-    const minBudget = selectedBill ? (selectedBill.total_due * 0.5).toFixed(2) : 0;
-    const maxBudget = selectedBill ? (selectedBill.total_due * 1.5).toFixed(2) : 0;
+    const minBudget = selectedBill ? (selectedBill.total_charge * 0.5).toFixed(2) : 0;
+    const maxBudget = selectedBill ? (selectedBill.total_charge * 1.5).toFixed(2) : 0;
 
     return (
       <div className="space-y-6">
-        {/* Budget Setup Form */}
         <div className="bg-gradient-to-br from-blue-900 to-purple-900 rounded-xl p-6 shadow-xl border border-blue-700">
           <h3 className="text-2xl font-bold text-white mb-6 flex items-center gap-2">
             <Target className="w-7 h-7" />
@@ -350,7 +343,7 @@ const ElectricityDashboard = () => {
               <div className="grid grid-cols-3 gap-4 text-center">
                 <div>
                   <p className="text-gray-300 text-sm">Past Bill</p>
-                  <p className="text-2xl font-bold text-white">Rs. {selectedBill.total_due.toFixed(2)}</p>
+                  <p className="text-2xl font-bold text-white">Rs. {selectedBill.total_charge.toFixed(2)}</p>
                 </div>
                 <div>
                   <p className="text-gray-300 text-sm">Units</p>
@@ -398,10 +391,8 @@ const ElectricityDashboard = () => {
           </button>
         </div>
 
-        {/* Budget Plan Results */}
         {budgetPlan && (
           <div className="space-y-6">
-            {/* Budget Info Cards */}
             <div className="grid md:grid-cols-4 gap-4">
               <div className="bg-gradient-to-br from-green-600 to-green-700 rounded-lg p-4 text-white">
                 <p className="text-sm opacity-90">Target Budget</p>
@@ -428,7 +419,6 @@ const ElectricityDashboard = () => {
               </div>
             </div>
 
-            {/* Weekly Targets Table */}
             <div className="bg-gray-800 rounded-xl p-6 shadow-xl border border-gray-700">
               <h4 className="text-lg font-semibold text-white mb-4">Weekly Targets</h4>
               <div className="overflow-x-auto">
@@ -457,7 +447,6 @@ const ElectricityDashboard = () => {
               </div>
             </div>
 
-            {/* Recommendations */}
             <div className="bg-gradient-to-r from-amber-900 to-orange-900 rounded-xl p-6 border border-amber-700">
               <h4 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
                 <AlertCircle className="w-5 h-5" />
@@ -472,20 +461,6 @@ const ElectricityDashboard = () => {
                 ))}
               </ul>
             </div>
-
-            {/* Monitoring Schedule */}
-            <div className="bg-gray-800 rounded-xl p-6 shadow-xl border border-gray-700">
-              <h4 className="text-lg font-semibold text-white mb-4">Monitoring Schedule</h4>
-              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-3">
-                {budgetPlan.monitoring_schedule.map((check, idx) => (
-                  <div key={idx} className="bg-gray-700 rounded-lg p-4 border-l-4 border-blue-500">
-                    <p className="text-blue-400 font-semibold">Day {check.day}</p>
-                    <p className="text-white text-sm mt-1">{check.action}</p>
-                    <p className="text-gray-400 text-xs mt-1">{check.purpose}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
           </div>
         )}
       </div>
@@ -494,7 +469,6 @@ const ElectricityDashboard = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 text-white p-6">
-      {/* Header */}
       <div className="max-w-7xl mx-auto mb-8">
         <div className="bg-gradient-to-r from-blue-600 to-purple-600 rounded-2xl p-6 shadow-2xl">
           <h1 className="text-3xl font-bold flex items-center gap-3">
@@ -505,9 +479,7 @@ const ElectricityDashboard = () => {
         </div>
       </div>
 
-      {/* Main Content */}
       <div className="max-w-7xl mx-auto space-y-6">
-        {/* Bill Upload Section */}
         <div className="bg-gray-800 rounded-xl p-6 shadow-xl border border-gray-700">
           <h3 className="text-xl font-semibold text-white mb-4 flex items-center gap-2">
             <Camera className="w-6 h-6 text-blue-400" />
@@ -538,10 +510,8 @@ const ElectricityDashboard = () => {
           <p className="text-gray-400 text-sm mt-3">Supports PDF and images. AI will extract all data automatically.</p>
         </div>
 
-        {/* Recent Bills List */}
         <BillList />
 
-        {/* Tabs */}
         <div className="flex gap-2 mb-6 bg-gray-800 p-2 rounded-xl">
           <TabButton active={activeTab === 'overview'} onClick={() => setActiveTab('overview')}>
             Overview
@@ -551,7 +521,6 @@ const ElectricityDashboard = () => {
           </TabButton>
         </div>
 
-        {/* Tab Content */}
         <div>
           {activeTab === 'overview' && <OverviewTab />}
           {activeTab === 'budget' && <BudgetPlannerTab />}
@@ -561,7 +530,6 @@ const ElectricityDashboard = () => {
   );
 };
 
-// Helper Components
 const StatCard = ({ icon, label, value, trend, color }) => {
   const colors = {
     blue: 'from-blue-600 to-blue-700',
@@ -602,3 +570,4 @@ const TabButton = ({ active, onClick, children }) => (
 );
 
 export default ElectricityDashboard;
+

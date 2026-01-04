@@ -1,9 +1,8 @@
 """
-api/routes/bill_analysis.py
-COMPLETE implementation with Phase 2 tracking
-Add this to your src/api/routes/ directory
+FIXED: api/routes/bill_analysis.py
+Updated to use total_charge instead of total_due
 """
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from typing import Optional
 from datetime import datetime, timedelta
@@ -13,8 +12,6 @@ from src.database import get_db
 from src.services.bill_analysis import BillAnalysisService
 from src.models.bill import ElectricityBill
 from src.models.budget_plan import BudgetPlan, MeterReading
-from fastapi import APIRouter, Depends, HTTPException, Query  # ✅ Add Query import at top
-
 
 router = APIRouter(prefix="/analysis", tags=["Bill Analysis"])
 analysis_service = BillAnalysisService()
@@ -71,10 +68,11 @@ def analyze_past_month_bill(
             detail="Bill missing required data (units_consumed, billing_period_days)"
         )
     
+    # ✅ FIXED: Use total_charge instead of total_due
     bill_data = {
         'units_consumed': bill.units_consumed,
         'billing_period_days': bill.billing_period_days,
-        'total_due': bill.total_due or 0,
+        'total_charge': bill.total_charge or 0,  # Changed from total_due
         'bill_date': bill.bill_date
     }
     
@@ -99,7 +97,7 @@ def analyze_manual_data(
     bill_data = {
         'units_consumed': request.past_bill_units,
         'billing_period_days': request.past_bill_days,
-        'total_due': request.past_bill_amount,
+        'total_charge': request.past_bill_amount,  # Changed from total_due
         'bill_date': request.past_bill_date
     }
     
@@ -114,8 +112,8 @@ def analyze_manual_data(
 
 @router.get("/tariff-calculator")
 def calculate_tariff(
-    units: int = Query(ge=0, description="Units consumed"),  # ✅ Changed Field to Query
-    days: int = Query(default=30, ge=28, le=35, description="Billing period days")  # ✅ Changed Field to Query
+    units: int = Query(ge=0, description="Units consumed"),
+    days: int = Query(default=30, ge=28, le=35, description="Billing period days")
 ):
     """
     Calculate bill using CEB tariff structure
@@ -127,6 +125,7 @@ def calculate_tariff(
         'calculation': result
     }
 
+
 # ========== PHASE 2 ENDPOINTS (BUDGET PLANNING & TRACKING) ==========
 
 @router.post("/create-budget-plan")
@@ -136,13 +135,6 @@ def create_budget_plan(
 ):
     """
     Create a budget plan for next billing period
-    
-    PHASE 2 IMPLEMENTATION:
-    - Validates budget is within 50%-150% of past bill
-    - Creates daily and weekly targets
-    - Generates monitoring schedule
-    - Saves plan to database
-    - Provides recommendations
     """
     bill = db.query(ElectricityBill).filter(
         ElectricityBill.id == request.bill_id
@@ -151,10 +143,11 @@ def create_budget_plan(
     if not bill:
         raise HTTPException(status_code=404, detail="Bill not found")
     
+    # ✅ FIXED: Use total_charge instead of total_due
     bill_data = {
         'units_consumed': bill.units_consumed,
         'billing_period_days': bill.billing_period_days,
-        'total_due': bill.total_due or 0
+        'total_charge': bill.total_charge or 0  # Changed from total_due
     }
     
     # Create the plan
@@ -168,7 +161,7 @@ def create_budget_plan(
     if 'error' in plan:
         raise HTTPException(status_code=400, detail=plan['message'])
     
-    # ✅ PHASE 2: Save plan to database
+    # Save plan to database
     try:
         plan_record = BudgetPlan(
             reference_bill_id=request.bill_id,
@@ -182,7 +175,7 @@ def create_budget_plan(
             target_weekly_units=plan['weekly_targets'][0]['target_units'],
             target_weekly_cost=plan['weekly_targets'][0]['target_cost'],
             target_total_units=plan['total_targets']['units'],
-            past_bill_amount=bill.total_due,
+            past_bill_amount=bill.total_charge,  # Changed from total_due
             past_bill_units=bill.units_consumed,
             past_billing_days=bill.billing_period_days,
             weekly_targets=plan['weekly_targets'],
@@ -214,13 +207,6 @@ def track_budget_progress(
 ):
     """
     Track progress against budget plan using current meter reading
-    
-    PHASE 2 IMPLEMENTATION:
-    - Compares actual vs expected consumption
-    - Shows if on track, over, or under budget
-    - Projects final cost
-    - Provides actionable recommendations
-    - Saves meter reading to database
     """
     # Get the budget plan
     plan = db.query(BudgetPlan).filter(BudgetPlan.id == request.plan_id).first()
@@ -235,17 +221,14 @@ def track_budget_progress(
         raise HTTPException(status_code=404, detail="Reference bill not found")
     
     # Determine starting point
-    # Check if there are previous readings
     first_reading = db.query(MeterReading).filter(
         MeterReading.budget_plan_id == request.plan_id
     ).order_by(MeterReading.reading_date).first()
     
     if first_reading:
-        # Use first reading as baseline
         start_reading = first_reading.reading_value
         start_date = first_reading.reading_date
     else:
-        # Use reference bill's current reading as baseline
         start_reading = bill.current_reading
         start_date = plan.plan_start_date
     
@@ -273,7 +256,7 @@ def track_budget_progress(
             start_date
         )
         
-        # ✅ PHASE 2: Save meter reading to database
+        # Save meter reading to database
         variance_percentage = 0
         if progress['current_status']['expected_cost'] > 0:
             variance_percentage = (
@@ -389,7 +372,8 @@ def get_plans_by_account(
                 'progress_status': p.current_progress_status,
                 'created_at': p.created_at,
                 'plan_start_date': p.plan_start_date,
-                'plan_end_date': p.plan_end_date
+                'plan_end_date': p.plan_end_date,
+                'target_daily_units': p.target_daily_units
             }
             for p in plans
         ]
@@ -443,7 +427,7 @@ def compare_billing_periods(
     if not bill1 or not bill2:
         raise HTTPException(status_code=404, detail="One or both bills not found")
     
-    # Normalize to 30-day period for fair comparison
+    # ✅ FIXED: Use total_charge instead of total_due
     bill1_daily = bill1.units_consumed / bill1.billing_period_days
     bill2_daily = bill2.units_consumed / bill2.billing_period_days
     
@@ -453,8 +437,8 @@ def compare_billing_periods(
     difference_units = bill2_normalized - bill1_normalized
     difference_percent = (difference_units / bill1_normalized) * 100 if bill1_normalized > 0 else 0
     
-    cost1_normalized = (bill1.total_due / bill1.billing_period_days) * 30
-    cost2_normalized = (bill2.total_due / bill2.billing_period_days) * 30
+    cost1_normalized = (bill1.total_charge / bill1.billing_period_days) * 30
+    cost2_normalized = (bill2.total_charge / bill2.billing_period_days) * 30
     
     cost_difference = cost2_normalized - cost1_normalized
     cost_percent = (cost_difference / cost1_normalized) * 100 if cost1_normalized > 0 else 0
@@ -467,7 +451,7 @@ def compare_billing_periods(
                 'date': bill1.bill_date,
                 'units': bill1.units_consumed,
                 'days': bill1.billing_period_days,
-                'cost': bill1.total_due,
+                'cost': bill1.total_charge,  # Changed
                 'normalized_units_30d': round(bill1_normalized, 2),
                 'normalized_cost_30d': round(cost1_normalized, 2)
             },
@@ -476,7 +460,7 @@ def compare_billing_periods(
                 'date': bill2.bill_date,
                 'units': bill2.units_consumed,
                 'days': bill2.billing_period_days,
-                'cost': bill2.total_due,
+                'cost': bill2.total_charge,  # Changed
                 'normalized_units_30d': round(bill2_normalized, 2),
                 'normalized_cost_30d': round(cost2_normalized, 2)
             },
@@ -502,7 +486,8 @@ def get_budget_recommendations(
     if not bill:
         raise HTTPException(status_code=404, detail="Bill not found")
     
-    past_cost = bill.total_due or 0
+    # ✅ FIXED: Use total_charge instead of total_due
+    past_cost = bill.total_charge or 0
     past_units = bill.units_consumed or 0
     days = bill.billing_period_days or 30
     

@@ -1,119 +1,112 @@
 """
 services/bill_analysis.py
-Advanced bill analysis service for consumption patterns and planning
+FIXED: Uses total_charge instead of total_due throughout
+Uses correct CEB tariff rates from October 2025
 """
 from typing import Dict, List, Optional
 from datetime import datetime, timedelta
-from decimal import Decimal
+from src.services.tariff_calculator import CEBTariffCalculator
+
 import math
 
 
 class CEBTariffCalculator:
-    """CEB Domestic Tariff Calculator based on official rates"""
+    """CEB Domestic Tariff Calculator - October 2025 Rates"""
     
-    # Category 1: 0-60 kWh (adjusted for billing period)
-    CATEGORY_1_RATES = [
-        {'min': 0, 'max': 60, 'rate': 4.50},
-        {'min': 61, 'max': 90, 'rate': 8.00}
-    ]
-    
-    # Category 2: Above 60 kWh threshold (adjusted)
-    CATEGORY_2_RATES = [
+    # Correct tariff slabs based on actual CEB bill
+    TARIFF_SLABS = [
         {'min': 0, 'max': 60, 'rate': 12.75},
         {'min': 61, 'max': 90, 'rate': 18.50},
         {'min': 91, 'max': 120, 'rate': 27.75},
-        {'min': 121, 'max': 180, 'rate': 32.00},
+        {'min': 121, 'max': 180, 'rate': 32.50},
         {'min': 181, 'max': float('inf'), 'rate': 45.00}
     ]
     
-    # Fixed charges (NOT adjusted for billing period)
-    FIXED_CHARGES = {
-        (0, 30): 0,
-        (31, 60): 200,
-        (61, 90): 400,
-        (91, 120): 750,
-        (121, 180): 1500,
-        (181, float('inf')): 2000
-    }
+    # Fixed charges based on consumption
+    FIXED_CHARGE_SLABS = [
+        {'min': 0, 'max': 60, 'charge': 200.00},
+        {'min': 61, 'max': float('inf'), 'charge': 400.00}
+    ]
     
     SSCL_RATE = 0.025  # 2.5%
-    STANDARD_BILLING_DAYS = 30
     
     def calculate_bill(self, units: int, billing_days: int = 30) -> Dict:
         """Calculate electricity bill with detailed breakdown"""
         
-        # Step 1: Adjust thresholds for billing period
-        adjustment_factor = billing_days / self.STANDARD_BILLING_DAYS
-        adjusted_threshold = 60 * adjustment_factor
+        # Normalize to 30 days for tariff calculation
+        normalized_units = (units / billing_days) * 30
         
-        # Step 2: Determine category
-        category = 2 if units > adjusted_threshold else 1
-        rates = self.CATEGORY_2_RATES if category == 2 else self.CATEGORY_1_RATES
-        
-        # Step 3: Calculate energy charges
-        energy_charge = 0
+        # Calculate unit charges
+        unit_charge = 0.0
         breakdown = []
-        remaining_units = units
+        remaining_units = normalized_units
         
-        for block in rates:
-            block_min = math.ceil(block['min'] * adjustment_factor)
-            block_max = math.ceil(block['max'] * adjustment_factor)
-            
+        for slab in self.TARIFF_SLABS:
             if remaining_units <= 0:
                 break
-                
-            units_in_block = min(remaining_units, block_max - block_min + 1)
-            if block_min == 0:
-                units_in_block = min(remaining_units, block_max)
             
-            charge = units_in_block * block['rate']
-            energy_charge += charge
+            slab_min = slab['min']
+            slab_max = slab['max']
+            
+            # Calculate units in this slab
+            if normalized_units < slab_min:
+                continue
+            
+            units_in_slab = 0
+            if slab_max == float('inf'):
+                units_in_slab = max(0, normalized_units - slab_min + 1)
+            else:
+                if normalized_units <= slab_max:
+                    units_in_slab = min(remaining_units, normalized_units - slab_min + 1)
+                else:
+                    units_in_slab = slab_max - slab_min + 1
+            
+            amount = units_in_slab * slab['rate']
+            unit_charge += amount
             
             breakdown.append({
-                'block': f"{block_min}-{block_max} kWh",
-                'units': units_in_block,
-                'rate': block['rate'],
-                'amount': round(charge, 2)
+                'block': f"{slab_min}-{int(slab_max) if slab_max != float('inf') else '∞'} kWh",
+                'units': round(units_in_slab, 2),
+                'rate': slab['rate'],
+                'amount': round(amount, 2)
             })
             
-            remaining_units -= units_in_block
+            remaining_units -= units_in_slab
         
-        # Step 4: Get fixed charge (NOT adjusted)
-        fixed_charge = self._get_fixed_charge(units)
+        # Get fixed charge based on normalized units
+        fixed_charge = self._get_fixed_charge(normalized_units)
         
-        # Step 5: Calculate subtotal
-        subtotal = energy_charge + fixed_charge
-        
-        # Step 6: Apply SSCL
+        # Calculate subtotal and tax
+        subtotal = unit_charge + fixed_charge
         sscl = subtotal * self.SSCL_RATE
-        
-        # Final total
         total = subtotal + sscl
         
         return {
-            'category': category,
-            'energy_charge': round(energy_charge, 2),
+            'category': 2 if normalized_units > 60 else 1,
+            'energy_charge': round(unit_charge, 2),
             'fixed_charge': fixed_charge,
             'subtotal': round(subtotal, 2),
             'sscl': round(sscl, 2),
             'total': round(total, 2),
             'breakdown': breakdown,
             'billing_days': billing_days,
-            'adjustment_factor': round(adjustment_factor, 4),
-            'adjusted_threshold': round(adjusted_threshold, 2)
+            'units_consumed': units,
+            'normalized_units': round(normalized_units, 2)
         }
     
-    def _get_fixed_charge(self, units: int) -> float:
+    def _get_fixed_charge(self, units: float) -> float:
         """Get fixed charge based on consumption"""
-        for (min_units, max_units), charge in self.FIXED_CHARGES.items():
-            if min_units <= units <= max_units:
-                return charge
-        return 2000  # Maximum fixed charge
+        for slab in self.FIXED_CHARGE_SLABS:
+            if slab['min'] <= units <= slab['max']:
+                return slab['charge']
+        return self.FIXED_CHARGE_SLABS[-1]['charge']
 
 
 class BillAnalysisService:
     """Analyze past bills and create consumption insights"""
     
+    # def __init__(self):
+    #     self.tariff_calculator = CEBTariffCalculator()
     def __init__(self):
         self.tariff_calculator = CEBTariffCalculator()
     
@@ -125,16 +118,15 @@ class BillAnalysisService:
             bill_data: Dictionary containing bill information
                 - units_consumed: int
                 - billing_period_days: int
-                - total_due: float
+                - total_charge: float  # ✅ Changed from total_due
                 - bill_date: datetime
-                - meter_readings: List[Dict] (optional)
         
         Returns:
             Detailed analysis including daily/weekly averages and projections
         """
         units = bill_data.get('units_consumed', 0)
         days = bill_data.get('billing_period_days', 30)
-        total_paid = bill_data.get('total_due', 0)
+        total_paid = bill_data.get('total_charge', 0)  # ✅ Changed from total_due
         
         # Daily analysis
         daily_units = units / days
@@ -144,8 +136,7 @@ class BillAnalysisService:
         weekly_units = daily_units * 7
         weekly_cost = daily_cost * 7
         
-        # Week-by-week breakdown (assuming 4-5 weeks)
-        weeks_in_period = days / 7
+        # Week-by-week breakdown
         week_breakdown = self._calculate_week_breakdown(
             units, total_paid, days
         )
@@ -218,8 +209,8 @@ class BillAnalysisService:
         Returns:
             Detailed plan with daily/weekly targets and alerts
         """
-        # Validate budget (must be 50% - 150% of past bill)
-        past_cost = past_bill_data.get('total_due', 0)
+        # ✅ Changed from total_due to total_charge
+        past_cost = past_bill_data.get('total_charge', 0)
         min_budget = past_cost * 0.5
         max_budget = past_cost * 1.5
         
@@ -249,7 +240,7 @@ class BillAnalysisService:
             int(target_total_units), planning_days
         )
         
-        # Create monitoring schedule (every 4-5 days)
+        # Create monitoring schedule
         monitoring_schedule = self._create_monitoring_schedule(planning_days)
         
         # Week-by-week targets
@@ -283,7 +274,7 @@ class BillAnalysisService:
     
     def _create_monitoring_schedule(self, days: int) -> List[Dict]:
         """Create schedule for meter reading checks"""
-        interval = 4  # Check every 4-5 days
+        interval = 4
         schedule = []
         
         for day in range(interval, days + 1, interval):
@@ -331,7 +322,7 @@ class BillAnalysisService:
     ) -> List[str]:
         """Generate actionable recommendations"""
         recommendations = []
-        past_cost = past_data.get('total_due', 0)
+        past_cost = past_data.get('total_charge', 0)  # ✅ Changed
         
         if budget < past_cost:
             reduction_needed = past_cost - budget
@@ -349,7 +340,7 @@ class BillAnalysisService:
         if past_units > adjusted_threshold:
             recommendations.append(
                 f"You exceeded the 60 kWh threshold (adjusted: {adjusted_threshold:.0f} kWh). "
-                "Staying below this threshold can save ~Rs. 800+"
+                "Staying below this threshold can save on tariff rates"
             )
         
         recommendations.append(
@@ -368,16 +359,6 @@ class BillAnalysisService:
     ) -> Dict:
         """
         Track progress against the plan
-        
-        Args:
-            plan_data: The budget plan created earlier
-            current_reading: Current meter reading
-            reading_date: Date of current reading
-            start_reading: Starting meter reading
-            start_date: Bill start date
-        
-        Returns:
-            Progress analysis with status and recommendations
         """
         # Calculate actual consumption
         units_used = current_reading - start_reading
@@ -399,12 +380,12 @@ class BillAnalysisService:
         variance_cost = actual_cost - expected_cost
         
         status = 'on_track'
-        if variance_cost > expected_cost * 0.1:  # 10% over
+        if variance_cost > expected_cost * 0.1:
             status = 'over_budget'
-        elif variance_cost < -expected_cost * 0.1:  # 10% under
+        elif variance_cost < -expected_cost * 0.1:
             status = 'under_budget'
         
-        # Projection for remaining days
+        # Projection
         planning_days = plan_data['total_targets']['days']
         days_remaining = planning_days - days_elapsed
         

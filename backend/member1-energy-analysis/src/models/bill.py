@@ -29,12 +29,14 @@ class ElectricityBill(Base):
     previous_reading_date = Column(DateTime, nullable=True)
     current_reading_date = Column(DateTime, nullable=True)
     
-    # Financial Data
-    fixed_charge = Column(Float, default=0.0)
-    unit_charge = Column(Float, default=0.0)
-    total_charge = Column(Float, nullable=True)
-    previous_due = Column(Float, default=0.0)
-    total_due = Column(Float, nullable=True)
+    # Financial Data (Simplified - No dues tracking)
+    fixed_charge = Column(Float, default=0.0, comment="Fixed monthly charge")
+    unit_charge = Column(Float, default=0.0, comment="Charge for units consumed")
+    total_charge = Column(Float, nullable=True, comment="Total monthly bill amount (This Month Charge / Total with Tax)")
+    
+    # Note: Removed previous_due and total_due fields
+    # total_charge now represents the actual monthly bill amount only
+    # This is extracted from either "This Month Charge" or "Total with Tax (Rs.)"
     
     # Customer Information
     customer_name = Column(String(255), nullable=True)
@@ -54,4 +56,25 @@ class ElectricityBill(Base):
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
     
     def __repr__(self):
-        return f"<ElectricityBill(id={self.id}, account={self.account_number}, units={self.units_consumed})>"
+        return f"<ElectricityBill(id={self.id}, account={self.account_number}, units={self.units_consumed}, charge={self.total_charge})>"
+    
+    @property
+    def average_cost_per_unit(self) -> float:
+        """Calculate average cost per unit"""
+        if self.units_consumed and self.units_consumed > 0 and self.total_charge:
+            return round(self.total_charge / self.units_consumed, 2)
+        return 0.0
+    
+    @property
+    def daily_average_units(self) -> float:
+        """Calculate average daily consumption"""
+        if self.billing_period_days and self.billing_period_days > 0 and self.units_consumed:
+            return round(self.units_consumed / self.billing_period_days, 2)
+        return 0.0
+    
+    @property
+    def normalized_units_30days(self) -> float:
+        """Normalize consumption to 30-day period"""
+        if self.billing_period_days and self.billing_period_days > 0 and self.units_consumed:
+            return round((self.units_consumed / self.billing_period_days) * 30, 2)
+        return 0.0

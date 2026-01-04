@@ -108,6 +108,18 @@ class BillExtractionService:
             except:
                 pass
         
+        # IMPORTANT: Use total_charge instead of total_due
+        # total_charge represents the actual monthly bill amount
+        # We're not tracking dues, payments, or balances
+        total_monthly_charge = parsed_data.get('total_charge')
+        
+        # Calculate total charge from components if not directly extracted
+        if not total_monthly_charge:
+            unit_charge = parsed_data.get('unit_charge', 0.0)
+            fixed_charge = parsed_data.get('fixed_charge', 0.0)
+            if unit_charge or fixed_charge:
+                total_monthly_charge = unit_charge + fixed_charge
+        
         # Create bill record
         bill = ElectricityBill(
             file_name=file_name,
@@ -125,8 +137,8 @@ class BillExtractionService:
             current_reading_date=current_date,
             fixed_charge=parsed_data.get('fixed_charge', 0.0),
             unit_charge=parsed_data.get('unit_charge', 0.0),
-            total_due=parsed_data.get('total_due'),
-            previous_due=parsed_data.get('previous_due', 0.0),
+            total_charge=total_monthly_charge,  # This is the actual monthly bill
+            # Remove previous_due and total_due - not needed
             customer_name=parsed_data.get('customer_name'),
             customer_address=parsed_data.get('customer_address'),
             tariff_type=parsed_data.get('tariff_type'),
