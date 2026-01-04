@@ -551,3 +551,20 @@ def get_budget_recommendations(
         'current_units': past_units,
         'recommendations': recommendations
     }
+
+
+@router.get("/notifications/{account_number}")
+def get_due_notifications(
+    account_number: str,
+    db: Session = Depends(get_db)
+):
+    """Get due checkpoint reminders for an account"""
+    notification_service = NotificationService()
+    alerts = notification_service.check_due_monitoring(db)
+    account_alerts = [alert for alert in alerts if alert['account_number'] == account_number]
+    
+    return {
+        'success': True,
+        'count': len(account_alerts),
+        'alerts': account_alerts
+    }
