@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
-import { MapContainer, TileLayer, Marker, Popup, Circle } from 'react-leaflet';
-import { Box, Paper, Typography, Chip, Button, Dialog, DialogTitle, DialogContent, DialogActions, Select, MenuItem, FormControl, InputLabel } from '@mui/material';
+import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
+import { Box, Paper, Typography, Chip, Button, Dialog, DialogTitle, DialogContent, DialogActions, Select, MenuItem, FormControl, InputLabel, Grid } from '@mui/material';
 import { Icon } from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer } from 'recharts';
+import { ShowChart } from '@mui/icons-material';
 
 // Fix for default marker icons in react-leaflet
 delete L.Icon.Default.prototype._getIconUrl;
@@ -31,7 +33,17 @@ const technicianIcon = new Icon({
 });
 
 // Default center for Sri Lanka
-const defaultCenter = [7.8731, 80.7718]; // Center of Sri Lanka
+const defaultCenter = [7.8731, 80.7718];
+
+// Sample energy consumption data
+const energyData = [
+  { month: 'Jan', consumption: 4000 },
+  { month: 'Feb', consumption: 3000 },
+  { month: 'Mar', consumption: 5000 },
+  { month: 'Apr', consumption: 4500 },
+  { month: 'May', consumption: 6000 },
+  { month: 'Jun', consumption: 5500 },
+];
 
 export default function OutageMapView({ outages, technicians, onAssignTechnician, onUpdateOutage }) {
   const [selectedOutage, setSelectedOutage] = useState(null);
@@ -40,15 +52,19 @@ export default function OutageMapView({ outages, technicians, onAssignTechnician
 
   const getStatusColor = (status) => {
     switch (status) {
-      case 'pending': return 'error';
-      case 'in_progress': return 'warning';
-      case 'resolved': return 'success';
+      case 'Open':
+      case 'NEW': return 'error';
+      case 'Assigned':
+      case 'In Progress':
+      case 'PENDING': return 'warning';
+      case 'Resolved':
+      case 'RESOLVED': return 'success';
       default: return 'default';
     }
   };
 
   const availableTechnicians = technicians.filter(t => 
-    t.status === 'available' || t.status === 'online'
+    t.availability === 'Available' || t.availability === 'available'
   );
 
   const handleAssignClick = (outage) => {
@@ -58,7 +74,7 @@ export default function OutageMapView({ outages, technicians, onAssignTechnician
 
   const handleAssign = () => {
     if (selectedOutage && selectedTechnician) {
-      onAssignTechnician(selectedOutage.id, selectedTechnician);
+      onAssignTechnician(selectedOutage.id || selectedOutage.issueId, selectedTechnician);
       setAssignDialogOpen(false);
       setSelectedOutage(null);
       setSelectedTechnician('');
@@ -76,93 +92,114 @@ export default function OutageMapView({ outages, technicians, onAssignTechnician
         </Typography>
       </Paper>
 
-      <Box sx={{ height: '600px', width: '100%', position: 'relative' }}>
-        <MapContainer
-          center={defaultCenter}
-          zoom={8}
-          style={{ height: '100%', width: '100%' }}
-        >
-          <TileLayer
-            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-          />
+      <Grid container spacing={3}>
+        {/* Energy Consumption Trends Graph */}
+        <Grid item xs={12} md={6}>
+          <Paper elevation={2} sx={{ p: 3, borderRadius: 2, height: '100%' }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+              <ShowChart sx={{ mr: 1, color: 'primary.main' }} />
+              <Typography variant="h6" fontWeight="bold">
+                Energy Consumption Trends
+              </Typography>
+            </Box>
+            <Box sx={{ height: 300, mt: 2 }}>
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={energyData}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="month" />
+                  <YAxis />
+                  <RechartsTooltip />
+                  <Line type="monotone" dataKey="consumption" stroke="#1976d2" strokeWidth={2} />
+                </LineChart>
+              </ResponsiveContainer>
+            </Box>
+          </Paper>
+        </Grid>
 
-          {/* Outage Markers */}
-          {outages.map((outage) => (
-            <Marker
-              key={outage.id}
-              position={[outage.latitude, outage.longitude]}
-              icon={outageIcon}
-            >
-              <Popup>
-                <Box>
-                  <Typography variant="subtitle1" fontWeight="bold">
-                    Outage #{outage.id}
-                  </Typography>
-                  <Typography variant="body2">
-                    Status: <Chip label={outage.status} color={getStatusColor(outage.status)} size="small" />
-                  </Typography>
-                  <Typography variant="body2">
-                    Reported: {new Date(outage.reportedAt).toLocaleString()}
-                  </Typography>
-                  {outage.address && (
-                    <Typography variant="body2">
-                      Address: {outage.address}
-                    </Typography>
-                  )}
-                  {outage.assignedTechnician ? (
-                    <Typography variant="body2" color="success.main">
-                      Assigned to: {outage.assignedTechnician.name}
-                    </Typography>
-                  ) : (
-                    <Button
-                      size="small"
-                      variant="contained"
-                      color="primary"
-                      onClick={() => handleAssignClick(outage)}
-                      sx={{ mt: 1 }}
-                    >
-                      Assign Technician
-                    </Button>
-                  )}
-                </Box>
-              </Popup>
-            </Marker>
-          ))}
+        {/* Live Outage Map */}
+        <Grid item xs={12} md={6}>
+          <Paper elevation={2} sx={{ p: 3, borderRadius: 2, height: '100%' }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
+              <Typography variant="h6" fontWeight="bold">
+                Live Outage Map
+              </Typography>
+              <Chip
+                label={`${outages.filter(o => o.status === 'Open' || o.status === 'NEW').length} Active`}
+                color="error"
+                size="small"
+                sx={{ fontWeight: 'bold' }}
+              />
+            </Box>
+            <Box sx={{ height: 300, borderRadius: 1, overflow: 'hidden' }}>
+              <MapContainer
+                center={defaultCenter}
+                zoom={8}
+                style={{ height: '100%', width: '100%' }}
+              >
+                <TileLayer
+                  attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                  url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                />
 
-          {/* Technician Markers */}
-          {technicians.map((technician) => (
-            <Marker
-              key={technician.id}
-              position={[technician.latitude, technician.longitude]}
-              icon={technicianIcon}
-            >
-              <Popup>
-                <Box>
-                  <Typography variant="subtitle1" fontWeight="bold">
-                    {technician.name}
-                  </Typography>
-                  <Typography variant="body2">
-                    Status: <Chip 
-                      label={technician.status} 
-                      color={technician.status === 'available' ? 'success' : 'warning'} 
-                      size="small" 
-                    />
-                  </Typography>
-                  <Typography variant="body2">
-                    Phone: {technician.phone}
-                  </Typography>
-                  {technician.currentJob && (
-                    <Typography variant="body2" color="warning.main">
-                      Current Job: Outage #{technician.currentJob}
-                    </Typography>
-                  )}
-                </Box>
-              </Popup>
-            </Marker>
-          ))}
-        </MapContainer>
-      </Box>
+                {/* Outage Markers */}
+                {outages.map((outage) => (
+                  <Marker
+                    key={outage.id || outage.issueId}
+                    position={[parseFloat(outage.latitude), parseFloat(outage.longitude)]}
+                    icon={outageIcon}
+                  >
+                    <Popup>
+                      <Box>
+                        <Typography variant="subtitle1" fontWeight="bold">
+                          Outage #{outage.issueId || outage.id}
+                        </Typography>
+                        <Typography variant="body2">
+                          Status: <Chip label={outage.status} color={getStatusColor(outage.status)} size="small" />
+                        </Typography>
+                        <Typography variant="body2">
+                          District: {outage.district || 'N/A'}
+                        </Typography>
+                        {outage.address && (
+                          <Typography variant="body2">
+                            Address: {outage.address}
+                          </Typography>
+                        )}
+                      </Box>
+                    </Popup>
+                  </Marker>
+                ))}
+
+                {/* Technician Markers */}
+                {technicians.map((technician) => (
+                  <Marker
+                    key={technician.id}
+                    position={[parseFloat(technician.latitude || 0), parseFloat(technician.longitude || 0)]}
+                    icon={technicianIcon}
+                  >
+                    <Popup>
+                      <Box>
+                        <Typography variant="subtitle1" fontWeight="bold">
+                          {technician.name}
+                        </Typography>
+                        <Typography variant="body2">
+                          Status: <Chip 
+                            label={technician.availability} 
+                            color={technician.availability === 'Available' ? 'success' : 'warning'} 
+                            size="small" 
+                          />
+                        </Typography>
+                        <Typography variant="body2">
+                          Phone: {technician.phone}
+                        </Typography>
+                      </Box>
+                    </Popup>
+                  </Marker>
+                ))}
+              </MapContainer>
+            </Box>
+          </Paper>
+        </Grid>
+      </Grid>
 
       {/* Assign Technician Dialog */}
       <Dialog open={assignDialogOpen} onClose={() => setAssignDialogOpen(false)}>
@@ -177,7 +214,7 @@ export default function OutageMapView({ outages, technicians, onAssignTechnician
             >
               {availableTechnicians.map((tech) => (
                 <MenuItem key={tech.id} value={tech.id}>
-                  {tech.name} - {tech.phone} ({tech.status})
+                  {tech.name} - {tech.phone} ({tech.availability})
                 </MenuItem>
               ))}
             </Select>

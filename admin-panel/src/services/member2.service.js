@@ -26,4 +26,6 @@ export const member2Service = {
   
   // Voice Commands
   processVoiceCommand: (audioData) => apiClient.post(`${MEMBER2_BASE}/voice/process`, audioData),
+
+  getDistrictSummary: () => apiClient.get(`${MEMBER2_BASE}/outages/summary/districts`),
 };

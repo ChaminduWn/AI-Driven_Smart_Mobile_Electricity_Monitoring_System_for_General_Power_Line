@@ -3,8 +3,6 @@ import { Grid, Paper, Typography, Box, CircularProgress } from '@mui/material';
 import {
   ReportProblem,
   CheckCircle,
-  Person,
-  PersonAdd,
 } from '@mui/icons-material';
 
 export default function OutageStats({ stats, loading }) {
@@ -27,18 +25,6 @@ export default function OutageStats({ stats, loading }) {
       icon: <CheckCircle />,
       color: '#388e3c',
     },
-    {
-      title: 'Available Technicians',
-      value: stats.availableTechnicians,
-      icon: <Person />,
-      color: '#1976d2',
-    },
-    {
-      title: 'Assigned Technicians',
-      value: stats.assignedTechnicians,
-      icon: <PersonAdd />,
-      color: '#7b1fa2',
-    },
   ];
 
   if (loading) {
@@ -52,7 +38,7 @@ export default function OutageStats({ stats, loading }) {
   return (
     <Grid container spacing={3} sx={{ mt: 1 }}>
       {statCards.map((card, index) => (
-        <Grid item xs={12} sm={6} md={2.4} key={index}>
+        <Grid item xs={12} sm={6} md={4} key={index}>
           <Paper
             sx={{
               p: 2,

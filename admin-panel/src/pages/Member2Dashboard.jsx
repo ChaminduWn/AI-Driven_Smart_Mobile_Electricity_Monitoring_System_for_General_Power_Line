@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Box,
   Typography,
@@ -23,6 +24,7 @@ function TabPanel({ children, value, index }) {
 }
 
 export default function Member2Dashboard() {
+  const navigate = useNavigate();
   const [tabValue, setTabValue] = useState(0);
   const [outages, setOutages] = useState([]);
   const [technicians, setTechnicians] = useState([]);
@@ -30,8 +32,6 @@ export default function Member2Dashboard() {
     totalOutages: 0,
     activeOutages: 0,
     resolvedOutages: 0,
-    availableTechnicians: 0,
-    assignedTechnicians: 0,
   });
   const [loading, setLoading] = useState(true);
 
@@ -45,40 +45,35 @@ export default function Member2Dashboard() {
   const fetchData = async () => {
     try {
       const [outagesRes, techniciansRes] = await Promise.all([
-        member2Service.getOutages(),
-        member2Service.getTechnicians(),
+        member2Service.getOutages().catch(() => ({ data: [] })),
+        member2Service.getTechnicians().catch(() => ({ data: [] })),
       ]);
 
-      const outagesData = outagesRes.data || [];
-      const techniciansData = techniciansRes.data || [];
+      const outagesData = outagesRes?.data || [];
+      const techniciansData = techniciansRes?.data || [];
 
       setOutages(outagesData);
       setTechnicians(techniciansData);
 
-      // Calculate stats
+      // Calculate stats (only outage-related)
       const activeOutages = outagesData.filter(o => 
-        o.status === 'pending' || o.status === 'in_progress'
+        o.status === 'Open' || o.status === 'Assigned' || o.status === 'In Progress' || 
+        o.status === 'NEW' || o.status === 'PENDING'
       ).length;
       const resolvedOutages = outagesData.filter(o => 
-        o.status === 'resolved'
-      ).length;
-      const availableTechnicians = techniciansData.filter(t => 
-        t.status === 'available'
-      ).length;
-      const assignedTechnicians = techniciansData.filter(t => 
-        t.status === 'busy' || t.status === 'assigned'
+        o.status === 'Resolved' || o.status === 'RESOLVED'
       ).length;
 
       setStats({
         totalOutages: outagesData.length,
         activeOutages,
         resolvedOutages,
-        availableTechnicians,
-        assignedTechnicians,
       });
     } catch (error) {
       console.error('Error fetching data:', error);
-      toast.error('Failed to fetch data');
+      if (!loading) {
+        toast.error('Failed to fetch data');
+      }
     } finally {
       setLoading(false);
     }
@@ -100,13 +95,16 @@ export default function Member2Dashboard() {
 
   const handleAssignTechnician = async (outageId, technicianId) => {
     try {
-      // This endpoint should be added to member2.service.js
       await member2Service.assignTechnician(outageId, technicianId);
       toast.success('Technician assigned successfully');
       fetchData();
     } catch (error) {
       toast.error('Failed to assign technician');
     }
+  };
+
+  const handleDistrictClick = (district) => {
+    navigate(`/district/${district}`);
   };
 
   return (
@@ -141,6 +139,7 @@ export default function Member2Dashboard() {
             technicians={technicians}
             onUpdateOutage={handleOutageUpdate}
             onAssignTechnician={handleAssignTechnician}
+            onDistrictClick={handleDistrictClick}
             loading={loading}
           />
         </TabPanel>

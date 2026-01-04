@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Paper,
   Table,
@@ -8,76 +9,58 @@ import {
   TableHead,
   TableRow,
   Chip,
-  Button,
   IconButton,
-  Menu,
-  MenuItem,
   Typography,
   Box,
   CircularProgress,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  Select,
-  FormControl,
-  InputLabel,
+  Tooltip,
 } from '@mui/material';
 import {
-  MoreVert,
   LocationOn,
-  Person,
-  CheckCircle,
-  Cancel,
+  Visibility,
 } from '@mui/icons-material';
 
-export default function OutageList({ outages, technicians, onUpdateOutage, onAssignTechnician, loading }) {
-  const [anchorEl, setAnchorEl] = useState(null);
-  const [selectedOutage, setSelectedOutage] = useState(null);
-  const [assignDialogOpen, setAssignDialogOpen] = useState(false);
-  const [selectedTechnician, setSelectedTechnician] = useState('');
+export default function OutageList({ outages, technicians, onUpdateOutage, onAssignTechnician, onDistrictClick, loading }) {
+  const navigate = useNavigate();
 
-  const getStatusColor = (status) => {
-    switch (status) {
-      case 'pending': return 'error';
-      case 'in_progress': return 'warning';
-      case 'resolved': return 'success';
-      default: return 'default';
-    }
-  };
+  // Calculate district-wise summary
+  const districtSummary = useMemo(() => {
+    const summary = {};
+    
+    outages.forEach((outage) => {
+      const district = outage.district || 'Unknown';
+      if (!summary[district]) {
+        summary[district] = {
+          district,
+          technicianReports: 0,
+          householderReports: 0,
+          latestDate: null,
+          id: district,
+        };
+      }
+      
+      if (outage.reportedBy === 'Technician') {
+        summary[district].technicianReports++;
+      } else if (outage.reportedBy === 'Householder') {
+        summary[district].householderReports++;
+      }
+      
+      const reportDate = new Date(outage.reportedAt || outage.createdAt);
+      if (!summary[district].latestDate || reportDate > summary[district].latestDate) {
+        summary[district].latestDate = reportDate;
+      }
+    });
+    
+    return Object.values(summary).sort((a, b) => 
+      (b.technicianReports + b.householderReports) - (a.technicianReports + a.householderReports)
+    );
+  }, [outages]);
 
-  const availableTechnicians = technicians.filter(t => 
-    t.status === 'available' || t.status === 'online'
-  );
-
-  const handleMenuOpen = (event, outage) => {
-    setAnchorEl(event.currentTarget);
-    setSelectedOutage(outage);
-  };
-
-  const handleMenuClose = () => {
-    setAnchorEl(null);
-    setSelectedOutage(null);
-  };
-
-  const handleStatusChange = (newStatus) => {
-    if (selectedOutage) {
-      onUpdateOutage(selectedOutage.id, { status: newStatus });
-    }
-    handleMenuClose();
-  };
-
-  const handleAssignClick = () => {
-    setAssignDialogOpen(true);
-    handleMenuClose();
-  };
-
-  const handleAssign = () => {
-    if (selectedOutage && selectedTechnician) {
-      onAssignTechnician(selectedOutage.id, selectedTechnician);
-      setAssignDialogOpen(false);
-      setSelectedOutage(null);
-      setSelectedTechnician('');
+  const handleViewDistrict = (district) => {
+    if (onDistrictClick) {
+      onDistrictClick(district);
+    } else {
+      navigate(`/district/${district}`);
     }
   };
 
@@ -91,132 +74,101 @@ export default function OutageList({ outages, technicians, onUpdateOutage, onAss
 
   return (
     <Box>
-      <TableContainer component={Paper}>
-        <Table>
-          <TableHead>
-            <TableRow>
-              <TableCell>ID</TableCell>
-              <TableCell>Location</TableCell>
-              <TableCell>Address</TableCell>
-              <TableCell>Status</TableCell>
-              <TableCell>Reported At</TableCell>
-              <TableCell>Assigned Technician</TableCell>
-              <TableCell>Actions</TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {outages.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={7} align="center">
-                  <Typography variant="body2" color="text.secondary">
-                    No outages reported
-                  </Typography>
-                </TableCell>
+      <Paper elevation={2} sx={{ borderRadius: 2 }}>
+        <Box sx={{ p: 3, borderBottom: 1, borderColor: 'divider' }}>
+          <Typography variant="h6" fontWeight="bold">
+            District-wise Summary
+          </Typography>
+        </Box>
+        <TableContainer>
+          <Table>
+            <TableHead>
+              <TableRow sx={{ bgcolor: '#f5f5f5' }}>
+                <TableCell><strong>Location</strong></TableCell>
+                <TableCell align="center"><strong>Reported by Technician</strong></TableCell>
+                <TableCell align="center"><strong>Reported by Householder</strong></TableCell>
+                <TableCell><strong>Reported Date</strong></TableCell>
+                <TableCell align="center"><strong>Actions</strong></TableCell>
               </TableRow>
-            ) : (
-              outages.map((outage) => (
-                <TableRow key={outage.id} hover>
-                  <TableCell>#{outage.id}</TableCell>
-                  <TableCell>
-                    <Box display="flex" alignItems="center" gap={1}>
-                      <LocationOn fontSize="small" color="primary" />
-                      <Typography variant="body2">
-                        {outage.latitude?.toFixed(4)}, {outage.longitude?.toFixed(4)}
-                      </Typography>
-                    </Box>
-                  </TableCell>
-                  <TableCell>{outage.address || 'N/A'}</TableCell>
-                  <TableCell>
-                    <Chip
-                      label={outage.status}
-                      color={getStatusColor(outage.status)}
-                      size="small"
-                    />
-                  </TableCell>
-                  <TableCell>
-                    {new Date(outage.reportedAt || outage.createdAt).toLocaleString()}
-                  </TableCell>
-                  <TableCell>
-                    {outage.assignedTechnician ? (
-                      <Box display="flex" alignItems="center" gap={1}>
-                        <Person fontSize="small" />
-                        <Typography variant="body2">
-                          {outage.assignedTechnician.name || outage.assignedTechnician}
-                        </Typography>
-                      </Box>
-                    ) : (
-                      <Chip label="Unassigned" size="small" color="default" />
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    <IconButton
-                      size="small"
-                      onClick={(e) => handleMenuOpen(e, outage)}
-                    >
-                      <MoreVert />
-                    </IconButton>
+            </TableHead>
+            <TableBody>
+              {districtSummary.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={5} align="center">
+                    <Typography variant="body2" color="text.secondary">
+                      No outages reported
+                    </Typography>
                   </TableCell>
                 </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
-      </TableContainer>
-
-      {/* Action Menu */}
-      <Menu
-        anchorEl={anchorEl}
-        open={Boolean(anchorEl)}
-        onClose={handleMenuClose}
-      >
-        <MenuItem onClick={handleAssignClick}>
-          <Person sx={{ mr: 1 }} /> Assign Technician
-        </MenuItem>
-        <MenuItem onClick={() => handleStatusChange('in_progress')}>
-          <CheckCircle sx={{ mr: 1 }} /> Mark In Progress
-        </MenuItem>
-        <MenuItem onClick={() => handleStatusChange('resolved')}>
-          <CheckCircle sx={{ mr: 1 }} /> Mark Resolved
-        </MenuItem>
-        <MenuItem onClick={() => handleStatusChange('pending')}>
-          <Cancel sx={{ mr: 1 }} /> Mark Pending
-        </MenuItem>
-      </Menu>
-
-      {/* Assign Technician Dialog */}
-      <Dialog open={assignDialogOpen} onClose={() => setAssignDialogOpen(false)}>
-        <DialogTitle>Assign Technician</DialogTitle>
-        <DialogContent>
-          <FormControl fullWidth sx={{ mt: 2, minWidth: 250 }}>
-            <InputLabel>Select Technician</InputLabel>
-            <Select
-              value={selectedTechnician}
-              onChange={(e) => setSelectedTechnician(e.target.value)}
-              label="Select Technician"
-            >
-              {availableTechnicians.length === 0 ? (
-                <MenuItem disabled>No available technicians</MenuItem>
               ) : (
-                availableTechnicians.map((tech) => (
-                  <MenuItem key={tech.id} value={tech.id}>
-                    {tech.name} - {tech.phone}
-                  </MenuItem>
+                districtSummary.map((row) => (
+                  <TableRow
+                    key={row.id}
+                    hover
+                    sx={{
+                      '&:hover .view-button': {
+                        opacity: 1,
+                      },
+                    }}
+                  >
+                    <TableCell>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <LocationOn color="primary" fontSize="small" />
+                        <Typography variant="body2" fontWeight="medium">
+                          {row.district}
+                        </Typography>
+                      </Box>
+                    </TableCell>
+                    <TableCell align="center">
+                      <Chip
+                        label={row.technicianReports}
+                        size="small"
+                        sx={{
+                          bgcolor: '#ff9800',
+                          color: 'white',
+                          fontWeight: 'bold',
+                        }}
+                      />
+                    </TableCell>
+                    <TableCell align="center">
+                      <Chip
+                        label={row.householderReports}
+                        size="small"
+                        sx={{
+                          bgcolor: '#1976d2',
+                          color: 'white',
+                          fontWeight: 'bold',
+                        }}
+                      />
+                    </TableCell>
+                    <TableCell>
+                      <Typography variant="body2" color="text.secondary">
+                        {row.latestDate ? row.latestDate.toLocaleDateString() : 'N/A'}
+                      </Typography>
+                    </TableCell>
+                    <TableCell align="center">
+                      <Tooltip title="View District Issues">
+                        <IconButton
+                          className="view-button"
+                          size="small"
+                          onClick={() => handleViewDistrict(row.district)}
+                          sx={{
+                            opacity: 0,
+                            transition: 'opacity 0.2s',
+                            color: 'primary.main',
+                          }}
+                        >
+                          <Visibility fontSize="small" />
+                        </IconButton>
+                      </Tooltip>
+                    </TableCell>
+                  </TableRow>
                 ))
               )}
-            </Select>
-          </FormControl>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setAssignDialogOpen(false)}>Cancel</Button>
-          <Button
-            onClick={handleAssign}
-            variant="contained"
-            disabled={!selectedTechnician}
-          >
-            Assign
-          </Button>
-        </DialogActions>
-      </Dialog>
+            </TableBody>
+          </Table>
+        </TableContainer>
+      </Paper>
     </Box>
   );
 }

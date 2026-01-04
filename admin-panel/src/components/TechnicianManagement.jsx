@@ -33,12 +33,15 @@ export default function TechnicianManagement({ technicians, outages, onUpdateTec
 
   const getStatusColor = (status) => {
     switch (status) {
-      case 'available': return 'success';
-      case 'busy': return 'warning';
-      case 'offline': return 'default';
-      case 'assigned': return 'info';
+      case 'Available': return 'success';
+      case 'On Task': return 'warning';
+      case 'Off Duty': return 'default';
       default: return 'default';
     }
+  };
+
+  const getAttendanceColor = (status) => {
+    return status === 'Present' ? 'success' : 'error';
   };
 
   const handleMenuOpen = (event, technician) => {
@@ -60,8 +63,8 @@ export default function TechnicianManagement({ technicians, outages, onUpdateTec
 
   const getTechnicianOutages = (technicianId) => {
     return outages.filter(o => 
-      o.assignedTechnician?.id === technicianId || 
-      o.assignedTechnicianId === technicianId
+      o.assignedTechnicianIds?.includes(technicianId) ||
+      o.assignedTechnicians?.some(t => t.id === technicianId)
     );
   };
 
@@ -96,7 +99,7 @@ export default function TechnicianManagement({ technicians, outages, onUpdateTec
                 Available
               </Typography>
               <Typography variant="h4" color="success.main">
-                {technicians.filter(t => t.status === 'available').length}
+                {technicians.filter(t => t.availability === 'Available').length}
               </Typography>
             </CardContent>
           </Card>
@@ -105,10 +108,10 @@ export default function TechnicianManagement({ technicians, outages, onUpdateTec
           <Card>
             <CardContent>
               <Typography color="textSecondary" gutterBottom>
-                Busy/Assigned
+                On Task
               </Typography>
               <Typography variant="h4" color="warning.main">
-                {technicians.filter(t => t.status === 'busy' || t.status === 'assigned').length}
+                {technicians.filter(t => t.availability === 'On Task').length}
               </Typography>
             </CardContent>
           </Card>
@@ -120,18 +123,19 @@ export default function TechnicianManagement({ technicians, outages, onUpdateTec
         <Table>
           <TableHead>
             <TableRow>
-              <TableCell>Name</TableCell>
-              <TableCell>Phone</TableCell>
-              <TableCell>Location</TableCell>
-              <TableCell>Status</TableCell>
-              <TableCell>Active Jobs</TableCell>
-              <TableCell>Actions</TableCell>
+              <TableCell><strong>Technician ID</strong></TableCell>
+              <TableCell><strong>Technician Name</strong></TableCell>
+              <TableCell align="center"><strong>Attendance Status</strong></TableCell>
+              <TableCell align="center"><strong>Availability Status</strong></TableCell>
+              <TableCell><strong>Contact Number</strong></TableCell>
+              <TableCell><strong>Active Jobs</strong></TableCell>
+              <TableCell align="center"><strong>Actions</strong></TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
             {technicians.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={6} align="center">
+                <TableCell colSpan={7} align="center">
                   <Typography variant="body2" color="text.secondary">
                     No technicians registered
                   </Typography>
@@ -143,6 +147,11 @@ export default function TechnicianManagement({ technicians, outages, onUpdateTec
                 return (
                   <TableRow key={technician.id} hover>
                     <TableCell>
+                      <Typography variant="body2" fontWeight="medium">
+                        {technician.technicianId || technician.id}
+                      </Typography>
+                    </TableCell>
+                    <TableCell>
                       <Box display="flex" alignItems="center" gap={1}>
                         <Person fontSize="small" />
                         <Typography variant="body2" fontWeight="medium">
@@ -150,26 +159,27 @@ export default function TechnicianManagement({ technicians, outages, onUpdateTec
                         </Typography>
                       </Box>
                     </TableCell>
+                    <TableCell align="center">
+                      <Chip
+                        label={technician.attendanceStatus || 'Present'}
+                        size="small"
+                        color={getAttendanceColor(technician.attendanceStatus || 'Present')}
+                      />
+                    </TableCell>
+                    <TableCell align="center">
+                      <Chip
+                        label={technician.availability || 'Available'}
+                        size="small"
+                        color={getStatusColor(technician.availability || 'Available')}
+                      />
+                    </TableCell>
                     <TableCell>
                       <Box display="flex" alignItems="center" gap={1}>
                         <Phone fontSize="small" />
-                        {technician.phone}
-                      </Box>
-                    </TableCell>
-                    <TableCell>
-                      <Box display="flex" alignItems="center" gap={1}>
-                        <LocationOn fontSize="small" color="primary" />
                         <Typography variant="body2">
-                          {technician.latitude?.toFixed(4)}, {technician.longitude?.toFixed(4)}
+                          {technician.phone}
                         </Typography>
                       </Box>
-                    </TableCell>
-                    <TableCell>
-                      <Chip
-                        label={technician.status}
-                        color={getStatusColor(technician.status)}
-                        size="small"
-                      />
                     </TableCell>
                     <TableCell>
                       {activeOutages.length > 0 ? (
@@ -184,7 +194,7 @@ export default function TechnicianManagement({ technicians, outages, onUpdateTec
                         </Typography>
                       )}
                     </TableCell>
-                    <TableCell>
+                    <TableCell align="center">
                       <IconButton
                         size="small"
                         onClick={(e) => handleMenuOpen(e, technician)}
@@ -206,14 +216,14 @@ export default function TechnicianManagement({ technicians, outages, onUpdateTec
         open={Boolean(anchorEl)}
         onClose={handleMenuClose}
       >
-        <MenuItem onClick={() => handleStatusChange('available')}>
+        <MenuItem onClick={() => handleStatusChange('Available')}>
           <CheckCircle sx={{ mr: 1 }} color="success" /> Mark Available
         </MenuItem>
-        <MenuItem onClick={() => handleStatusChange('busy')}>
-          <Cancel sx={{ mr: 1 }} color="warning" /> Mark Busy
+        <MenuItem onClick={() => handleStatusChange('On Task')}>
+          <Cancel sx={{ mr: 1 }} color="warning" /> Mark On Task
         </MenuItem>
-        <MenuItem onClick={() => handleStatusChange('offline')}>
-          <Cancel sx={{ mr: 1 }} /> Mark Offline
+        <MenuItem onClick={() => handleStatusChange('Off Duty')}>
+          <Cancel sx={{ mr: 1 }} /> Mark Off Duty
         </MenuItem>
       </Menu>
     </Box>
