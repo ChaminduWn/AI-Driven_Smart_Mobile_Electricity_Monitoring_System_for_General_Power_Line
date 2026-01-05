@@ -100,6 +100,38 @@ def topsis_ranking(df, criteria, weights, beneficial=None):
     
     return df.sort_values('TOPSIS_Score', ascending=False)
 
+def cf_predict(user_id, df_interactions, df_components, component_type):
+    """Calculate CF scores based on user ratings"""
+    
+    id_map = {
+        'Panel': 'Panel_ID',
+        'Inverter': 'Inverter_ID',
+        'Battery': 'Battery_ID',
+        'Installer': 'Installer_ID'
+    }
+    comp_id_col = id_map.get(component_type)
+    
+    if comp_id_col is None or comp_id_col not in df_components.columns:
+        df = df_components.copy()
+        df['CF_Score'] = 0.5
+        return df
+    
+    ratings = df_interactions[df_interactions['Component_Type'] == component_type]
+    
+    if len(ratings) == 0:
+        df = df_components.copy()
+        df['CF_Score'] = 0.5
+        return df
+    
+    avg_ratings = ratings.groupby('Component_ID')['Rating'].mean()
+    avg_ratings = (avg_ratings - 1) / 4
+    
+    df = df_components.copy()
+    df['CF_Score'] = df[comp_id_col].map(avg_ratings).fillna(avg_ratings.mean() if len(avg_ratings) > 0 else 0.5)
+    
+    return df
+
+
 def hybrid_fusion(df, use_ml=True):
     """Hybrid ranking using TOPSIS, CF, and ML scores"""
     
