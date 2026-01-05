@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import { Zap, Plus, Trash2, Edit, TrendingUp, AlertCircle, Lightbulb, Search } from 'lucide-react';
+import { Zap, Plus, Trash2, Edit, TrendingUp, AlertCircle, Lightbulb, Search, Camera, Upload, X, CheckCircle } from 'lucide-react';
 
 const API_BASE = 'http://localhost:8000/api/v1';
 const ACCOUNT_NUMBER = '123456789'; // Demo account
@@ -15,6 +15,13 @@ const ApplianceManager = () => {
   const [showAddForm, setShowAddForm] = useState(false);
   const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  
+  // Image recognition states
+  const [imageFile, setImageFile] = useState(null);
+  const [imagePreview, setImagePreview] = useState(null);
+  const [recognizing, setRecognizing] = useState(false);
+  const [recognitionResult, setRecognitionResult] = useState(null);
+  const [showImageUpload, setShowImageUpload] = useState(false);
   
   // Form state
   const [formData, setFormData] = useState({
@@ -81,6 +88,79 @@ const ApplianceManager = () => {
     }
   };
 
+  const handleImageSelect = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      setImageFile(file);
+      
+      // Create preview
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImagePreview(reader.result);
+      };
+      reader.readAsDataURL(file);
+      
+      // Clear previous results
+      setRecognitionResult(null);
+    }
+  };
+
+  const recognizeFromImage = async () => {
+    if (!imageFile) {
+      alert('Please select an image first');
+      return;
+    }
+
+    setRecognizing(true);
+    setRecognitionResult(null);
+    
+    const formDataUpload = new FormData();
+    formDataUpload.append('file', imageFile);
+
+    try {
+      const response = await fetch(`${API_BASE}/appliances/recognize-from-image`, {
+        method: 'POST',
+        body: formDataUpload
+      });
+
+      const data = await response.json();
+      
+      if (data.success) {
+        setRecognitionResult(data);
+        
+        // Auto-fill form with recognized data
+        setFormData({
+          appliance_name: data.suggested_values.appliance_name,
+          appliance_category: data.suggested_values.appliance_category,
+          wattage: data.suggested_values.wattage,
+          usage_duration_minutes: data.suggested_values.usage_duration_minutes,
+          usage_times_per_day: data.suggested_values.usage_times_per_day,
+          usage_frequency: data.suggested_values.usage_frequency
+        });
+        
+        // Show success message
+        setTimeout(() => {
+          setShowImageUpload(false);
+          setShowAddForm(true);
+        }, 1500);
+      } else {
+        alert(`❌ ${data.message || 'Could not recognize appliance'}\n\nTip: Try taking a clearer photo of the appliance or its power label.`);
+      }
+    } catch (error) {
+      console.error('Error recognizing appliance:', error);
+      alert('❌ Failed to recognize appliance. Please check your connection and try again.');
+    }
+    
+    setRecognizing(false);
+  };
+
+  const clearImageUpload = () => {
+    setImageFile(null);
+    setImagePreview(null);
+    setRecognitionResult(null);
+    setShowImageUpload(false);
+  };
+
   const addAppliance = async () => {
     setLoading(true);
     
@@ -106,6 +186,7 @@ const ApplianceManager = () => {
           usage_times_per_day: 1,
           usage_frequency: 'daily'
         });
+        clearImageUpload();
         fetchAppliances();
         fetchAnalysis();
         fetchRecommendations();
@@ -118,7 +199,7 @@ const ApplianceManager = () => {
   };
 
   const deleteAppliance = async (id, name) => {
-    if (!confirm(`Delete ${name}?`)) return;
+    if (!window.confirm(`Delete ${name}?`)) return;
     
     try {
       const response = await fetch(`${API_BASE}/appliances/${id}`, {
@@ -146,6 +227,7 @@ const ApplianceManager = () => {
       usage_frequency: 'daily'
     });
     setShowAddForm(true);
+    setShowImageUpload(false);
   };
 
   const filteredAppliances = appliances.filter(a => 
@@ -167,7 +249,7 @@ const ApplianceManager = () => {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="min-h-screen bg-gray-900 p-6 space-y-6">
       {/* Header */}
       <div className="bg-gradient-to-r from-purple-600 to-pink-600 rounded-xl p-6 shadow-2xl">
         <h2 className="text-2xl font-bold text-white flex items-center gap-3">
@@ -199,29 +281,200 @@ const ApplianceManager = () => {
         </div>
       )}
 
-      {/* Add Appliance Button & Form */}
-      <div className="bg-gray-800 rounded-xl p-6 border border-gray-700">
-        {!showAddForm ? (
+      {/* Add Appliance Buttons */}
+      {!showAddForm && !showImageUpload && (
+        <div className="grid md:grid-cols-2 gap-4">
+          <button
+            onClick={() => setShowImageUpload(true)}
+            className="bg-gradient-to-r from-blue-600 to-cyan-600 text-white py-6 px-6 rounded-xl font-semibold hover:from-blue-700 hover:to-cyan-700 transition-all flex items-center justify-center gap-3 shadow-lg"
+          >
+            <Camera className="w-6 h-6" />
+            <div className="text-left">
+              <div>Scan Appliance Image</div>
+              <div className="text-sm text-blue-100 font-normal">AI-powered recognition</div>
+            </div>
+          </button>
           <button
             onClick={() => setShowAddForm(true)}
-            className="w-full bg-gradient-to-r from-purple-600 to-pink-600 text-white py-4 px-6 rounded-lg font-semibold hover:from-purple-700 hover:to-pink-700 transition-all flex items-center justify-center gap-2"
+            className="bg-gradient-to-r from-purple-600 to-pink-600 text-white py-6 px-6 rounded-xl font-semibold hover:from-purple-700 hover:to-pink-700 transition-all flex items-center justify-center gap-3 shadow-lg"
           >
             <Plus className="w-6 h-6" />
-            Add New Appliance
+            <div className="text-left">
+              <div>Add Manually</div>
+              <div className="text-sm text-purple-100 font-normal">Enter details yourself</div>
+            </div>
           </button>
-        ) : (
+        </div>
+      )}
+
+      {/* Image Upload Section */}
+      {showImageUpload && (
+        <div className="bg-gray-800 rounded-xl p-6 border border-gray-700">
+          <div className="flex justify-between items-center mb-4">
+            <h3 className="text-xl font-semibold text-white flex items-center gap-2">
+              <Camera className="w-6 h-6" />
+              Scan Appliance
+            </h3>
+            <button
+              onClick={clearImageUpload}
+              className="text-gray-400 hover:text-white p-2 hover:bg-gray-700 rounded transition-colors"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+
           <div className="space-y-4">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-xl font-semibold text-white">Add Appliance</h3>
+            {/* Image Upload Area */}
+            <div className="border-2 border-dashed border-gray-600 rounded-xl p-8 text-center hover:border-purple-500 transition-colors">
+              {!imagePreview ? (
+                <label className="cursor-pointer block">
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleImageSelect}
+                    className="hidden"
+                  />
+                  <Upload className="w-16 h-16 text-gray-500 mx-auto mb-4" />
+                  <p className="text-gray-300 text-lg mb-2">Click to upload or drag image here</p>
+                  <p className="text-gray-500 text-sm">Upload a photo of the appliance or its power label</p>
+                  <p className="text-gray-500 text-xs mt-2">Supports: JPG, PNG, WEBP</p>
+                </label>
+              ) : (
+                <div className="space-y-4">
+                  <img 
+                    src={imagePreview} 
+                    alt="Preview" 
+                    className="max-h-64 mx-auto rounded-lg shadow-lg"
+                  />
+                  <div className="flex gap-2 justify-center">
+                    <label className="px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg text-white cursor-pointer transition-colors">
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={handleImageSelect}
+                        className="hidden"
+                      />
+                      Change Image
+                    </label>
+                    <button
+                      onClick={() => {
+                        setImageFile(null);
+                        setImagePreview(null);
+                        setRecognitionResult(null);
+                      }}
+                      className="px-4 py-2 bg-red-600 hover:bg-red-700 rounded-lg text-white transition-colors"
+                    >
+                      Remove
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Recognition Result */}
+            {recognitionResult && (
+              <div className="bg-green-900 bg-opacity-30 border border-green-600 rounded-xl p-4">
+                <div className="flex items-start gap-3">
+                  <CheckCircle className="w-6 h-6 text-green-400 flex-shrink-0 mt-1" />
+                  <div className="flex-1">
+                    <h4 className="text-green-100 font-semibold text-lg mb-2">Recognition Successful!</h4>
+                    <div className="grid md:grid-cols-2 gap-4 text-sm">
+                      <div>
+                        <p className="text-gray-400">Appliance</p>
+                        <p className="text-white font-medium">{recognitionResult.data.appliance_name}</p>
+                      </div>
+                      <div>
+                        <p className="text-gray-400">Category</p>
+                        <p className="text-white font-medium">{recognitionResult.data.category}</p>
+                      </div>
+                      <div>
+                        <p className="text-gray-400">Power</p>
+                        <p className="text-white font-medium">{recognitionResult.data.wattage}W</p>
+                      </div>
+                      <div>
+                        <p className="text-gray-400">Source</p>
+                        <p className="text-white font-medium">
+                          {recognitionResult.data.wattage_source === 'ocr' ? 'Label (OCR)' : 'Database'}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-gray-400">Confidence</p>
+                        <p className="text-white font-medium">
+                          {(recognitionResult.data.confidence * 100).toFixed(0)}%
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Action Buttons */}
+            <div className="flex gap-2">
               <button
-                type="button"
-                onClick={() => setShowAddForm(false)}
-                className="text-gray-400 hover:text-white"
+                onClick={recognizeFromImage}
+                disabled={!imageFile || recognizing}
+                className="flex-1 bg-gradient-to-r from-blue-600 to-cyan-600 text-white py-3 px-6 rounded-lg font-semibold hover:from-blue-700 hover:to-cyan-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
               >
-                ✕
+                {recognizing ? (
+                  <>
+                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                    Recognizing...
+                  </>
+                ) : (
+                  <>
+                    <Camera className="w-5 h-5" />
+                    Recognize Appliance
+                  </>
+                )}
+              </button>
+              <button
+                onClick={() => setShowAddForm(true)}
+                className="px-6 py-3 bg-gray-700 hover:bg-gray-600 rounded-lg text-white transition-colors"
+              >
+                Skip to Manual
               </button>
             </div>
 
+            {/* Tips */}
+            <div className="bg-blue-900 bg-opacity-30 border border-blue-700 rounded-lg p-4">
+              <p className="text-blue-100 text-sm font-semibold mb-2">💡 Tips for best results:</p>
+              <ul className="text-blue-200 text-sm space-y-1 ml-4 list-disc">
+                <li>Take a clear, well-lit photo of the appliance</li>
+                <li>Or photograph the power/specification label closely</li>
+                <li>Ensure text on labels is readable and not blurry</li>
+                <li>Avoid shadows and reflections</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Manual Add Form */}
+      {showAddForm && (
+        <div className="bg-gray-800 rounded-xl p-6 border border-gray-700">
+          <div className="flex justify-between items-center mb-4">
+            <h3 className="text-xl font-semibold text-white">Add Appliance</h3>
+            <button
+              type="button"
+              onClick={() => {
+                setShowAddForm(false);
+                setFormData({
+                  appliance_name: '',
+                  appliance_category: 'Other',
+                  wattage: '',
+                  usage_duration_minutes: 60,
+                  usage_times_per_day: 1,
+                  usage_frequency: 'daily'
+                });
+              }}
+              className="text-gray-400 hover:text-white"
+            >
+              ✕
+            </button>
+          </div>
+
+          <div className="space-y-4">
             <div className="grid md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-gray-300 mb-2 text-sm">Appliance Name *</label>
@@ -325,8 +578,8 @@ const ApplianceManager = () => {
               </div>
             </div>
           </div>
-        )}
-      </div>
+        </div>
+      )}
 
       {/* Charts Row */}
       {analysis && analysis.breakdown && analysis.breakdown.length > 0 && (
@@ -469,11 +722,12 @@ const ApplianceManager = () => {
         </div>
       )}
 
-      {appliances.length === 0 && (
+      {/* Empty State */}
+      {appliances.length === 0 && !showAddForm && !showImageUpload && (
         <div className="bg-gray-800 rounded-xl p-12 text-center border border-gray-700">
           <Zap className="w-16 h-16 text-gray-600 mx-auto mb-4" />
           <h3 className="text-xl font-semibold text-white mb-2">No Appliances Yet</h3>
-          <p className="text-gray-400 mb-6">Add your first appliance to start tracking energy consumption</p>
+          <p className="text-gray-400 mb-6">Start by scanning an appliance image or adding one manually</p>
         </div>
       )}
     </div>
