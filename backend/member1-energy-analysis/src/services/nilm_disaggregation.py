@@ -490,3 +490,54 @@ def get_nilm_service() -> NILMDisaggregationService:
     if _nilm_service is None:
         _nilm_service = NILMDisaggregationService()
     return _nilm_service
+
+    # Add to NILMDisaggregationService class
+
+def disaggregate_with_household_context(
+    self,
+    total_kwh: float,
+    date: datetime,
+    user_appliances: List[Dict],
+    household_members: Optional[List[Dict]] = None
+) -> Dict:
+    """
+    Enhanced disaggregation with household context
+    
+    Args:
+        total_kwh: Total daily consumption
+        date: Date of consumption
+        user_appliances: User's registered appliances
+        household_members: Optional household composition data
+        
+    Returns:
+        Enhanced breakdown with household insights
+    """
+    # Basic disaggregation
+    base_result = self.disaggregate_daily_consumption(
+        total_kwh=total_kwh,
+        date=date,
+        user_appliances=user_appliances
+    )
+    
+    # If household data available, enhance with patterns
+    if household_members:
+        try:
+            from src.services.household_analyzer import HouseholdPatternAnalyzer
+            analyzer = HouseholdPatternAnalyzer()
+            
+            household_estimate = analyzer.estimate_household_consumption(
+                members=household_members,
+                appliances=user_appliances
+            )
+            
+            # Add household context to result
+            base_result['household_context'] = household_estimate
+            
+            # Adjust confidence based on household data
+            for item in base_result['breakdown']:
+                if household_estimate['household_size'] > 2:
+                    item['confidence'] = min(item['confidence'] * 1.1, 0.95)
+        except Exception as e:
+            logger.warning(f"Household context error: {e}")
+    
+    return base_result
