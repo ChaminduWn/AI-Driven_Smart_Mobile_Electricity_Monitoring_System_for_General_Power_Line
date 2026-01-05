@@ -7,6 +7,8 @@ import ElectricityDashboard from '../components/electricity/ElectricityDashboard
 import ProgressTracker from '../components/electricity/ProgressTracker';
 import ApplianceManager from '../components/electricity/ApplianceManager';
 import TariffCalculator from '../components/electricity/TariffCalculator';
+import NILMDashboard from '../components/electricity/NILMDashboard';
+
 
 // Navigation Button
 const NavButton = ({ active, onClick, children }) => (
@@ -83,6 +85,14 @@ export default function Member1Dashboard() {
             >
               🔌 Appliances
             </NavButton>
+
+            <NavButton
+              active={activeTab === 'Disaggregation'}
+              onClick={() => setActiveTab('Disaggregation')}
+            >
+              AI Energy Disaggregation
+            </NavButton>
+            
           </div>
         </nav>
 
@@ -92,6 +102,8 @@ export default function Member1Dashboard() {
           {activeTab === 'calculator' && <TariffCalculator />}
           {activeTab === 'tracker' && <ProgressTracker />}
           {activeTab === 'appliances' && <ApplianceManager />}
+          {activeTab === 'Disaggregation' && <NILMDashboard />}
+
         </main>
       </div>
     </Box>
