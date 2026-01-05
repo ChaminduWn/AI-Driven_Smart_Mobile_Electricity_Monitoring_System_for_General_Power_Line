@@ -102,6 +102,35 @@ def topsis_ranking(df, criteria, weights, beneficial=None):
 
 
 
+def hybrid_fusion(df, use_ml=True):
+    """Combine TOPSIS, CF, and ML scores"""
+    
+    df = df.copy()
+    
+    if 'TOPSIS_Score' in df.columns:
+        topsis_vals = df['TOPSIS_Score'].values
+        if topsis_vals.max() > topsis_vals.min():
+            df['TOPSIS_Score_Norm'] = (topsis_vals - topsis_vals.min()) / (topsis_vals.max() - topsis_vals.min())
+        else:
+            df['TOPSIS_Score_Norm'] = 0.5
+    else:
+        df['TOPSIS_Score_Norm'] = 0.5
+    
+    if 'CF_Score' not in df.columns:
+        df['CF_Score'] = 0.5
+    
+    if 'ML_Score' not in df.columns or not use_ml:
+        df['ML_Score'] = 0.5
+    
+    df['Final_Hybrid'] = (
+        0.4 * df['TOPSIS_Score_Norm'] +
+        0.3 * df['CF_Score'] +
+        0.3 * df['ML_Score']
+    )
+    
+    return df.sort_values('Final_Hybrid', ascending=False)
+
+
 
 
 
@@ -170,6 +199,9 @@ def format_recommendations(df, comp_type, top_n=5):
         recommendations.append(rec)
     
     return recommendations
+
+
+
 
 
 
