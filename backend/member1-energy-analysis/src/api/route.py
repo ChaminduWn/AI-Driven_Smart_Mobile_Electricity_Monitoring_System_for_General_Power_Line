@@ -84,7 +84,7 @@ def get_all_bills(
         query = query.filter(ElectricityBill.account_number == account_number)
 
     count = query.count()
-    bills = query.offset(skip).limit(limit).all()
+    bills = query.order_by(ElectricityBill.bill_date.desc()).all()  # ✅ Added ordering
 
     return BillListResponse(
         success=True,
@@ -128,6 +128,7 @@ def get_bills_by_account(account_number: str, db: Session = Depends(get_db)):
     bills = (
         db.query(ElectricityBill)
         .filter(ElectricityBill.account_number == account_number)
+        .order_by(ElectricityBill.bill_date.desc())  # ✅ Added ordering
         .all()
     )
 
@@ -144,7 +145,8 @@ def get_statistics(db: Session = Depends(get_db)):
     try:
         total_bills = db.query(ElectricityBill).count()
         total_units = db.query(func.sum(ElectricityBill.units_consumed)).scalar() or 0
-        total_amount = db.query(func.sum(ElectricityBill.total_due)).scalar() or 0
+        # ✅ FIXED: Changed total_due to total_charge
+        total_amount = db.query(func.sum(ElectricityBill.total_charge)).scalar() or 0
 
         return {
             "success": True,
@@ -152,7 +154,7 @@ def get_statistics(db: Session = Depends(get_db)):
             "data": {
                 "total_bills": total_bills,
                 "total_units_consumed": int(total_units),
-                "total_amount_due": float(total_amount),
+                "total_amount": float(total_amount),  # ✅ Changed name
                 "average_units_per_bill": (
                     int(total_units / total_bills) if total_bills > 0 else 0
                 ),
@@ -160,15 +162,3 @@ def get_statistics(db: Session = Depends(get_db)):
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-
-
-print("=" * 70)
-print("POSTGRESQL-ONLY FILES READY!")
-print("=" * 70)
-print("\nKey changes from your original:")
-print("1. .env - Fixed array syntax (no brackets)")
-print("2. config.py - Added Optional type and list parsing")
-print("3. database.py - PostgreSQL only (no SQLite)")
-print("4. main.py - Better error handling for DB")
-print("5. routes.py - Complete working version")
-print("\n" + "=" * 70)

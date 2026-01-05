@@ -92,7 +92,7 @@ const ElectricityDashboard = () => {
 
   const deleteBill = async (billId) => {
     if (!confirm('Delete this bill? This cannot be undone.')) return;
-    
+
     try {
       const response = await fetch(`${API_BASE}/bills/${billId}`, {
         method: 'DELETE'
@@ -338,7 +338,7 @@ const ElectricityDashboard = () => {
             <Target className="w-7 h-7" />
             Create Budget Plan
           </h3>
-         
+
           {selectedBill && (
             <div className="bg-black bg-opacity-30 rounded-lg p-4 mb-6">
               <div className="grid grid-cols-3 gap-4 text-center">
@@ -409,9 +409,8 @@ const ElectricityDashboard = () => {
                 <p className="text-2xl font-bold">{budgetPlan.weekly_targets[0].target_units.toFixed(1)} kWh</p>
                 <p className="text-xs opacity-75">Rs. {budgetPlan.weekly_targets[0].target_cost.toFixed(2)}</p>
               </div>
-              <div className={`bg-gradient-to-br rounded-lg p-4 text-white ${
-                budgetPlan.budget_info.percentage_change < 0 ? 'from-green-600 to-green-700' : 'from-orange-600 to-orange-700'
-              }`}>
+              <div className={`bg-gradient-to-br rounded-lg p-4 text-white ${budgetPlan.budget_info.percentage_change < 0 ? 'from-green-600 to-green-700' : 'from-orange-600 to-orange-700'
+                }`}>
                 <p className="text-sm opacity-90">Change</p>
                 <p className="text-2xl font-bold flex items-center gap-1">
                   {budgetPlan.budget_info.percentage_change < 0 ? <TrendingDown className="w-5 h-5" /> : <TrendingUp className="w-5 h-5" />}
@@ -458,6 +457,21 @@ const ElectricityDashboard = () => {
                   <li key={idx} className="flex items-start gap-2 text-gray-200">
                     <CheckCircle className="w-5 h-5 text-amber-400 flex-shrink-0 mt-0.5" />
                     <span>{rec}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            <div className="bg-gradient-to-r from-blue-900 to-indigo-900 rounded-xl p-6 border border-blue-700">
+              <h4 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+                <Calendar className="w-5 h-5" />
+                Checkpoint Reminders
+              </h4>
+              <ul className="space-y-2">
+                {budgetPlan.monitoring_schedule.map((checkpoint, idx) => (
+                  <li key={idx} className="flex items-start gap-2 text-gray-200">
+                    <AlertCircle className="w-5 h-5 text-blue-400 flex-shrink-0 mt-0.5" />
+                    <span>Day {checkpoint.day}: {checkpoint.action} - {checkpoint.purpose}</span>
                   </li>
                 ))}
               </ul>
@@ -560,11 +574,10 @@ const TariffItem = ({ label, value, highlight }) => (
 const TabButton = ({ active, onClick, children }) => (
   <button
     onClick={onClick}
-    className={`flex-1 py-3 px-6 rounded-lg font-semibold transition-all ${
-      active
+    className={`flex-1 py-3 px-6 rounded-lg font-semibold transition-all ${active
         ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg'
         : 'text-gray-400 hover:text-white hover:bg-gray-700'
-    }`}
+      }`}
   >
     {children}
   </button>
