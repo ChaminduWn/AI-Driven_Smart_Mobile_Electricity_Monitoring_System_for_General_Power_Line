@@ -40,6 +40,33 @@ inverter_features = ['Efficiency_%', 'Warranty_Years', 'Price_USD']
 battery_features = ['Capacity_kWh', 'Cycles', 'Warranty_Years', 'Price_USD']
 
 
+def filter_components(user, df_panels, df_inverters, df_batteries, df_installers):
+    """Filter components based on user constraints"""
+    
+    panels_f = df_panels[df_panels['Price_USD'] <= user['Budget_LKR'] * 0.5].copy()
+    
+    if user.get('Preferred_Brand'):
+        preferred = panels_f[panels_f['Brand'] == user['Preferred_Brand']]
+        if len(preferred) > 0:
+            panels_f = pd.concat([preferred, panels_f[panels_f['Brand'] != user['Preferred_Brand']]])
+    
+    inverters_f = df_inverters[df_inverters['Price_USD'] <= user['Budget_LKR'] * 0.3].copy()
+    batteries_f = df_batteries[df_batteries['Price_USD'] <= user['Budget_LKR'] * 0.4].copy()
+    installers_f = df_installers[df_installers['Location'] == user['Location']].copy()
+    
+    # Relaxation logic
+    if len(panels_f) == 0:
+        panels_f = df_panels.copy()
+    if len(inverters_f) == 0:
+        inverters_f = df_inverters.copy()
+    if len(batteries_f) == 0:
+        batteries_f = df_batteries.copy()
+    if len(installers_f) == 0:
+        installers_f = df_installers.copy()
+    
+    return panels_f, inverters_f, batteries_f, installers_f
+
+
 def format_recommendations(df, comp_type, top_n=5):
     """Format recommendations as JSON-friendly list"""
     
@@ -105,6 +132,8 @@ def format_recommendations(df, comp_type, top_n=5):
         recommendations.append(rec)
     
     return recommendations
+
+
 
 
 
