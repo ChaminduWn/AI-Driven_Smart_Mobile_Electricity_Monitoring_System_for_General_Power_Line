@@ -1,0 +1,241 @@
+from flask import Flask, request, jsonify
+from flask_cors import CORS
+import pandas as pd
+import numpy as np
+import joblib
+import warnings
+import traceback
+warnings.filterwarnings('ignore')
+
+app = Flask(__name__)
+CORS(app) 
+
+print("Loading datasets...")
+df_panels = pd.read_csv('CSVs/panels.csv')
+df_inverters = pd.read_csv('CSVs/inverters.csv')
+df_batteries = pd.read_csv('CSVs/batteries.csv')
+df_installers = pd.read_csv('CSVs/installers.csv')
+df_interactions = pd.read_csv('CSVs/user_interactions.csv')
+
+print("Loading ML models and scalers...")
+try:
+    panel_model = joblib.load('models/panel_model.pkl')
+    panel_scaler = joblib.load('models/panel_scaler.pkl')
+    
+    inverter_model = joblib.load('models/inverter_model.pkl')
+    inverter_scaler = joblib.load('models/inverter_scaler.pkl')
+    
+    battery_model = joblib.load('models/battery_model.pkl')
+    battery_scaler = joblib.load('models/battery_scaler.pkl')
+    
+    models_loaded = True
+    print(" ML models loaded successfully")
+except FileNotFoundError as e:
+    print(f"  Warning: ML models not found ({e}). Will use TOPSIS + CF only.")
+    models_loaded = False
+
+
+panel_features = ['Power_W', 'Efficiency_%', 'Warranty_Years', 'Price_USD', 'Degradation_%perYear']
+inverter_features = ['Efficiency_%', 'Warranty_Years', 'Price_USD']
+battery_features = ['Capacity_kWh', 'Cycles', 'Warranty_Years', 'Price_USD']
+
+
+def format_recommendations(df, comp_type, top_n=5):
+    """Format recommendations as JSON-friendly list"""
+    
+    if len(df) == 0:
+        return []
+    
+    id_col_map = {
+        'Panels': 'Panel_ID',
+        'Inverters': 'Inverter_ID',
+        'Batteries': 'Battery_ID',
+        'Installers': 'Installer_ID'
+    }
+    comp_id_col = id_col_map.get(comp_type)
+    
+    recommendations = []
+    
+    for idx, (i, row) in enumerate(df.head(top_n).iterrows(), 1):
+        rec = {
+            'rank': idx,
+            'id': row[comp_id_col],
+            'brand': row.get('Brand', row.get('Company', 'N/A')),
+            'scores': {
+                'topsis': round(float(row.get('TOPSIS_Score', 0)), 3),
+                'cf': round(float(row.get('CF_Score', 0)), 3),
+                'ml': round(float(row.get('ML_Score', 0)), 3),
+                'final_hybrid': round(float(row['Final_Hybrid']), 3)
+            }
+        }
+        
+
+        if comp_type == 'Panels':
+            rec['details'] = {
+                'model': row.get('Model', 'N/A'),
+                'power_w': float(row['Power_W']),
+                'efficiency_percent': float(row['Efficiency_%']),
+                'warranty_years': int(row['Warranty_Years']),
+                'price_usd': float(row['Price_USD']),
+                'degradation_percent_per_year': float(row['Degradation_%perYear'])
+            }
+        elif comp_type == 'Inverters':
+            rec['details'] = {
+                'type': row['Type'],
+                'efficiency_percent': float(row['Efficiency_%']),
+                'hybrid': bool(row['Hybrid']),
+                'warranty_years': int(row['Warranty_Years']),
+                'price_usd': float(row['Price_USD'])
+            }
+        elif comp_type == 'Batteries':
+            rec['details'] = {
+                'capacity_kwh': float(row['Capacity_kWh']),
+                'cycles': int(row['Cycles']),
+                'warranty_years': int(row['Warranty_Years']),
+                'price_usd': float(row['Price_USD'])
+            }
+        elif comp_type == 'Installers':
+            rec['details'] = {
+                'rating': float(row['Rating']),
+                'experience_years': int(row['Experience_Years']),
+                'location': row['Location'],
+                'cost_usd': float(row['Cost_USD'])
+            }
+        
+        recommendations.append(rec)
+    
+    return recommendations
+
+
+
+@app.route('/', methods=['GET'])
+def home():
+    """API home endpoint"""
+    return jsonify({
+        'message': 'Solar PV Recommendation System API',
+        'version': '1.0',
+        'endpoints': {
+            '/recommend': 'POST - Get recommendations',
+            '/health': 'GET - Check API health',
+            '/components': 'GET - Get available components',
+            '/locations': 'GET - Get available locations'
+        }
+    })
+
+
+@app.route('/health', methods=['GET'])
+def health():
+    """Health check endpoint"""
+    return jsonify({
+        'status': 'healthy',
+        'models_loaded': models_loaded,
+        'datasets': {
+            'panels': len(df_panels),
+            'inverters': len(df_inverters),
+            'batteries': len(df_batteries),
+            'installers': len(df_installers),
+            'interactions': len(df_interactions)
+        }
+    })
+
+
+@app.route('/locations', methods=['GET'])
+def get_locations():
+    """Get available installation locations"""
+    locations = df_installers['Location'].unique().tolist()
+    return jsonify({
+        'locations': locations
+    })
+
+
+@app.route('/components', methods=['GET'])
+def get_components():
+    """Get summary of available components"""
+    return jsonify({
+        'panels': {
+            'count': len(df_panels),
+            'brands': df_panels['Brand'].unique().tolist(),
+            'price_range': {
+                'min': float(df_panels['Price_USD'].min()),
+                'max': float(df_panels['Price_USD'].max())
+            }
+        },
+        'inverters': {
+            'count': len(df_inverters),
+            'brands': df_inverters['Brand'].unique().tolist(),
+            'types': df_inverters['Type'].unique().tolist(),
+            'price_range': {
+                'min': float(df_inverters['Price_USD'].min()),
+                'max': float(df_inverters['Price_USD'].max())
+            }
+        },
+        'batteries': {
+            'count': len(df_batteries),
+            'brands': df_batteries['Brand'].unique().tolist(),
+            'price_range': {
+                'min': float(df_batteries['Price_USD'].min()),
+                'max': float(df_batteries['Price_USD'].max())
+            }
+        },
+        'installers': {
+            'count': len(df_installers),
+            'companies': df_installers['Company'].unique().tolist(),
+            'locations': df_installers['Location'].unique().tolist()
+        }
+    })
+
+
+@app.route('/recommend', methods=['POST'])
+def recommend():
+    """Main recommendation endpoint"""
+    try:
+        data = request.get_json()
+        
+        required_fields = ['Budget_LKR', 'Roof_Size_m2', 'Location', 'Energy_Usage_kWhPerDay']
+        missing_fields = [field for field in required_fields if field not in data]
+        
+        if missing_fields:
+            return jsonify({
+                'error': 'Missing required fields',
+                'missing': missing_fields,
+                'required_fields': required_fields
+            }), 400
+        user_input = {
+            'User_ID': data.get('User_ID', 'API_User'),
+            'Budget_LKR': float(data['Budget_LKR']),
+            'Roof_Size_m2': float(data['Roof_Size_m2']),
+            'Location': data['Location'],
+            'Preferred_Brand': data.get('Preferred_Brand', None),
+            'Energy_Usage_kWhPerDay': float(data['Energy_Usage_kWhPerDay'])
+        }
+        
+        # Validate ranges
+        if user_input['Budget_LKR'] <= 0:
+            return jsonify({'error': 'Budget must be positive'}), 400
+        if user_input['Roof_Size_m2'] <= 0:
+            return jsonify({'error': 'Roof size must be positive'}), 400
+        if user_input['Energy_Usage_kWhPerDay'] <= 0:
+            return jsonify({'error': 'Energy usage must be positive'}), 400
+        
+        # Get recommendations
+        result = get_recommendations(user_input)
+        
+        return jsonify(result), 200
+        
+    except Exception as e:
+        return jsonify({
+            'error': 'Internal server error',
+            'message': str(e),
+            'traceback': traceback.format_exc()
+        }), 500
+
+if __name__ == '__main__':
+    print("\n" + "="*60)
+    print(" SOLAR PV RECOMMENDATION SYSTEM API")
+    print("="*60)
+    print(f" Datasets loaded: {len(df_panels)} panels, {len(df_inverters)} inverters")
+    print(f" ML Models: {'Loaded' if models_loaded else 'Not loaded (TOPSIS+CF only)'}")
+    print("\n Starting Flask server...")
+    print("="*60 + "\n")
+    
+    app.run(debug=True, host='0.0.0.0', port=5000)
