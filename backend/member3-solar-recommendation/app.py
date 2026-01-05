@@ -100,10 +100,8 @@ def topsis_ranking(df, criteria, weights, beneficial=None):
     
     return df.sort_values('TOPSIS_Score', ascending=False)
 
-
-
 def hybrid_fusion(df, use_ml=True):
-    """Combine TOPSIS, CF, and ML scores"""
+    """Hybrid ranking using TOPSIS, CF, and ML scores"""
     
     df = df.copy()
     
@@ -129,6 +127,8 @@ def hybrid_fusion(df, use_ml=True):
     )
     
     return df.sort_values('Final_Hybrid', ascending=False)
+
+
 
 
 
