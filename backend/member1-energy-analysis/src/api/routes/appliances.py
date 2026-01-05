@@ -2,15 +2,21 @@
 src/api/routes/appliances.py
 PHASE 3: Appliance Management System
 """
+
+from fastapi import UploadFile, File
+import shutil
+from pathlib import Path
+from src.services.appliance_recognition import get_recognition_service
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from typing import Optional, List
 from pydantic import BaseModel, Field
-
 from src.database import get_db
 from src.models.budget_plan import HouseholdAppliance
 from src.services.bill_analysis import BillAnalysisService
+import logging
 
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/appliances", tags=["Appliance Management"])
 analysis_service = BillAnalysisService()
@@ -486,3 +492,86 @@ def get_common_appliances():
         'appliances': common,
         'note': 'Typical wattages are estimates. Check your appliance label for exact values.'
     }
+
+
+@router.post("/recognize-from-image", response_model=dict)
+async def recognize_appliance_from_image(
+    file: UploadFile = File(..., description="Appliance image (JPG, PNG)"),
+    db: Session = Depends(get_db)
+):
+    """
+    Recognize appliance and extract power consumption from image
+    
+    Upload an image of:
+    - The appliance itself (for classification)
+    - The power label/specification sticker (for wattage extraction)
+    
+    Returns:
+    - Appliance type classification
+    - Extracted or estimated wattage
+    - Category and typical usage patterns
+    """
+    # Validate file type
+    file_ext = file.filename.split(".")[-1].lower()
+    if file_ext not in ['jpg', 'jpeg', 'png', 'webp']:
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid file type. Allowed: JPG, PNG, WEBP"
+        )
+    
+    # Create temp directory
+    temp_dir = Path("uploads/temp_appliances")
+    temp_dir.mkdir(parents=True, exist_ok=True)
+    
+    # Save uploaded file
+    from datetime import datetime
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    file_path = temp_dir / f"{timestamp}_{file.filename}"
+    
+    try:
+        with open(file_path, "wb") as buffer:
+            shutil.copyfileobj(file.file, buffer)
+        
+        # Recognize appliance
+        recognition_service = get_recognition_service()
+        result = recognition_service.recognize_appliance(str(file_path))
+        
+        if not result['success']:
+            return {
+                'success': False,
+                'message': 'Could not recognize appliance',
+                'error': result.get('error'),
+                'suggestion': 'Try uploading a clearer image or the power label'
+            }
+        
+        # Return structured data for frontend
+        return {
+            'success': True,
+            'message': 'Appliance recognized successfully',
+            'data': {
+                'appliance_name': result.get('appliance_name', 'Unknown Appliance'),
+                'category': result.get('category', 'Other'),
+                'wattage': result['recommended_wattage'],
+                'wattage_source': result['wattage_source'],
+                'confidence': result.get('confidence', 0),
+                'classification_details': result.get('classification'),
+                'power_extraction_details': result.get('power_extraction')
+            },
+            'suggested_values': {
+                'appliance_name': result.get('appliance_name', ''),
+                'appliance_category': result.get('category', 'Other'),
+                'wattage': result['recommended_wattage'],
+                'usage_duration_minutes': 60,
+                'usage_times_per_day': 1,
+                'usage_frequency': 'daily'
+            }
+        }
+        
+    except Exception as e:
+        logger.error(f"Error recognizing appliance: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+    
+    finally:
+        # Clean up temp file
+        if file_path.exists():
+            file_path.unlink()
