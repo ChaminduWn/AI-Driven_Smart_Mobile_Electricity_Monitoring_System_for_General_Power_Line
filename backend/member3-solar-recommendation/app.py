@@ -67,6 +67,44 @@ def filter_components(user, df_panels, df_inverters, df_batteries, df_installers
     return panels_f, inverters_f, batteries_f, installers_f
 
 
+def topsis_ranking(df, criteria, weights, beneficial=None):
+    """TOPSIS multi-criteria decision making"""
+    if len(df) == 0:
+        return df
+    
+    df = df.copy()
+    
+    if beneficial is None:
+        beneficial = [False if 'Price' in c or 'Cost' in c else True for c in criteria]
+    
+    matrix = df[criteria].values.astype(float)
+    norm_matrix = matrix / np.sqrt((matrix**2).sum(axis=0))
+    weighted_matrix = norm_matrix * weights
+    
+    ideal = np.zeros(len(criteria))
+    neg_ideal = np.zeros(len(criteria))
+    
+    for i, is_beneficial in enumerate(beneficial):
+        if is_beneficial:
+            ideal[i] = weighted_matrix[:, i].max()
+            neg_ideal[i] = weighted_matrix[:, i].min()
+        else:
+            ideal[i] = weighted_matrix[:, i].min()
+            neg_ideal[i] = weighted_matrix[:, i].max()
+    
+    dist_ideal = np.sqrt(((weighted_matrix - ideal)**2).sum(axis=1))
+    dist_neg_ideal = np.sqrt(((weighted_matrix - neg_ideal)**2).sum(axis=1))
+    
+    topsis_score = dist_neg_ideal / (dist_ideal + dist_neg_ideal + 1e-10)
+    df['TOPSIS_Score'] = topsis_score
+    
+    return df.sort_values('TOPSIS_Score', ascending=False)
+
+
+
+
+
+
 def format_recommendations(df, comp_type, top_n=5):
     """Format recommendations as JSON-friendly list"""
     
@@ -132,6 +170,8 @@ def format_recommendations(df, comp_type, top_n=5):
         recommendations.append(rec)
     
     return recommendations
+
+
 
 
 
