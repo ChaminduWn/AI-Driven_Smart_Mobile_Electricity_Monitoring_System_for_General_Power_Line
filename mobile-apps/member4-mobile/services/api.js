@@ -47,6 +47,7 @@ async function fetchSafetyTips() {
 
 async function fetchEmergencyProtocol(type) {
   const res = await apiClient.get(`/api/safety/emergency/${encodeURIComponent(type)}`);
+  console.log('Emergency Protocol Response:', res.data);
   return res.data;
 }
 

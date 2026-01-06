@@ -42,6 +42,7 @@ class SafetyController {
         const p = safetyLogicService.getEmergencyProtocol(d);
         protocols[d] = p.error ? { error: p.error } : p;
       }
+      console.log('All Emergency Protocols Response:', protocols);
       return res.status(200).json({ status: 'success', data: protocols, timestamp: new Date().toISOString() });
     } catch (err) {
       console.error('getAllEmergencyProtocols error:', err.message);
