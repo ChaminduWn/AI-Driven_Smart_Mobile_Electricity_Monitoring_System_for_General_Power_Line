@@ -1,6 +1,5 @@
 """ src/main.py """
 
-
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from src.config import settings
@@ -10,6 +9,8 @@ from src.api.routes import bill_analysis
 from src.api.routes import appliances
 from src.api.routes import nilm
 from src.api.routes import household 
+from src.api.routes import ml_predictions
+
 
 import logging
 import os
@@ -65,6 +66,8 @@ app.include_router(bill_analysis.router, prefix="/api/v1")
 app.include_router(appliances.router, prefix="/api/v1")
 app.include_router(nilm.router, prefix="/api/v1")  
 app.include_router(household.router, prefix="/api/v1")
+app.include_router(ml_predictions.router, prefix="/api/v1")
+
 logger.info(f"{settings.APP_NAME} v{settings.APP_VERSION} initialized")
 
 

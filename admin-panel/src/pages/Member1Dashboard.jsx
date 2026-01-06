@@ -9,7 +9,7 @@ import ApplianceManager from '../components/electricity/ApplianceManager';
 import TariffCalculator from '../components/electricity/TariffCalculator';
 import NILMDashboard from '../components/electricity/NILMDashboard';
 import HouseholdAnalyser from '../components/electricity/HouseholdAnalyzer';
-
+import ConsumptionEstimator from '../components/electricity/ConsumptionEstimator';
 
 
 // Navigation Button
@@ -102,6 +102,14 @@ export default function Member1Dashboard() {
               Household Energy Analyzer
 
             </NavButton>
+
+             <NavButton
+              active={activeTab === 'ConsumptionEstimator'}
+              onClick={() => setActiveTab('ConsumptionEstimator')}
+            >
+              Household Consumption Predictor 
+
+            </NavButton>
             
           </div>
         </nav>
@@ -114,7 +122,7 @@ export default function Member1Dashboard() {
           {activeTab === 'appliances' && <ApplianceManager />}
           {activeTab === 'Disaggregation' && <NILMDashboard />}
           {activeTab === 'household' && <HouseholdAnalyser />}
-
+          {activeTab === 'ConsumptionEstimator' && <ConsumptionEstimator />}
 
         </main>
       </div>
