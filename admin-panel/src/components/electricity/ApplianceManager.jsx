@@ -3,11 +3,11 @@ import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Toolti
 import { Zap, Plus, Trash2, Edit, TrendingUp, AlertCircle, Lightbulb, Search, Camera, Upload, X, CheckCircle } from 'lucide-react';
 
 const API_BASE = 'http://localhost:8000/api/v1';
-const ACCOUNT_NUMBER = '123456789'; // Demo account
 
 const CHART_COLORS = ['#3B82F6', '#8B5CF6', '#14B8A6', '#F59E0B', '#EF4444', '#06B6D4', '#10B981'];
 
 const ApplianceManager = () => {
+  const [accountNumber, setAccountNumber] = useState('123456789');
   const [appliances, setAppliances] = useState([]);
   const [analysis, setAnalysis] = useState(null);
   const [recommendations, setRecommendations] = useState([]);
@@ -38,11 +38,11 @@ const ApplianceManager = () => {
     fetchAnalysis();
     fetchRecommendations();
     fetchCommonAppliances();
-  }, []);
+  }, [accountNumber]);
 
   const fetchAppliances = async () => {
     try {
-      const response = await fetch(`${API_BASE}/appliances/account/${ACCOUNT_NUMBER}`);
+      const response = await fetch(`${API_BASE}/appliances/account/${accountNumber}`);
       const data = await response.json();
       if (data.success) {
         setAppliances(data.appliances);
@@ -54,7 +54,7 @@ const ApplianceManager = () => {
 
   const fetchAnalysis = async () => {
     try {
-      const response = await fetch(`${API_BASE}/appliances/analysis/${ACCOUNT_NUMBER}`);
+      const response = await fetch(`${API_BASE}/appliances/analysis/${accountNumber}`);
       const data = await response.json();
       if (data.success) {
         setAnalysis(data);
@@ -66,7 +66,7 @@ const ApplianceManager = () => {
 
   const fetchRecommendations = async () => {
     try {
-      const response = await fetch(`${API_BASE}/appliances/recommendations/${ACCOUNT_NUMBER}`);
+      const response = await fetch(`${API_BASE}/appliances/recommendations/${accountNumber}`);
       const data = await response.json();
       if (data.success) {
         setRecommendations(data.recommendations);
@@ -170,7 +170,7 @@ const ApplianceManager = () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           ...formData,
-          account_number: ACCOUNT_NUMBER
+          account_number: accountNumber
         })
       });
 
@@ -257,6 +257,18 @@ const ApplianceManager = () => {
           Appliance Manager
         </h2>
         <p className="text-purple-100 mt-2">Track and optimize your appliance energy consumption</p>
+        
+        {/* Account Number Input */}
+        <div className="mt-4 max-w-md">
+          <label className="block text-purple-100 text-sm mb-2">Account Number</label>
+          <input
+            type="text"
+            value={accountNumber}
+            onChange={(e) => setAccountNumber(e.target.value)}
+            placeholder="Enter account number"
+            className="w-full px-4 py-2 bg-purple-800 bg-opacity-50 border border-purple-400 rounded-lg text-white placeholder-purple-300 focus:ring-2 focus:ring-white focus:outline-none"
+          />
+        </div>
       </div>
 
       {/* Summary Cards */}

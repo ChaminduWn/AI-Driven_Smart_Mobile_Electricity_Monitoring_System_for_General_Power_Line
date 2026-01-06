@@ -3,11 +3,11 @@ import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Toolti
 import { Zap, TrendingUp, Activity, AlertCircle, CheckCircle, RefreshCw, Info } from 'lucide-react';
 
 const API_BASE = 'http://localhost:8000/api/v1';
-const ACCOUNT_NUMBER = '123456789';
 
 const CHART_COLORS = ['#3B82F6', '#8B5CF6', '#14B8A6', '#F59E0B', '#EF4444', '#06B6D4', '#10B981', '#F472B6'];
 
 const NILMDashboard = () => {
+  const [accountNumber, setAccountNumber] = useState('123456789');
   const [disaggregation, setDisaggregation] = useState(null);
   const [accuracyReport, setAccuracyReport] = useState(null);
   const [historicalData, setHistoricalData] = useState(null);
@@ -18,7 +18,7 @@ const NILMDashboard = () => {
     fetchDisaggregation();
     fetchAccuracyReport();
     fetchHistoricalBreakdown();
-  }, []);
+  }, [accountNumber]);
 
   const fetchDisaggregation = async () => {
     setLoading(true);
@@ -27,7 +27,7 @@ const NILMDashboard = () => {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          account_number: ACCOUNT_NUMBER
+          account_number: accountNumber
         })
       });
       const data = await response.json();
@@ -45,7 +45,7 @@ const NILMDashboard = () => {
 
   const fetchAccuracyReport = async () => {
     try {
-      const response = await fetch(`${API_BASE}/nilm/accuracy-report/${ACCOUNT_NUMBER}`);
+      const response = await fetch(`${API_BASE}/nilm/accuracy-report/${accountNumber}`);
       const data = await response.json();
       if (data.success) {
         setAccuracyReport(data);
@@ -57,7 +57,7 @@ const NILMDashboard = () => {
 
   const fetchHistoricalBreakdown = async () => {
     try {
-      const response = await fetch(`${API_BASE}/nilm/historical-breakdown/${ACCOUNT_NUMBER}?days=30`);
+      const response = await fetch(`${API_BASE}/nilm/historical-breakdown/${accountNumber}?days=30`);
       const data = await response.json();
       if (data.success) {
         setHistoricalData(data);
@@ -83,7 +83,7 @@ const NILMDashboard = () => {
     <div className="min-h-screen bg-gray-900 p-6 space-y-6">
       {/* Header */}
       <div className="bg-gradient-to-r from-cyan-600 to-blue-600 rounded-xl p-6 shadow-2xl">
-        <div className="flex items-start justify-between">
+        <div className="flex items-start justify-between mb-4">
           <div>
             <h2 className="text-2xl font-bold text-white flex items-center gap-3">
               <Activity className="w-8 h-8" />
@@ -103,6 +103,18 @@ const NILMDashboard = () => {
             <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
             Refresh
           </button>
+        </div>
+        
+        {/* Account Number Input */}
+        <div className="max-w-md">
+          <label className="block text-cyan-100 text-sm mb-2">Account Number</label>
+          <input
+            type="text"
+            value={accountNumber}
+            onChange={(e) => setAccountNumber(e.target.value)}
+            placeholder="Enter account number"
+            className="w-full px-4 py-2 bg-cyan-800 bg-opacity-50 border border-cyan-400 rounded-lg text-white placeholder-cyan-300 focus:ring-2 focus:ring-white focus:outline-none"
+          />
         </div>
       </div>
 
