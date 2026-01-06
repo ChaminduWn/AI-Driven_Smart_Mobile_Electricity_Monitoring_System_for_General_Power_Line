@@ -1,14 +1,15 @@
-"""
-src/main.py
-Updated with bill analysis routes
-"""
+""" src/main.py """
+
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from src.config import settings
 from src.database import engine, Base
-from src.api.route import router as main_router  # ✅ Changed from routes to route
-from src.api.routes import bill_analysis  # ✅ Now imports from routes/ directory
-from src.api.routes import appliances  # ✅ ADD THIS LINE
+from src.api.route import router as main_router
+from src.api.routes import bill_analysis
+from src.api.routes import appliances
+from src.api.routes import nilm
+from src.api.routes import household 
 
 import logging
 import os
@@ -46,7 +47,7 @@ app = FastAPI(
     debug=settings.DEBUG,
     docs_url="/api/docs",
     redoc_url="/api/redoc",
-    description="API for extracting and managing electricity bill data with analysis & budget planning",
+    description="AI-powered electricity bill analysis with NILM disaggregation",
 )
 
 # CORS
@@ -58,13 +59,12 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# ✅ Include routes
+#  Include all routes
 app.include_router(main_router)
 app.include_router(bill_analysis.router, prefix="/api/v1")
 app.include_router(appliances.router, prefix="/api/v1")
-# app.include_router(appliances.router)  # ✅ ADD THIS LINE
-
-
+app.include_router(nilm.router, prefix="/api/v1")  
+app.include_router(household.router, prefix="/api/v1")
 logger.info(f"{settings.APP_NAME} v{settings.APP_VERSION} initialized")
 
 
@@ -81,7 +81,9 @@ def root():
             "Budget Planning",
             "Progress Tracking",
             "Tariff Calculator",
-             "Appliance Management" 
+            "Appliance Management",
+            "AI Disaggregation (NILM)", 
+            "Image Recognition"
         ]
     }
 
@@ -97,7 +99,9 @@ def health():
             "bill_analysis",
             "budget_planning",
             "progress_tracking",
-            "appliance_management" 
+            "appliance_management",
+            "nilm_disaggregation", 
+            "image_recognition"
         ]
     }
 
@@ -111,7 +115,9 @@ async def startup_event():
     logger.info("  - Past Month Analysis")
     logger.info("  - Budget Planning")
     logger.info("  - Progress Tracking")
-    logger.info("  - Appliance Management") 
+    logger.info("  - Appliance Management")
+    logger.info("  - AI Disaggregation (NILM)") 
+    logger.info("  - Image Recognition")
 
 
 @app.on_event("shutdown")
