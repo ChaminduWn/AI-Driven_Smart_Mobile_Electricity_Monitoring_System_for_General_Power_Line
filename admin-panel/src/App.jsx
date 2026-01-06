@@ -4,6 +4,7 @@ import { ThemeProvider, createTheme } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
+import AssignTechnicianTeam from './pages/AssignTechnicianTeam';
 
 // Layout
 import DashboardLayout from './components/common/DashboardLayout';
@@ -15,6 +16,8 @@ import Member2Dashboard from './pages/Member2Dashboard';
 import Member3Dashboard from './pages/Member3Dashboard';
 import Member4Dashboard from './pages/Member4Dashboard';
 import Login from './pages/Login';
+import DistrictDetails from './pages/DistrictDetails';
+import IssueDetails from './pages/IssueDetails';
 
 const theme = createTheme({
   palette: {
@@ -41,6 +44,9 @@ function App() {
             <Route path="member2" element={<Member2Dashboard />} />
             <Route path="member3" element={<Member3Dashboard />} />
             <Route path="member4" element={<Member4Dashboard />} />
+            <Route path="district/:districtName" element={<DistrictDetails />} />
+            <Route path="issue/:issueId" element={<IssueDetails />} />
+            <Route path="issue/:issueId/assign-team" element={<AssignTechnicianTeam />} />
           </Route>
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
