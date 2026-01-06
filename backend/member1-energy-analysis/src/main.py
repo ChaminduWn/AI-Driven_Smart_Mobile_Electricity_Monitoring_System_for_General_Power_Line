@@ -1,7 +1,6 @@
-"""
-src/main.py
-Complete with NILM integration
-"""
+""" src/main.py """
+
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from src.config import settings
@@ -9,7 +8,8 @@ from src.database import engine, Base
 from src.api.route import router as main_router
 from src.api.routes import bill_analysis
 from src.api.routes import appliances
-from src.api.routes import nilm  # ✅ ADD NILM
+from src.api.routes import nilm
+from src.api.routes import household 
 
 import logging
 import os
@@ -59,12 +59,12 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# ✅ Include all routes
+#  Include all routes
 app.include_router(main_router)
 app.include_router(bill_analysis.router, prefix="/api/v1")
 app.include_router(appliances.router, prefix="/api/v1")
-app.include_router(nilm.router, prefix="/api/v1")  # ✅ ADD THIS
-
+app.include_router(nilm.router, prefix="/api/v1")  
+app.include_router(household.router, prefix="/api/v1")
 logger.info(f"{settings.APP_NAME} v{settings.APP_VERSION} initialized")
 
 
@@ -82,7 +82,7 @@ def root():
             "Progress Tracking",
             "Tariff Calculator",
             "Appliance Management",
-            "AI Disaggregation (NILM)",  # ✅ ADD THIS
+            "AI Disaggregation (NILM)", 
             "Image Recognition"
         ]
     }
@@ -100,7 +100,7 @@ def health():
             "budget_planning",
             "progress_tracking",
             "appliance_management",
-            "nilm_disaggregation",  # ✅ ADD THIS
+            "nilm_disaggregation", 
             "image_recognition"
         ]
     }
@@ -116,7 +116,7 @@ async def startup_event():
     logger.info("  - Budget Planning")
     logger.info("  - Progress Tracking")
     logger.info("  - Appliance Management")
-    logger.info("  - AI Disaggregation (NILM)")  # ✅ ADD THIS
+    logger.info("  - AI Disaggregation (NILM)") 
     logger.info("  - Image Recognition")
 
 
