@@ -327,17 +327,41 @@ def get_recommendations(user_input):
     }
     
     
-    
-    
-    # result = {
-    #     'user_profile': user_input,
-    #     'recommendations': {
-    #         'panels': panels_final,
-    #         'inverters': inverters_final,
-    #         'batteries': batteries_final,
-    #         'installers': installers_final
-    #     }
-    # }
+    if (len(panels_final) > 0 and len(inverters_final) > 0 and 
+        len(batteries_final) > 0 and len(installers_final) > 0):
+        
+        top_panel = panels_final.iloc[0]
+        top_inverter = inverters_final.iloc[0]
+        top_battery = batteries_final.iloc[0]
+        top_installer = installers_final.iloc[0]
+        
+        total_cost = (top_panel['Price_USD'] + top_inverter['Price_USD'] + 
+                     top_battery['Price_USD'] + top_installer['Cost_USD'])
+        
+        result['recommended_configuration'] = {
+            'panel': {
+                'id': top_panel['Panel_ID'],
+                'brand': top_panel['Brand'],
+                'price': float(top_panel['Price_USD'])
+            },
+            'inverter': {
+                'id': top_inverter['Inverter_ID'],
+                'brand': top_inverter['Brand'],
+                'price': float(top_inverter['Price_USD'])
+            },
+            'battery': {
+                'id': top_battery['Battery_ID'],
+                'brand': top_battery['Brand'],
+                'price': float(top_battery['Price_USD'])
+            },
+            'installer': {
+                'id': top_installer['Installer_ID'],
+                'company': top_installer['Company'],
+                'cost': float(top_installer['Cost_USD'])
+            },
+            'total_cost': round(float(total_cost), 2),
+            'budget_remaining': round(float(((user_input['Budget_LKR']) - total_cost)), 2)
+        }
     
     return result
 
