@@ -131,6 +131,36 @@ def cf_predict(user_id, df_interactions, df_components, component_type):
     
     return df
 
+def predict_ml(df, feature_cols, model, scaler):
+    """Predict scores using trained ML model"""
+    
+    if len(df) == 0:
+        return df
+    
+    df = df.copy()
+    
+    try:
+        missing_cols = [col for col in feature_cols if col not in df.columns]
+        if missing_cols:
+            df['ML_Score'] = 0.5
+            return df
+        
+        X = df[feature_cols].values
+        X_scaled = scaler.transform(X)
+        predictions = model.predict(X_scaled)
+        
+        if predictions.max() > predictions.min():
+            predictions = (predictions - predictions.min()) / (predictions.max() - predictions.min())
+        else:
+            predictions = np.ones_like(predictions) * 0.5
+        
+        df['ML_Score'] = predictions
+        
+    except Exception as e:
+        df['ML_Score'] = 0.5
+    
+    return df
+
 
 def hybrid_fusion(df, use_ml=True):
     """Hybrid ranking using TOPSIS, CF, and ML scores"""
