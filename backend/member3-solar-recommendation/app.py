@@ -192,10 +192,6 @@ def hybrid_fusion(df, use_ml=True):
 
 
 
-
-
-
-
 def format_recommendations(df, comp_type, top_n=5):
     """Format recommendations as JSON-friendly list"""
     
@@ -263,10 +259,53 @@ def format_recommendations(df, comp_type, top_n=5):
     return recommendations
 
 
+def get_recommendations(user_input):
+    """Complete recommendation pipeline returning JSON data"""
+    
+    # 1️⃣ Filter
+    panels_f, inverters_f, batteries_f, installers_f = filter_components(
+        user_input, df_panels, df_inverters, df_batteries, df_installers
+    )
 
+    # 2️⃣ TOPSIS
+    panel_criteria = ['Price_USD', 'Efficiency_%', 'Warranty_Years']
+    panel_weights = [0.3, 0.5, 0.2]
+    panel_beneficial = [False, True, True]
+    panels_ranked = topsis_ranking(panels_f, panel_criteria, panel_weights, panel_beneficial)
 
+    inverter_criteria = ['Price_USD', 'Efficiency_%', 'Warranty_Years']
+    inverter_weights = [0.3, 0.5, 0.2]
+    inverter_beneficial = [False, True, True]
+    inverters_ranked = topsis_ranking(inverters_f, inverter_criteria, inverter_weights, inverter_beneficial)
 
+    battery_criteria = ['Price_USD', 'Capacity_kWh', 'Warranty_Years']
+    battery_weights = [0.3, 0.5, 0.2]
+    battery_beneficial = [False, True, True]
+    batteries_ranked = topsis_ranking(batteries_f, battery_criteria, battery_weights, battery_beneficial)
 
+    installer_criteria = ['Cost_USD', 'Rating', 'Experience_Years']
+    installer_weights = [0.4, 0.4, 0.2]
+    installer_beneficial = [False, True, True]
+    installers_ranked = topsis_ranking(installers_f, installer_criteria, installer_weights, installer_beneficial)
+
+    
+
+    
+    result = {
+        
+    }
+    
+    
+    
+    
+    result = {
+        'panels': get_top_n(panels_ranked, 'Panels', 3),
+        'inverters': get_top_n(inverters_ranked, 'Inverters', 3),
+        'batteries': get_top_n(batteries_ranked, 'Batteries', 3),
+        'installers': get_top_n(installers_ranked, 'Installers', 3)
+        }
+    
+    return result
 
 
 
