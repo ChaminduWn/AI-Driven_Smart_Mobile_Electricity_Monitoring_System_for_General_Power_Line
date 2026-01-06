@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { View, StyleSheet, ScrollView } from 'react-native';
-import { Text, Card, Button, ActivityIndicator } from 'react-native-paper';
+import { Text, Button, ActivityIndicator } from 'react-native-paper';
 import Header from '../components/Header';
 import api from '../services/api';
+import SimpleCard from '../components/SimpleCard';
 
 const DISASTERS = ['flood', 'thunderstorm', 'heavy_rain', 'cyclone'];
 
@@ -31,21 +32,19 @@ export default function EmergencyScreen({ navigation }) {
     <View style={{ flex: 1 }}>
       <Header title="Emergency Protocols" leftAction={<Button icon="arrow-left" onPress={() => navigation.goBack()} />} />
       <ScrollView contentContainerStyle={styles.container}>
-        <Card style={styles.selectorCard}>
-          <Card.Content style={{ flexDirection: 'row', justifyContent: 'space-around' }}>
+        <SimpleCard style={styles.selectorCard}>
+          <View style={{ flexDirection: 'row', justifyContent: 'space-around' }}>
             {DISASTERS.map(d => (
               <Button key={d} mode={selected === d ? 'contained' : 'outlined'} onPress={() => setSelected(d)}>{d.replace('_', ' ').toUpperCase()}</Button>
             ))}
-          </Card.Content>
-        </Card>
+          </View>
+        </SimpleCard>
 
         {loading && <ActivityIndicator animating size={40} />}
         {error && <Text style={{ color: 'red' }}>{error}</Text>}
 
         {protocol && (
-          <Card style={styles.card}>
-            <Card.Title title={protocol.title || selected.toUpperCase()} />
-            <Card.Content>
+          <SimpleCard style={styles.card} title={protocol.title || selected.toUpperCase()}>
               <Text style={{ fontWeight: '600' }}>{protocol.overview}</Text>
               <Text style={{ marginTop: 8, fontWeight: '700' }}>Before</Text>
               {protocol.before?.map((t, i) => <Text key={i}>• {t}</Text>)}
@@ -53,8 +52,7 @@ export default function EmergencyScreen({ navigation }) {
               {protocol.during?.map((t, i) => <Text key={i}>• {t}</Text>)}
               <Text style={{ marginTop: 8, fontWeight: '700' }}>After</Text>
               {protocol.after?.map((t, i) => <Text key={i}>• {t}</Text>)}
-            </Card.Content>
-          </Card>
+          </SimpleCard>
         )}
 
         <View style={{ height: 60 }} />

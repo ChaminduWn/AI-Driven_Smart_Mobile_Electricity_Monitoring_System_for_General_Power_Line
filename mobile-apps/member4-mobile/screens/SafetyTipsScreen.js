@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { View, StyleSheet, ScrollView } from 'react-native';
-import { Text, Card, ActivityIndicator } from 'react-native-paper';
+import { Text, ActivityIndicator } from 'react-native-paper';
 import Header from '../components/Header';
 import api from '../services/api';
+import SimpleCard from '../components/SimpleCard';
 
 export default function SafetyTipsScreen({ navigation }) {
   const [tips, setTips] = useState(null);
@@ -32,26 +33,17 @@ export default function SafetyTipsScreen({ navigation }) {
         {error && <Text style={{ color: 'red' }}>{error}</Text>}
         {tips && (
           <>
-            <Card style={styles.card}>
-              <Card.Title title="Daily Tips" />
-              <Card.Content>
+            <SimpleCard style={styles.card} title="Daily Tips">
                 {tips.daily.map((t, i) => <Text key={i} style={{ marginTop: 6 }}>• {t}</Text>)}
-              </Card.Content>
-            </Card>
+            </SimpleCard>
 
-            <Card style={styles.card}>
-              <Card.Title title="Seasonal Tips" />
-              <Card.Content>
+            <SimpleCard style={styles.card} title="Seasonal Tips">
                 {tips.seasonal.map((t, i) => <Text key={i} style={{ marginTop: 6 }}>• {t}</Text>)}
-              </Card.Content>
-            </Card>
+            </SimpleCard>
 
-            <Card style={styles.card}>
-              <Card.Title title="Emergency Tips" />
-              <Card.Content>
+            <SimpleCard style={styles.card} title="Emergency Tips">
                 {tips.emergency.map((t, i) => <Text key={i} style={{ marginTop: 6 }}>• {t}</Text>)}
-              </Card.Content>
-            </Card>
+            </SimpleCard>
           </>
         )}
 
