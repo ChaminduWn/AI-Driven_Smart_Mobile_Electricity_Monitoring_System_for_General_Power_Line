@@ -262,12 +262,12 @@ def format_recommendations(df, comp_type, top_n=5):
 def get_recommendations(user_input):
     """Complete recommendation pipeline returning JSON data"""
     
-    # 1️⃣ Filter
+    
     panels_f, inverters_f, batteries_f, installers_f = filter_components(
         user_input, df_panels, df_inverters, df_batteries, df_installers
     )
 
-    # 2️⃣ TOPSIS
+    
     panel_criteria = ['Price_USD', 'Efficiency_%', 'Warranty_Years']
     panel_weights = [0.3, 0.5, 0.2]
     panel_beneficial = [False, True, True]
@@ -287,6 +287,24 @@ def get_recommendations(user_input):
     installer_weights = [0.4, 0.4, 0.2]
     installer_beneficial = [False, True, True]
     installers_ranked = topsis_ranking(installers_f, installer_criteria, installer_weights, installer_beneficial)
+
+    # 3️⃣ CF
+    panels_cf = cf_predict(user_input['User_ID'], df_interactions, panels_ranked, 'Panel')
+    inverters_cf = cf_predict(user_input['User_ID'], df_interactions, inverters_ranked, 'Inverter')
+    batteries_cf = cf_predict(user_input['User_ID'], df_interactions, batteries_ranked, 'Battery')
+
+    # 4️⃣ ML
+    if models_loaded:
+        panels_ml = predict_ml(panels_cf, panel_features, panel_model, panel_scaler)
+        inverters_ml = predict_ml(inverters_cf, inverter_features, inverter_model, inverter_scaler)
+        batteries_ml = predict_ml(batteries_cf, battery_features, battery_model, battery_scaler)
+    else:
+        panels_ml = panels_cf.copy()
+        panels_ml['ML_Score'] = 0.5
+        inverters_ml = inverters_cf.copy()
+        inverters_ml['ML_Score'] = 0.5
+        batteries_ml = batteries_cf.copy()
+        batteries_ml['ML_Score'] = 0.5
 
     
 
