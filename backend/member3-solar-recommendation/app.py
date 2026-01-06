@@ -307,21 +307,37 @@ def get_recommendations(user_input):
         batteries_ml['ML_Score'] = 0.5
 
     
+    panels_final = hybrid_fusion(panels_ml, use_ml=models_loaded)
+    inverters_final = hybrid_fusion(inverters_ml, use_ml=models_loaded)
+    batteries_final = hybrid_fusion(batteries_ml, use_ml=models_loaded)
+    
+    installers_ranked['CF_Score'] = 0.5
+    installers_ranked['ML_Score'] = 0.5
+    installers_final = hybrid_fusion(installers_ranked, use_ml=False)
 
     
     result = {
-        
+        'user_profile': user_input,
+        'recommendations': {
+            'panels': format_recommendations(panels_final, 'Panels', 5),
+            'inverters': format_recommendations(inverters_final, 'Inverters', 5),
+            'batteries': format_recommendations(batteries_final, 'Batteries', 5),
+            'installers': format_recommendations(installers_final, 'Installers', 5)
+        }
     }
     
     
     
     
-    result = {
-        'panels': get_top_n(panels_ranked, 'Panels', 3),
-        'inverters': get_top_n(inverters_ranked, 'Inverters', 3),
-        'batteries': get_top_n(batteries_ranked, 'Batteries', 3),
-        'installers': get_top_n(installers_ranked, 'Installers', 3)
-        }
+    # result = {
+    #     'user_profile': user_input,
+    #     'recommendations': {
+    #         'panels': panels_final,
+    #         'inverters': inverters_final,
+    #         'batteries': batteries_final,
+    #         'installers': installers_final
+    #     }
+    # }
     
     return result
 
