@@ -25,6 +25,11 @@ class BudgetPlanRequest(BaseModel):
     planning_days: int = Field(default=30, ge=28, le=35, description="Days to plan for")
 
 
+class BudgetPlanUpdate(BaseModel):
+    target_budget: Optional[float] = Field(None, gt=0, description="Target budget in Rs.")
+    planning_days: Optional[int] = Field(None, ge=28, le=35, description="Days to plan for")
+
+
 class MeterReadingRequest(BaseModel):
     plan_id: int = Field(description="Budget plan ID")
     current_reading: int = Field(ge=0, description="Current meter reading")
@@ -198,6 +203,144 @@ def create_budget_plan(
     except Exception as e:
         db.rollback()
         raise HTTPException(status_code=500, detail=f"Error saving plan: {str(e)}")
+
+
+@router.put("/plans/{plan_id}")
+def update_budget_plan(
+    plan_id: int,
+    request: BudgetPlanUpdate,
+    db: Session = Depends(get_db)
+):
+    """
+    Update an existing budget plan
+    """
+    plan = db.query(BudgetPlan).filter(BudgetPlan.id == plan_id).first()
+    
+    if not plan:
+        raise HTTPException(status_code=404, detail="Plan not found")
+    
+    bill = plan.reference_bill
+    
+    if not bill:
+        raise HTTPException(status_code=404, detail="Reference bill not found")
+    
+    updated = False
+    
+    if request.target_budget is not None:
+        plan.target_budget = request.target_budget
+        updated = True
+    
+    if request.planning_days is not None:
+        plan.planning_days = request.planning_days
+        plan.plan_end_date = plan.plan_start_date + timedelta(days=request.planning_days)
+        updated = True
+    
+    if updated:
+        # Recalculate plan targets
+        bill_data = {
+            'units_consumed': bill.units_consumed,
+            'billing_period_days': bill.billing_period_days,
+            'total_charge': bill.total_charge or 0
+        }
+        
+        new_plan = analysis_service.create_budget_plan(
+            bill_data,
+            plan.target_budget,
+            plan.planning_days
+        )
+        
+        if 'error' in new_plan:
+            raise HTTPException(status_code=400, detail=new_plan['message'])
+        
+        # Update plan fields
+        plan.target_daily_units = new_plan['daily_targets']['units']
+        plan.target_daily_cost = new_plan['daily_targets']['cost']
+        plan.target_weekly_units = new_plan['weekly_targets'][0]['target_units']
+        plan.target_weekly_cost = new_plan['weekly_targets'][0]['target_cost']
+        plan.target_total_units = new_plan['total_targets']['units']
+        plan.weekly_targets = new_plan['weekly_targets']
+        plan.monitoring_schedule = new_plan['monitoring_schedule']
+        plan.recommendations = new_plan['recommendations']
+    
+    db.commit()
+    db.refresh(plan)
+    
+    return {
+        'success': True,
+        'message': 'Budget plan updated successfully',
+        'plan_id': plan.id,
+        'plan': {
+            'id': plan.id,
+            'account_number': plan.account_number,
+            'target_budget': plan.target_budget,
+            'planning_days': plan.planning_days,
+            'plan_start_date': plan.plan_start_date,
+            'plan_end_date': plan.plan_end_date,
+            'status': plan.status,
+            'current_progress_status': plan.current_progress_status,
+            'target_daily_units': plan.target_daily_units,
+            'target_daily_cost': plan.target_daily_cost,
+            'weekly_targets': plan.weekly_targets,
+            'monitoring_schedule': plan.monitoring_schedule,
+            'recommendations': plan.recommendations
+        }
+    }
+
+
+@router.delete("/plans/{plan_id}")
+def delete_budget_plan(
+    plan_id: int,
+    db: Session = Depends(get_db)
+):
+    """
+    Delete a budget plan and its associated meter readings
+    """
+    plan = db.query(BudgetPlan).filter(BudgetPlan.id == plan_id).first()
+    
+    if not plan:
+        raise HTTPException(status_code=404, detail="Plan not found")
+    
+    try:
+        # Delete associated meter readings
+        db.query(MeterReading).filter(MeterReading.budget_plan_id == plan_id).delete()
+        
+        # Delete the plan
+        db.delete(plan)
+        db.commit()
+        
+        return {
+            'success': True,
+            'message': 'Budget plan and associated readings deleted successfully'
+        }
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Error deleting plan: {str(e)}")
+
+
+@router.delete("/readings/{reading_id}")
+def delete_meter_reading(
+    reading_id: int,
+    db: Session = Depends(get_db)
+):
+    """
+    Delete a specific meter reading
+    """
+    reading = db.query(MeterReading).filter(MeterReading.id == reading_id).first()
+    
+    if not reading:
+        raise HTTPException(status_code=404, detail="Meter reading not found")
+    
+    try:
+        db.delete(reading)
+        db.commit()
+        
+        return {
+            'success': True,
+            'message': 'Meter reading deleted successfully'
+        }
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Error deleting reading: {str(e)}")
 
 
 @router.post("/track-progress")

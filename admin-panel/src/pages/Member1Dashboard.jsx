@@ -30,16 +30,7 @@ export default function Member1Dashboard() {
   const [activeTab, setActiveTab] = useState('dashboard');
 
   return (
-    <Box>
-      {/* Page Title */}
-      <Box sx={{ mb: 3 }}>
-        <Typography variant="h4" fontWeight="bold">
-          Electricity Management System
-        </Typography>
-        <Typography variant="body2" color="text.secondary">
-          Monitor and manage your electricity consumption
-        </Typography>
-      </Box>
+   
 
       <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 rounded-lg overflow-hidden">
         {/* Header */}
@@ -51,7 +42,7 @@ export default function Member1Dashboard() {
                 Smart Energy Monitoring
               </h1>
               <p className="text-sm text-gray-400">
-                Track, analyze, and optimize energy usage
+                Tracking, analyze, and optimize energy usage
               </p>
             </div>
           </div>
@@ -66,14 +57,7 @@ export default function Member1Dashboard() {
             >
                Dashboard
             </NavButton>
-
-            <NavButton
-              active={activeTab === 'calculator'}
-              onClick={() => setActiveTab('calculator')}
-            >
-               Tariff Calculator
-            </NavButton>
-
+           
             <NavButton
               active={activeTab === 'tracker'}
               onClick={() => setActiveTab('tracker')}
@@ -85,7 +69,7 @@ export default function Member1Dashboard() {
               active={activeTab === 'appliances'}
               onClick={() => setActiveTab('appliances')}
             >
-              🔌 Appliances
+              Appliances
             </NavButton>
 
             <NavButton
@@ -110,6 +94,13 @@ export default function Member1Dashboard() {
               Household Consumption Predictor 
 
             </NavButton>
+
+             <NavButton
+              active={activeTab === 'calculator'}
+              onClick={() => setActiveTab('calculator')}
+            >
+               Tariff Calculator
+            </NavButton>
             
           </div>
         </nav>
@@ -126,6 +117,6 @@ export default function Member1Dashboard() {
 
         </main>
       </div>
-    </Box>
+    
   );
 }

@@ -1,27 +1,48 @@
 import React, { useState, useEffect } from 'react';
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, LineChart, Line } from 'recharts';
-import { Zap, TrendingUp, Activity, AlertCircle, CheckCircle, RefreshCw, Info } from 'lucide-react';
+import { Zap, TrendingUp, Activity, AlertCircle, CheckCircle, RefreshCw, Info, Plus, Trash2, Settings } from 'lucide-react';
 
 const API_BASE = 'http://localhost:8000/api/v1';
 
 const CHART_COLORS = ['#3B82F6', '#8B5CF6', '#14B8A6', '#F59E0B', '#EF4444', '#06B6D4', '#10B981', '#F472B6'];
 
 const NILMDashboard = () => {
-  const [accountNumber, setAccountNumber] = useState('123456789');
+  const [accountNumber, setAccountNumber] = useState('2109117907');
   const [disaggregation, setDisaggregation] = useState(null);
   const [accuracyReport, setAccuracyReport] = useState(null);
   const [historicalData, setHistoricalData] = useState(null);
+  const [setupStatus, setSetupStatus] = useState(null);
   const [loading, setLoading] = useState(false);
-  const [activeTab, setActiveTab] = useState('current');
+  const [activeTab, setActiveTab] = useState('setup');
+  const [error, setError] = useState(null);
+  const [success, setSuccess] = useState(null);
 
   useEffect(() => {
-    fetchDisaggregation();
-    fetchAccuracyReport();
-    fetchHistoricalBreakdown();
+    if (accountNumber) {
+      checkSetup();
+    }
   }, [accountNumber]);
+
+  const checkSetup = async () => {
+    try {
+      const response = await fetch(`${API_BASE}/nilm/verify-setup/${accountNumber}`);
+      const data = await response.json();
+      setSetupStatus(data);
+      
+      if (data.is_ready) {
+        fetchDisaggregation();
+        fetchAccuracyReport();
+        fetchHistoricalBreakdown();
+      }
+    } catch (err) {
+      console.error('Setup check error:', err);
+      setError('Cannot connect to backend. Make sure server is running on http://localhost:8000');
+    }
+  };
 
   const fetchDisaggregation = async () => {
     setLoading(true);
+    setError(null);
     try {
       const response = await fetch(`${API_BASE}/nilm/disaggregate`, {
         method: 'POST',
@@ -31,14 +52,20 @@ const NILMDashboard = () => {
         })
       });
       const data = await response.json();
+      
       if (data.success) {
         setDisaggregation(data);
+        setSuccess('Disaggregation completed successfully!');
+        setTimeout(() => setSuccess(null), 3000);
       } else {
-        alert(data.message || 'Failed to disaggregate consumption');
+        setError(data.message || 'Failed to disaggregate consumption');
+        if (data.suggestion) {
+          setError(data.message + '\n\nSuggestion: ' + data.suggestion);
+        }
       }
-    } catch (error) {
-      console.error('Error fetching disaggregation:', error);
-      alert('Make sure you have appliances registered and bills uploaded');
+    } catch (err) {
+      console.error('Error fetching disaggregation:', err);
+      setError('Backend connection error. Check if server is running and CORS is enabled.');
     }
     setLoading(false);
   };
@@ -50,8 +77,8 @@ const NILMDashboard = () => {
       if (data.success) {
         setAccuracyReport(data);
       }
-    } catch (error) {
-      console.error('Error fetching accuracy report:', error);
+    } catch (err) {
+      console.error('Error fetching accuracy report:', err);
     }
   };
 
@@ -62,15 +89,9 @@ const NILMDashboard = () => {
       if (data.success) {
         setHistoricalData(data);
       }
-    } catch (error) {
-      console.error('Error fetching historical data:', error);
+    } catch (err) {
+      console.error('Error fetching historical data:', err);
     }
-  };
-
-  const getConfidenceColor = (confidence) => {
-    if (confidence >= 0.8) return 'text-green-400';
-    if (confidence >= 0.6) return 'text-yellow-400';
-    return 'text-orange-400';
   };
 
   const getConfidenceBadge = (confidence) => {
@@ -78,6 +99,174 @@ const NILMDashboard = () => {
     if (confidence >= 0.6) return 'bg-yellow-600';
     return 'bg-orange-600';
   };
+
+  const SetupTab = () => (
+    <div className="space-y-6">
+      {/* Setup Status Card */}
+      <div className="bg-gray-800 rounded-xl p-6 border border-gray-700">
+        <h3 className="text-xl font-semibold text-white mb-4 flex items-center gap-2">
+          <Settings className="w-6 h-6 text-blue-400" />
+          NILM System Setup Status
+        </h3>
+
+        {setupStatus ? (
+          <div className="space-y-4">
+            {/* Status Badge */}
+            <div className={`p-4 rounded-lg ${setupStatus.is_ready ? 'bg-green-900 border-green-700' : 'bg-yellow-900 border-yellow-700'} border`}>
+              <div className="flex items-center gap-3">
+                {setupStatus.is_ready ? (
+                  <CheckCircle className="w-8 h-8 text-green-400" />
+                ) : (
+                  <AlertCircle className="w-8 h-8 text-yellow-400" />
+                )}
+                <div>
+                  <p className="text-white font-bold text-lg">{setupStatus.status_message}</p>
+                  <p className="text-gray-300 text-sm">Account: {setupStatus.account_number}</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Checklist */}
+            <div className="grid md:grid-cols-2 gap-4">
+              <div className="bg-gray-750 rounded-lg p-4">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-gray-300">Appliances Registered</span>
+                  {setupStatus.appliances_registered >= 3 ? (
+                    <CheckCircle className="w-5 h-5 text-green-400" />
+                  ) : (
+                    <AlertCircle className="w-5 h-5 text-yellow-400" />
+                  )}
+                </div>
+                <p className="text-3xl font-bold text-white">{setupStatus.appliances_registered}</p>
+                <p className="text-gray-400 text-sm mt-1">Minimum: 3 required</p>
+              </div>
+
+              <div className="bg-gray-750 rounded-lg p-4">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-gray-300">Bills Uploaded</span>
+                  {setupStatus.bills_uploaded >= 1 ? (
+                    <CheckCircle className="w-5 h-5 text-green-400" />
+                  ) : (
+                    <AlertCircle className="w-5 h-5 text-yellow-400" />
+                  )}
+                </div>
+                <p className="text-3xl font-bold text-white">{setupStatus.bills_uploaded}</p>
+                <p className="text-gray-400 text-sm mt-1">Minimum: 1 required</p>
+              </div>
+            </div>
+
+            {/* Issues */}
+            {setupStatus.issues && setupStatus.issues.length > 0 && (
+              <div className="bg-red-900 bg-opacity-30 border border-red-700 rounded-lg p-4">
+                <p className="text-red-100 font-semibold mb-2 flex items-center gap-2">
+                  <AlertCircle className="w-5 h-5" />
+                  Issues Found:
+                </p>
+                <ul className="space-y-1">
+                  {setupStatus.issues.map((issue, idx) => (
+                    <li key={idx} className="text-red-200 text-sm">• {issue}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            {/* Recommendations */}
+            <div className="bg-blue-900 bg-opacity-30 border border-blue-700 rounded-lg p-4">
+              <p className="text-blue-100 font-semibold mb-2 flex items-center gap-2">
+                <Info className="w-5 h-5" />
+                Recommendations:
+              </p>
+              <ul className="space-y-2">
+                {setupStatus.recommendations.map((rec, idx) => (
+                  <li key={idx} className="text-blue-200 text-sm flex items-start gap-2">
+                    <span className="text-blue-400 mt-0.5">→</span>
+                    {rec}
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            {/* Action Button */}
+            {setupStatus.is_ready && (
+              <button
+                onClick={() => {
+                  setActiveTab('current');
+                  fetchDisaggregation();
+                }}
+                className="w-full py-3 bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 rounded-lg text-white font-semibold transition-all flex items-center justify-center gap-2"
+              >
+                <Zap className="w-5 h-5" />
+                Start AI Disaggregation
+              </button>
+            )}
+
+            {!setupStatus.is_ready && (
+              <div className="flex gap-3">
+                <button
+                  onClick={() => window.open('/appliances', '_blank')}
+                  className="flex-1 py-3 bg-blue-600 hover:bg-blue-700 rounded-lg text-white font-semibold transition-all flex items-center justify-center gap-2"
+                >
+                  <Plus className="w-5 h-5" />
+                  Add Appliances
+                </button>
+                <button
+                  onClick={() => window.open('/bills', '_blank')}
+                  className="flex-1 py-3 bg-purple-600 hover:bg-purple-700 rounded-lg text-white font-semibold transition-all flex items-center justify-center gap-2"
+                >
+                  <Plus className="w-5 h-5" />
+                  Upload Bills
+                </button>
+              </div>
+            )}
+          </div>
+        ) : (
+          <div className="text-center py-8">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
+            <p className="text-gray-400">Checking system status...</p>
+          </div>
+        )}
+      </div>
+
+      {/* What is NILM */}
+      <div className="bg-gradient-to-br from-purple-900 to-blue-900 rounded-xl p-6 border border-purple-700">
+        <h3 className="text-xl font-semibold text-white mb-3 flex items-center gap-2">
+          <Info className="w-6 h-6" />
+          What is NILM Technology?
+        </h3>
+        <div className="space-y-3 text-purple-100">
+          <p>
+            <strong className="text-white">Non-Intrusive Load Monitoring (NILM)</strong> uses AI to break down your total 
+            electricity consumption into individual appliances <strong>without installing any hardware</strong>.
+          </p>
+          <p>
+            <strong className="text-white">How it works:</strong>
+          </p>
+          <ul className="space-y-2 ml-4">
+            <li className="flex items-start gap-2">
+              <span className="text-purple-400 mt-1">1.</span>
+              <span><strong>Bayesian Inference:</strong> Uses probability theory to match power patterns with known appliance signatures</span>
+            </li>
+            <li className="flex items-start gap-2">
+              <span className="text-purple-400 mt-1">2.</span>
+              <span><strong>Pattern Recognition:</strong> Identifies unique electrical signatures (e.g., AC has high power + long duration)</span>
+            </li>
+            <li className="flex items-start gap-2">
+              <span className="text-purple-400 mt-1">3.</span>
+              <span><strong>ML Clustering:</strong> Groups similar consumption patterns using K-means clustering</span>
+            </li>
+            <li className="flex items-start gap-2">
+              <span className="text-purple-400 mt-1">4.</span>
+              <span><strong>User Data:</strong> Improves accuracy using YOUR registered appliances and usage patterns</span>
+            </li>
+          </ul>
+          <p className="mt-3 text-sm bg-purple-950 bg-opacity-50 p-3 rounded">
+            <strong>Accuracy:</strong> Typically 80-92% depending on the number of registered appliances and data quality. 
+            More appliances = better accuracy!
+          </p>
+        </div>
+      </div>
+    </div>
+  );
 
   return (
     <div className="min-h-screen bg-gray-900 p-6 space-y-6">
@@ -87,18 +276,21 @@ const NILMDashboard = () => {
           <div>
             <h2 className="text-2xl font-bold text-white flex items-center gap-3">
               <Activity className="w-8 h-8" />
-              AI Energy Disaggregation
+              AI Energy Disaggregation (NILM)
             </h2>
-            <p className="text-cyan-100 mt-2">NILM Technology - No Hardware Required</p>
+            <p className="text-cyan-100 mt-2">Non-Intrusive Load Monitoring - No Hardware Required</p>
           </div>
           <button
             onClick={() => {
-              fetchDisaggregation();
-              fetchAccuracyReport();
-              fetchHistoricalBreakdown();
+              checkSetup();
+              if (setupStatus?.is_ready) {
+                fetchDisaggregation();
+                fetchAccuracyReport();
+                fetchHistoricalBreakdown();
+              }
             }}
             disabled={loading}
-            className="px-4 py-2 bg-white bg-opacity-20 hover:bg-opacity-30 rounded-lg text-white transition-colors flex items-center gap-2"
+            className="px-4 py-2 bg-white bg-opacity-20 hover:bg-opacity-30 rounded-lg text-white transition-colors flex items-center gap-2 disabled:opacity-50"
           >
             <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
             Refresh
@@ -118,8 +310,32 @@ const NILMDashboard = () => {
         </div>
       </div>
 
+      {/* Error/Success Messages */}
+      {error && (
+        <div className="bg-red-900 bg-opacity-50 border border-red-600 rounded-lg p-4 flex items-start gap-3">
+          <AlertCircle className="w-6 h-6 text-red-400 flex-shrink-0 mt-0.5" />
+          <div>
+            <p className="text-red-100 font-semibold mb-1">Error</p>
+            <p className="text-red-200 text-sm whitespace-pre-line">{error}</p>
+          </div>
+          <button onClick={() => setError(null)} className="ml-auto text-red-300 hover:text-red-100">
+            ✕
+          </button>
+        </div>
+      )}
+
+      {success && (
+        <div className="bg-green-900 bg-opacity-50 border border-green-600 rounded-lg p-4 flex items-start gap-3">
+          <CheckCircle className="w-6 h-6 text-green-400 flex-shrink-0" />
+          <p className="text-green-100">{success}</p>
+          <button onClick={() => setSuccess(null)} className="ml-auto text-green-300 hover:text-green-100">
+            ✕
+          </button>
+        </div>
+      )}
+
       {/* Accuracy Report */}
-      {accuracyReport && (
+      {accuracyReport && activeTab !== 'setup' && (
         <div className="bg-gray-800 rounded-xl p-6 border border-gray-700">
           <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
             <CheckCircle className="w-5 h-5 text-green-400" />
@@ -177,8 +393,19 @@ const NILMDashboard = () => {
       {/* Tabs */}
       <div className="flex gap-2 bg-gray-800 rounded-lg p-1">
         <button
-          onClick={() => setActiveTab('current')}
+          onClick={() => setActiveTab('setup')}
           className={`flex-1 py-2 px-4 rounded-md transition-colors ${
+            activeTab === 'setup'
+              ? 'bg-purple-600 text-white'
+              : 'text-gray-400 hover:text-white'
+          }`}
+        >
+          Setup & Info
+        </button>
+        <button
+          onClick={() => setActiveTab('current')}
+          disabled={!setupStatus?.is_ready}
+          className={`flex-1 py-2 px-4 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
             activeTab === 'current'
               ? 'bg-blue-600 text-white'
               : 'text-gray-400 hover:text-white'
@@ -188,7 +415,8 @@ const NILMDashboard = () => {
         </button>
         <button
           onClick={() => setActiveTab('historical')}
-          className={`flex-1 py-2 px-4 rounded-md transition-colors ${
+          disabled={!setupStatus?.is_ready}
+          className={`flex-1 py-2 px-4 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
             activeTab === 'historical'
               ? 'bg-blue-600 text-white'
               : 'text-gray-400 hover:text-white'
@@ -197,6 +425,9 @@ const NILMDashboard = () => {
           Historical Analysis
         </button>
       </div>
+
+      {/* Tab Content */}
+      {activeTab === 'setup' && <SetupTab />}
 
       {/* Current Breakdown Tab */}
       {activeTab === 'current' && disaggregation && disaggregation.data && (
@@ -429,7 +660,7 @@ const NILMDashboard = () => {
       )}
 
       {/* Empty State */}
-      {!loading && !disaggregation && (
+      {!loading && !disaggregation && activeTab !== 'setup' && (
         <div className="bg-gray-800 rounded-xl p-12 text-center border border-gray-700">
           <Activity className="w-16 h-16 text-gray-600 mx-auto mb-4" />
           <h3 className="text-xl font-semibold text-white mb-2">No Data Available</h3>

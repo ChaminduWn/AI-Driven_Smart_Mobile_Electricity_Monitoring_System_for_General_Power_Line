@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Area, AreaChart } from 'recharts';
-import { TrendingUp, TrendingDown, AlertTriangle, CheckCircle, Calendar, Zap, DollarSign, Target, Activity, AlertCircle, User } from 'lucide-react';
+import { XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, AreaChart, Area, LineChart, Line } from 'recharts';
+import { TrendingUp, TrendingDown, AlertTriangle, CheckCircle, Calendar, Zap, DollarSign, Target, Activity, AlertCircle, User, Trash2, Edit2, Download, Share2, Bell } from 'lucide-react';
 
 const API_BASE = 'http://localhost:8000/api/v1';
 
@@ -16,7 +16,11 @@ const ProgressTracker = () => {
   const [loading, setLoading] = useState(false);
   const [progress, setProgress] = useState(null);
   const [notifications, setNotifications] = useState([]);
+  const [budgetAlerts, setBudgetAlerts] = useState([]);
   const [error, setError] = useState(null);
+  const [editingReading, setEditingReading] = useState(null);
+  const [showExportModal, setShowExportModal] = useState(false);
+  const [motivationalTip, setMotivationalTip] = useState('');
 
   useEffect(() => {
     fetchAvailableAccounts();
@@ -24,64 +28,53 @@ const ProgressTracker = () => {
 
   const fetchAvailableAccounts = async () => {
     try {
-      // Fetch all bills to get available account numbers
       const response = await fetch(`${API_BASE}/bills`);
       const data = await response.json();
-      
-      if (data.success && data.data && data.data.length > 0) {
-        // Get unique account numbers
-        const accounts = [...new Set(data.data
-          .map(bill => bill.account_number)
-          .filter(acc => acc !== null && acc !== undefined)
-        )];
-        
+      if (data.success && data.data?.length > 0) {
+        const accounts = [...new Set(data.data.map(bill => bill.account_number).filter(Boolean))];
         setAvailableAccounts(accounts);
-        
-        // Auto-select first account if available
         if (accounts.length > 0) {
-          const firstAccount = accounts[0];
-          setSelectedAccount(firstAccount);
-          fetchPlansForAccount(firstAccount);
+          setSelectedAccount(accounts[0]);
+          fetchPlansForAccount(accounts[0]);
         }
       } else {
-        setError('No bills found. Upload a bill first!');
+        setError('No bills found. Please upload a bill first in the Dashboard.');
       }
-    } catch (error) {
-      console.error('Error fetching accounts:', error);
-      setError('Failed to load accounts. Check backend connection.');
+    } catch (err) {
+      setError('Failed to load accounts. Is the backend running?');
     }
   };
 
   const fetchPlansForAccount = async (accountNumber) => {
     if (!accountNumber) return;
-    
     try {
-      const response = await fetch(`${API_BASE}/analysis/plans/account/${accountNumber}`);
+      const response = await fetch(`${API_BASE}/analysis/plans/account/${accountNumber}?active_only=false`);
       const data = await response.json();
-      
-      if (data.success && data.plans && data.plans.length > 0) {
+      if (data.success && data.plans?.length > 0) {
         setPlans(data.plans);
-        const firstPlan = data.plans[0];
-        setSelectedPlan(firstPlan);
-        fetchReadings(firstPlan.id);
-        fetchNotifications(accountNumber);
+        const latestPlan = data.plans[0];
+        setSelectedPlan(latestPlan);
+        fetchReadings(latestPlan.id);
+        fetchNotifications(accountNumber); // Optional – may fail due to CORS
+        fetchBudgetAlerts(latestPlan.id); // Optional – may 404
         setError(null);
       } else {
         setPlans([]);
         setSelectedPlan(null);
         setReadings([]);
-        setError(`No budget plan found for account ${accountNumber}. Create a plan first!`);
+        setError('No budget plan found. Create one in the Budget Planner tab.');
       }
-    } catch (error) {
-      console.error('Error fetching plans:', error);
-      setError('Failed to load budget plans.');
+    } catch (err) {
+      setError('Failed to load plans.');
     }
   };
 
   const handleAccountChange = (e) => {
     const account = e.target.value;
     setSelectedAccount(account);
-    setProgress(null); // Reset progress when changing accounts
+    setProgress(null);
+    setReadings([]);
+    setMotivationalTip('');
     fetchPlansForAccount(account);
   };
 
@@ -90,25 +83,39 @@ const ProgressTracker = () => {
       const response = await fetch(`${API_BASE}/analysis/readings/plan/${planId}`);
       const data = await response.json();
       if (data.success) {
-        setReadings(data.readings || []);
+        const readingsList = data.readings || [];
+        setReadings(readingsList);
+        updateMotivationalTip(readingsList);
       }
-    } catch (error) {
-      console.error('Error fetching readings:', error);
+    } catch (err) {
+      console.error('Error fetching readings:', err);
     }
   };
 
+  // Optional: Notifications (may fail due to CORS)
   const fetchNotifications = async (accountNumber) => {
     try {
       const response = await fetch(`${API_BASE}/analysis/notifications/${accountNumber}`);
-      const data = await response.json();
-      if (data.success) {
+      if (response.ok) {
+        const data = await response.json();
         setNotifications(data.alerts || []);
-      } else {
-        setNotifications([]);
       }
-    } catch (error) {
-      console.error('Error fetching notifications:', error);
+    } catch (err) {
+      // Silently ignore CORS or network errors
       setNotifications([]);
+    }
+  };
+
+  // Optional: Budget alerts (may 404)
+  const fetchBudgetAlerts = async (planId) => {
+    try {
+      const response = await fetch(`${API_BASE}/analysis/plans/${planId}/alerts`);
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success) setBudgetAlerts(data.alerts || []);
+      }
+    } catch (err) {
+      setBudgetAlerts([]);
     }
   };
 
@@ -118,16 +125,13 @@ const ProgressTracker = () => {
     if (plan) {
       setSelectedPlan(plan);
       fetchReadings(plan.id);
+      fetchBudgetAlerts(plan.id);
       setProgress(null);
     }
   };
 
   const submitReading = async () => {
-    if (!currentReading || !selectedPlan) {
-      alert('Please enter a meter reading');
-      return;
-    }
-
+    if (!currentReading || !selectedPlan) return alert('Enter a valid reading');
     setLoading(true);
     try {
       const response = await fetch(`${API_BASE}/analysis/track-progress`, {
@@ -140,23 +144,96 @@ const ProgressTracker = () => {
           notes: notes
         })
       });
-
       const data = await response.json();
       if (data.success) {
         setProgress(data.progress);
         fetchReadings(selectedPlan.id);
-        fetchNotifications(selectedAccount);
+        fetchBudgetAlerts(selectedPlan.id);
         setCurrentReading('');
         setNotes('');
-        alert('✅ Reading recorded successfully!');
+        alert('✅ Reading saved!');
       } else {
-        alert('❌ ' + (data.detail || data.message || 'Failed to submit reading'));
+        alert('❌ ' + (data.detail || data.message || 'Failed'));
       }
-    } catch (error) {
-      console.error('Error submitting reading:', error);
-      alert('❌ Failed to submit reading. Check console for details.');
+    } catch (err) {
+      alert('❌ Network error');
     }
     setLoading(false);
+  };
+
+  const updateReading = async () => {
+    if (!editingReading) return;
+    setLoading(true);
+    try {
+      const response = await fetch(`${API_BASE}/analysis/readings/${editingReading.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          reading_value: parseInt(editingReading.reading_value),
+          reading_date: editingReading.reading_date,
+          notes: editingReading.notes || ''
+        })
+      });
+      const data = await response.json();
+      if (data.success) {
+        alert('✅ Updated!');
+        setEditingReading(null);
+        fetchReadings(selectedPlan.id);
+      }
+    } catch (err) {
+      alert('❌ Failed to update');
+    }
+    setLoading(false);
+  };
+
+  const deleteReading = async (readingId) => {
+    if (!confirm('Delete this reading?')) return;
+    try {
+      const response = await fetch(`${API_BASE}/analysis/readings/${readingId}`, { method: 'DELETE' });
+      if (response.ok) {
+        alert('✅ Deleted');
+        fetchReadings(selectedPlan.id);
+      }
+    } catch (err) {
+      alert('❌ Failed');
+    }
+  };
+
+  const exportData = () => {
+    if (readings.length === 0) return alert('No data to export');
+    const headers = ['Date', 'Day', 'Reading', 'Units Used', 'Actual Cost', 'Variance', 'Status'];
+    const rows = readings.map(r => [
+      new Date(r.reading_date).toLocaleString(),
+      r.days_elapsed,
+      r.reading_value,
+      r.units_consumed,
+      r.actual_cost?.toFixed(2) || 'N/A',
+      r.variance_cost?.toFixed(2) || 'N/A',
+      r.status
+    ]);
+    const csv = [headers, ...rows].map(row => row.join(',')).join('\n');
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `progress_${selectedAccount}_${selectedPlan.id}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const updateMotivationalTip = (readingsList) => {
+    if (readingsList.length === 0) {
+      setMotivationalTip('');
+      return;
+    }
+    const last = readingsList[readingsList.length - 1];
+    const status = last.status;
+    const tips = {
+      on_track: 'Excellent! You’re perfectly on track. Keep going! 🌟',
+      under_budget: 'Amazing! You’re saving money. Treat yourself! 🎉',
+      over_budget: 'A bit over? Try turning off unused appliances tonight. 💡'
+    };
+    setMotivationalTip(tips[status] || 'Keep tracking for better control!');
   };
 
   const getStatusColor = (status) => {
@@ -177,89 +254,112 @@ const ProgressTracker = () => {
     }
   };
 
+  // Safe projection calculation
+  const projectionData = (() => {
+    if (!readings.length || !selectedPlan) return [];
+    const lastReading = readings[readings.length - 1];
+    const currentDay = lastReading.days_elapsed || 0;
+    const remaining = selectedPlan.planning_days - currentDay;
+    if (remaining <= 0) return [];
+
+    const avgDailyUnits = readings.reduce((sum, r) => sum + (r.units_consumed || 0), 0) / readings.length;
+    const dailyCostRate = selectedPlan.target_daily_cost / selectedPlan.target_daily_units;
+
+    return Array.from({ length: Math.min(remaining, 30) }, (_, i) => ({
+      day: currentDay + i + 1,
+      projectedCost: (lastReading.actual_cost || 0) + ((i + 1) * avgDailyUnits * dailyCostRate)
+    }));
+  })();
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-8 pb-12">
       {/* Header */}
-      <div className="bg-gradient-to-r from-indigo-600 to-purple-600 rounded-xl p-6 shadow-2xl">
-        <h2 className="text-2xl font-bold text-white flex items-center gap-3">
-          <Activity className="w-8 h-8" />
-          Progress Tracker
+      <div className="bg-gradient-to-r from-indigo-600 to-purple-600 rounded-2xl p-8 shadow-2xl">
+        <h2 className="text-3xl font-bold text-white flex items-center gap-4">
+          <Activity className="w-10 h-10" />
+          Advanced Progress Tracker
         </h2>
-        <p className="text-indigo-100 mt-2">Monitor your daily electricity consumption against your budget plan</p>
+        <p className="text-indigo-100 text-xl mt-3">Track, analyze, and stay in control of your electricity budget</p>
       </div>
 
       {/* Account Selector */}
       <div className="bg-gray-800 rounded-xl p-6 border border-gray-700">
-        <label className="block text-white font-medium mb-2 flex items-center gap-2">
-          <User className="w-5 h-5 text-blue-400" />
-          Select Account Number
+        <label className="block text-white font-medium mb-3 text-lg flex items-center gap-3">
+          <User className="w-6 h-6 text-blue-400" />
+          Select Account
         </label>
         <select
           value={selectedAccount}
           onChange={handleAccountChange}
-          className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+          className="w-full px-6 py-4 bg-gray-700 border border-gray-600 rounded-xl text-white text-lg focus:ring-4 focus:ring-indigo-500"
         >
-          <option value="">-- Select an account --</option>
-          {availableAccounts.map(account => (
-            <option key={account} value={account}>
-              Account: {account}
-            </option>
+          <option value="">-- Choose Account --</option>
+          {availableAccounts.map(acc => (
+            <option key={acc} value={acc}>Account: {acc}</option>
           ))}
         </select>
-        {availableAccounts.length === 0 && (
-          <p className="text-gray-400 text-sm mt-2">No accounts found. Upload bills first.</p>
-        )}
       </div>
 
-      {/* Error State */}
+      {/* Global Error */}
       {error && !selectedPlan && (
-        <div className="bg-gray-800 rounded-xl p-12 text-center border border-gray-700">
-          <AlertTriangle className="w-16 h-16 text-yellow-600 mx-auto mb-4" />
-          <h3 className="text-xl font-semibold text-white mb-2">{error}</h3>
-          <p className="text-gray-400 mb-6">
-            {error.includes('plan') 
-              ? 'Go to the Budget Planner tab to create a budget plan for this account.'
-              : 'Go to the Dashboard to upload your electricity bill.'}
-          </p>
+        <div className="bg-red-900/30 border border-red-600 rounded-xl p-12 text-center">
+          <AlertTriangle className="w-20 h-20 text-red-400 mx-auto mb-6" />
+          <h3 className="text-2xl font-bold text-white mb-4">{error}</h3>
         </div>
       )}
 
-      {/* Due Checkpoint Reminders */}
-      {notifications.length > 0 && selectedPlan && (
-        <div className="bg-gradient-to-r from-amber-900 to-orange-900 rounded-xl p-6 shadow-xl border border-amber-700 animate-pulse">
-          <h3 className="text-xl font-bold text-white mb-4 flex items-center gap-3">
-            <AlertCircle className="w-7 h-7" />
-            Reminder: Meter Reading Due Today!
+      {/* Optional Alerts */}
+      {notifications.length > 0 && (
+        <div className="bg-gradient-to-r from-amber-900 to-orange-900 rounded-xl p-8 shadow-xl border-2 border-amber-600 animate-pulse">
+          <h3 className="text-2xl font-bold text-white mb-6 flex items-center gap-4">
+            <Bell className="w-9 h-9" />
+            Reading Reminder
           </h3>
-          <ul className="space-y-2">
-            {notifications.map((alert, idx) => (
-              <li key={idx} className="flex items-start gap-3 text-gray-100">
-                <CheckCircle className="w-6 h-6 text-amber-400 flex-shrink-0 mt-0.5" />
+          <ul className="space-y-3">
+            {notifications.map((a, i) => (
+              <li key={i} className="flex items-start gap-3 text-amber-100">
+                <CheckCircle className="w-6 h-6 text-amber-400 mt-0.5" />
                 <div>
-                  <span className="font-medium">{alert.message}</span>
-                  <p className="text-sm text-gray-300 mt-1">{alert.purpose}</p>
+                  <p className="font-bold">{a.message}</p>
+                  <p className="text-sm">{a.purpose}</p>
                 </div>
               </li>
             ))}
           </ul>
-          <p className="mt-4 text-amber-200 text-sm">
-            💡 Tip: Enter your current meter reading below to stay on track!
-          </p>
         </div>
       )}
 
-      {/* Plan Selection (if multiple plans for same account) */}
+      {budgetAlerts.length > 0 && (
+        <div className="bg-gradient-to-r from-red-900 to-orange-900 rounded-xl p-8 shadow-xl border-2 border-red-600">
+          <h3 className="text-2xl font-bold text-white mb-6 flex items-center gap-4">
+            <AlertTriangle className="w-9 h-9" />
+            Budget Alerts
+          </h3>
+          <ul className="space-y-3">
+            {budgetAlerts.map((a, i) => (
+              <li key={i} className="flex items-start gap-3 text-red-100">
+                <AlertTriangle className="w-6 h-6 text-red-400 mt-0.5" />
+                <div>
+                  <p className="font-bold">{a.message}</p>
+                  <p className="text-sm">{a.details}</p>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
       {plans.length > 1 && (
         <div className="bg-gray-800 rounded-xl p-6 border border-gray-700">
-          <label className="block text-white font-medium mb-2">Select Budget Plan</label>
+          <label className="block text-white font-medium mb-3 text-lg">Select Plan</label>
           <select
             value={selectedPlan?.id || ''}
             onChange={handlePlanChange}
-            className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+            className="w-full px-6 py-4 bg-gray-700 border border-gray-600 rounded-xl text-white text-lg"
           >
-            {plans.map(plan => (
-              <option key={plan.id} value={plan.id}>
-                Budget: Rs. {plan.target_budget} | Days: {plan.planning_days} | Created: {new Date(plan.created_at).toLocaleDateString()}
+            {plans.map(p => (
+              <option key={p.id} value={p.id}>
+                Rs. {p.target_budget} • {p.planning_days} days • {new Date(p.created_at).toLocaleDateString()}
               </option>
             ))}
           </select>
@@ -268,246 +368,175 @@ const ProgressTracker = () => {
 
       {selectedPlan && (
         <>
-          {/* Current Plan Summary Cards */}
-          <div className="grid md:grid-cols-4 gap-4">
-            <div className="bg-gradient-to-br from-indigo-600 to-indigo-700 rounded-lg p-5 shadow-xl">
-              <div className="flex items-center gap-2 mb-2">
-                <Target className="w-5 h-5 text-indigo-200" />
-                <span className="text-indigo-200 text-sm">Target Budget</span>
-              </div>
-              <p className="text-3xl font-bold text-white">Rs. {selectedPlan.target_budget}</p>
-              <p className="text-indigo-200 text-xs mt-1">Account: {selectedAccount}</p>
-            </div>
-            
-            <div className="bg-gradient-to-br from-blue-600 to-blue-700 rounded-lg p-5 shadow-xl">
-              <div className="flex items-center gap-2 mb-2">
-                <Zap className="w-5 h-5 text-blue-200" />
-                <span className="text-blue-200 text-sm">Daily Target</span>
-              </div>
-              <p className="text-3xl font-bold text-white">{selectedPlan.target_daily_units?.toFixed(1)} <span className="text-lg">kWh</span></p>
-              <p className="text-blue-200 text-xs mt-1">Rs. {selectedPlan.target_daily_cost?.toFixed(2)}/day</p>
-            </div>
-
-            <div className="bg-gradient-to-br from-purple-600 to-purple-700 rounded-lg p-5 shadow-xl">
-              <div className="flex items-center gap-2 mb-2">
-                <Calendar className="w-5 h-5 text-purple-200" />
-                <span className="text-purple-200 text-sm">Planning Period</span>
-              </div>
-              <p className="text-3xl font-bold text-white">{selectedPlan.planning_days} <span className="text-lg">days</span></p>
-              <p className="text-purple-200 text-xs mt-1">Started: {new Date(selectedPlan.plan_start_date).toLocaleDateString()}</p>
-            </div>
-
-            <div className={`rounded-lg p-5 shadow-xl border-2 ${getStatusColor(selectedPlan.current_progress_status || selectedPlan.progress_status || 'on_track')}`}>
-              <div className="flex items-center gap-2 mb-2">
-                {getStatusIcon(selectedPlan.current_progress_status || selectedPlan.progress_status || 'on_track')}
-                <span className="text-sm font-medium uppercase">
-                  {(selectedPlan.current_progress_status || selectedPlan.progress_status || 'on_track').replace('_', ' ')}
-                </span>
-              </div>
-              <p className="text-2xl font-bold">{readings.length} Readings</p>
-            </div>
+          {/* Summary Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+            <StatCard icon={<Target className="w-6 h-6" />} label="Target" value={`Rs. ${selectedPlan.target_budget?.toFixed(2) || 'N/A'}`} color="purple" />
+            <StatCard icon={<Zap className="w-6 h-6" />} label="Daily Units" value={`${selectedPlan.target_daily_units?.toFixed(1) || 'N/A'} kWh`} color="blue" />
+            <StatCard icon={<DollarSign className="w-6 h-6" />} label="Daily Cost" value={`Rs. ${selectedPlan.target_daily_cost?.toFixed(2) || 'N/A'}`} color="green" />
+            <StatCard icon={<Calendar className="w-6 h-6" />} label="Period" value={`${selectedPlan.planning_days} days`} color="teal" />
           </div>
 
-          {/* Record New Reading */}
-          <div className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-xl p-6 shadow-xl border border-gray-700">
-            <h3 className="text-xl font-semibold text-white mb-4 flex items-center gap-2">
-              <Zap className="w-6 h-6 text-yellow-400" />
-              Record Meter Reading
-            </h3>
-            
-            <div className="grid md:grid-cols-3 gap-4 mb-4">
-              <div>
-                <label className="block text-gray-300 mb-2 text-sm font-medium">Current Meter Reading</label>
-                <input
-                  type="number"
-                  value={currentReading}
-                  onChange={(e) => setCurrentReading(e.target.value)}
-                  placeholder="e.g., 45621"
-                  className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-500 focus:ring-2 focus:ring-indigo-500 focus:outline-none"
-                />
-              </div>
+          {/* Motivational Tip */}
+          {motivationalTip && (
+            <div className="bg-gradient-to-r from-teal-900 to-green-900 rounded-xl p-6 text-center text-white">
+              <p className="text-xl font-semibold">{motivationalTip}</p>
+            </div>
+          )}
 
+          {/* Record Reading */}
+          <div className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-xl p-8 shadow-2xl border border-gray-700">
+            <h3 className="text-2xl font-bold text-white mb-6">Record Reading</h3>
+            <div className="grid md:grid-cols-3 gap-6">
               <div>
-                <label className="block text-gray-300 mb-2 text-sm font-medium">Reading Date & Time</label>
-                <input
-                  type="datetime-local"
-                  value={readingDate}
-                  onChange={(e) => setReadingDate(e.target.value)}
-                  className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-indigo-500 focus:outline-none"
-                />
+                <label className="block text-gray-300 mb-2">Meter Reading</label>
+                <input type="number" value={currentReading} onChange={e => setCurrentReading(e.target.value)} className="w-full px-4 py-3 bg-gray-700 rounded-lg text-white" />
               </div>
-
               <div>
-                <label className="block text-gray-300 mb-2 text-sm font-medium">Notes (Optional)</label>
-                <input
-                  type="text"
-                  value={notes}
-                  onChange={(e) => setNotes(e.target.value)}
-                  placeholder="e.g., Day 7 checkpoint"
-                  className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-500 focus:ring-2 focus:ring-indigo-500 focus:outline-none"
-                />
+                <label className="block text-gray-300 mb-2">Date & Time</label>
+                <input type="datetime-local" value={readingDate} onChange={e => setReadingDate(e.target.value)} className="w-full px-4 py-3 bg-gray-700 rounded-lg text-white" />
+              </div>
+              <div>
+                <label className="block text-gray-300 mb-2">Notes (optional)</label>
+                <input type="text" value={notes} onChange={e => setNotes(e.target.value)} className="w-full px-4 py-3 bg-gray-700 rounded-lg text-white" />
               </div>
             </div>
-
             <button
               onClick={submitReading}
               disabled={loading || !currentReading}
-              className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 text-white py-3 px-6 rounded-lg font-semibold hover:from-indigo-700 hover:to-purple-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              className="mt-6 w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white py-4 rounded-lg font-bold disabled:opacity-50"
             >
-              {loading ? (
-                <>
-                  <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                  Submitting...
-                </>
-              ) : (
-                <>
-                  <CheckCircle className="w-5 h-5" />
-                  Submit Reading
-                </>
-              )}
+              {loading ? 'Saving...' : 'Submit Reading'}
             </button>
           </div>
 
-          {/* Latest Progress Result */}
+          {/* Progress Bar */}
           {progress && (
-            <div className="bg-gray-800 rounded-xl p-6 shadow-xl border-2 border-indigo-500">
-              <h3 className="text-xl font-semibold text-white mb-4">Latest Progress Check</h3>
-              
-              <div className="grid md:grid-cols-2 gap-6 mb-6">
-                <div className="space-y-4">
-                  <h4 className="text-lg font-medium text-indigo-300 flex items-center gap-2">
-                    <Activity className="w-5 h-5" />
-                    Current Status
-                  </h4>
-                  <div className="space-y-3">
-                    <ProgressItem label="Days Elapsed" value={`${progress.current_status.days_elapsed} / ${selectedPlan.planning_days}`} color="blue" />
-                    <ProgressItem label="Days Remaining" value={progress.current_status.days_remaining} color="purple" />
-                    <ProgressItem label="Units Used" value={`${progress.current_status.units_used} kWh`} color="yellow" />
-                    <ProgressItem label="Actual Cost" value={`Rs. ${progress.current_status.actual_cost.toFixed(2)}`} color="green" />
-                    <ProgressItem label="Expected Cost" value={`Rs. ${progress.current_status.expected_cost.toFixed(2)}`} color="gray" />
-                    <ProgressItem
-                      label="Variance"
-                      value={`Rs. ${Math.abs(progress.current_status.variance_cost).toFixed(2)} ${progress.current_status.variance_cost < 0 ? 'under' : 'over'}`}
-                      color={progress.current_status.variance_cost < 0 ? 'green' : 'red'}
-                      highlight
-                    />
-                  </div>
-                </div>
-
-                <div className="space-y-4">
-                  <h4 className="text-lg font-medium text-green-300 flex items-center gap-2">
-                    <TrendingUp className="w-5 h-5" />
-                    End-of-Period Projection
-                  </h4>
-                  <div className="space-y-3">
-                    <ProgressItem label="Projected Total Units" value={`${progress.projection.projected_total_units.toFixed(1)} kWh`} color="blue" />
-                    <ProgressItem
-                      label="Projected Total Cost"
-                      value={`Rs. ${progress.projection.projected_total_cost.toFixed(2)}`}
-                      color="purple"
-                      highlight
-                    />
-                    <ProgressItem label="Target Budget" value={`Rs. ${progress.projection.target_budget.toFixed(2)}`} color="gray" />
-                    <ProgressItem
-                      label="Projected Variance"
-                      value={`Rs. ${Math.abs(progress.projection.budget_variance).toFixed(2)} ${progress.projection.budget_variance < 0 ? 'under' : 'over'}`}
-                      color={progress.projection.budget_variance < 0 ? 'green' : 'red'}
-                      highlight
-                    />
-                  </div>
-
-                  <div className={`mt-6 rounded-lg p-4 border-2 ${getStatusColor(progress.current_status.status)}`}>
-                    <div className="flex items-center gap-3 justify-center">
-                      {getStatusIcon(progress.current_status.status)}
-                      <span className="font-bold text-lg uppercase">{progress.current_status.status.replace('_', ' ')}</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Recommendations */}
-              <div className="bg-gradient-to-r from-amber-900 to-orange-900 rounded-lg p-5 border border-amber-600">
-                <h4 className="text-lg font-semibold text-white mb-3 flex items-center gap-2">
-                  <AlertTriangle className="w-5 h-5" />
-                  Smart Recommendations
-                </h4>
-                <ul className="space-y-2">
-                  {progress.recommendations.map((rec, idx) => (
-                    <li key={idx} className="flex items-start gap-2 text-gray-200">
-                      <span className="text-amber-400 font-bold">•</span>
-                      <span>{rec}</span>
-                    </li>
-                  ))}
-                </ul>
+            <div className="bg-gray-800 rounded-xl p-6">
+              <h3 className="text-2xl font-bold text-white mb-4">Current Progress</h3>
+              <ProgressBar value={Math.min((progress.current_cost / selectedPlan.target_budget) * 100, 100)} status={progress.status} />
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">
+                <ProgressItem label="Days Passed" value={progress.days_elapsed} color="blue" />
+                <ProgressItem label="Remaining" value={selectedPlan.planning_days - progress.days_elapsed} color="purple" />
+                <ProgressItem label="Spent" value={`Rs. ${progress.current_cost?.toFixed(2) || '0.00'}`} color="green" />
+                <ProgressItem label="Projected" value={`Rs. ${progress.projected_cost?.toFixed(2) || 'N/A'}`} color="yellow" />
               </div>
             </div>
           )}
 
-          {/* Consumption History Chart */}
+          {/* History Chart */}
           {readings.length > 0 && (
-            <div className="bg-gray-800 rounded-xl p-6 shadow-xl border border-gray-700">
-              <h3 className="text-xl font-semibold text-white mb-4">Consumption History</h3>
-              <ResponsiveContainer width="100%" height={300}>
+            <div className="bg-gray-800 rounded-xl p-8 shadow-2xl border border-gray-700">
+              <h3 className="text-2xl font-bold text-white mb-6">Consumption Trend</h3>
+              <ResponsiveContainer width="100%" height={400}>
                 <AreaChart data={readings}>
                   <defs>
-                    <linearGradient id="colorActual" x1="0" y1="0" x2="0" y2="1">
+                    <linearGradient id="actual" x1="0" y1="0" x2="0" y2="1">
                       <stop offset="5%" stopColor="#3B82F6" stopOpacity={0.8}/>
                       <stop offset="95%" stopColor="#3B82F6" stopOpacity={0}/>
                     </linearGradient>
-                    <linearGradient id="colorExpected" x1="0" y1="0" x2="0" y2="1">
+                    <linearGradient id="expected" x1="0" y1="0" x2="0" y2="1">
                       <stop offset="5%" stopColor="#10B981" stopOpacity={0.8}/>
                       <stop offset="95%" stopColor="#10B981" stopOpacity={0}/>
                     </linearGradient>
                   </defs>
                   <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-                  <XAxis dataKey="days_elapsed" stroke="#9CA3AF" label={{ value: 'Days Elapsed', position: 'insideBottom', offset: -5 }} />
-                  <YAxis stroke="#9CA3AF" label={{ value: 'Cost (Rs.)', angle: -90, position: 'insideLeft' }} />
-                  <Tooltip contentStyle={{ backgroundColor: '#1F2937', border: '1px solid #374151', borderRadius: '8px', color: '#F9FAFB' }} />
+                  <XAxis dataKey="days_elapsed" stroke="#9CA3AF" />
+                  <YAxis stroke="#9CA3AF" />
+                  <Tooltip contentStyle={{ backgroundColor: '#1F2937', border: '1px solid #374151' }} />
                   <Legend />
-                  <Area type="monotone" dataKey="actual_cost" stroke="#3B82F6" fillOpacity={1} fill="url(#colorActual)" name="Actual Cost" />
-                  <Area type="monotone" dataKey="expected_cost" stroke="#10B981" fillOpacity={1} fill="url(#colorExpected)" name="Expected Cost" />
+                  <Area type="monotone" dataKey="actual_cost" stroke="#3B82F6" fill="url(#actual)" name="Actual Cost" />
+                  <Area type="monotone" dataKey="expected_cost" stroke="#10B981" fill="url(#expected)" name="Target Pace" />
                 </AreaChart>
               </ResponsiveContainer>
             </div>
           )}
 
-          {/* Reading History Table */}
+          {/* Projection Chart */}
+          {projectionData.length > 0 && (
+            <div className="bg-gray-800 rounded-xl p-8 shadow-2xl border border-gray-700">
+              <h3 className="text-2xl font-bold text-white mb-6">Future Projection</h3>
+              <ResponsiveContainer width="100%" height={300}>
+                <LineChart data={projectionData}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+                  <XAxis dataKey="day" stroke="#9CA3AF" />
+                  <YAxis stroke="#9CA3AF" />
+                  <Tooltip />
+                  <Legend />
+                  <Line type="monotone" dataKey="projectedCost" stroke="#F59E0B" strokeWidth={3} dot={false} name="Projected Total Cost" />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          )}
+
+          {/* Readings Table */}
           {readings.length > 0 && (
-            <div className="bg-gray-800 rounded-xl p-6 shadow-xl border border-gray-700">
-              <h3 className="text-xl font-semibold text-white mb-4">Reading History</h3>
+            <div className="bg-gray-800 rounded-xl p-8 shadow-2xl border border-gray-700">
+              <div className="flex justify-between items-center mb-6">
+                <h3 className="text-2xl font-bold text-white">Reading History</h3>
+                <button onClick={exportData} className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-lg">
+                  <Download className="w-5 h-5" /> Export CSV
+                </button>
+              </div>
               <div className="overflow-x-auto">
                 <table className="w-full text-left">
                   <thead>
                     <tr className="border-b-2 border-gray-700">
-                      <th className="py-3 px-4 text-gray-300 font-semibold">Date</th>
-                      <th className="py-3 px-4 text-gray-300 font-semibold">Day</th>
-                      <th className="py-3 px-4 text-gray-300 font-semibold">Reading</th>
-                      <th className="py-3 px-4 text-gray-300 font-semibold">Units Used</th>
-                      <th className="py-3 px-4 text-gray-300 font-semibold">Actual Cost</th>
-                      <th className="py-3 px-4 text-gray-300 font-semibold">Variance</th>
-                      <th className="py-3 px-4 text-gray-300 font-semibold">Status</th>
+                      <th className="py-4 px-6 text-gray-300">Date</th>
+                      <th className="py-4 px-6 text-gray-300">Day</th>
+                      <th className="py-4 px-6 text-gray-300">Reading</th>
+                      <th className="py-4 px-6 text-gray-300">Units</th>
+                      <th className="py-4 px-6 text-gray-300">Cost</th>
+                      <th className="py-4 px-6 text-gray-300">Variance</th>
+                      <th className="py-4 px-6 text-gray-300">Status</th>
+                      <th className="py-4 px-6 text-gray-300">Actions</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {readings.map((reading, idx) => (
-                      <tr key={idx} className="border-b border-gray-700 hover:bg-gray-750 transition-colors">
-                        <td className="py-3 px-4 text-gray-200">{new Date(reading.reading_date).toLocaleDateString()}</td>
-                        <td className="py-3 px-4 text-blue-400 font-semibold">{reading.days_elapsed}</td>
-                        <td className="py-3 px-4 text-white">{reading.reading_value}</td>
-                        <td className="py-3 px-4 text-yellow-400">{reading.units_consumed} kWh</td>
-                        <td className="py-3 px-4 text-green-400">Rs. {reading.actual_cost?.toFixed(2)}</td>
-                        <td className={`py-3 px-4 font-semibold ${reading.variance_cost < 0 ? 'text-green-400' : 'text-red-400'}`}>
-                          {reading.variance_cost < 0 ? '↓' : '↑'} Rs. {Math.abs(reading.variance_cost || 0).toFixed(2)}
+                    {readings.map(r => (
+                      <tr key={r.id} className="border-b border-gray-700 hover:bg-gray-750">
+                        <td className="py-4 px-6 text-gray-200">{new Date(r.reading_date).toLocaleString()}</td>
+                        <td className="py-4 px-6 text-blue-400">{r.days_elapsed}</td>
+                        <td className="py-4 px-6 text-white font-bold">{r.reading_value}</td>
+                        <td className="py-4 px-6 text-yellow-400">{r.units_consumed || 0} kWh</td>
+                        <td className="py-4 px-6 text-green-400">Rs. {r.actual_cost?.toFixed(2) || '0.00'}</td>
+                        <td className={`py-4 px-6 font-bold ${(r.variance_cost || 0) < 0 ? 'text-green-400' : 'text-red-400'}`}>
+                          {(r.variance_cost || 0) < 0 ? '↓' : '↑'} Rs. {Math.abs(r.variance_cost || 0).toFixed(2)}
                         </td>
-                        <td className="py-3 px-4">
-                          <span className={`px-3 py-1 rounded-full text-xs font-semibold ${getStatusColor(reading.status)}`}>
-                            {reading.status.replace('_', ' ').toUpperCase()}
+                        <td className="py-4 px-6">
+                          <span className={`px-4 py-2 rounded-full text-sm font-bold ${getStatusColor(r.status)}`}>
+                            {getStatusIcon(r.status)} {r.status?.replace('_', ' ').toUpperCase() || 'UNKNOWN'}
                           </span>
+                        </td>
+                        <td className="py-4 px-6 flex gap-3">
+                          <button onClick={() => setEditingReading({...r})} className="text-blue-400 hover:text-blue-300">
+                            <Edit2 className="w-5 h-5" />
+                          </button>
+                          <button onClick={() => deleteReading(r.id)} className="text-red-400 hover:text-red-300">
+                            <Trash2 className="w-5 h-5" />
+                          </button>
                         </td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
+              </div>
+            </div>
+          )}
+
+          {/* Edit Modal */}
+          {editingReading && (
+            <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
+              <div className="bg-gray-800 rounded-2xl p-8 max-w-md w-full border border-gray-600 shadow-2xl">
+                <h3 className="text-2xl font-bold text-white mb-6">Edit Reading</h3>
+                <div className="space-y-5">
+                  <input type="number" value={editingReading.reading_value} onChange={e => setEditingReading({...editingReading, reading_value: e.target.value})} className="w-full px-4 py-3 bg-gray-700 rounded-lg text-white" placeholder="Reading" />
+                  <input type="datetime-local" value={editingReading.reading_date.slice(0,16)} onChange={e => setEditingReading({...editingReading, reading_date: e.target.value})} className="w-full px-4 py-3 bg-gray-700 rounded-lg text-white" />
+                  <input type="text" value={editingReading.notes || ''} onChange={e => setEditingReading({...editingReading, notes: e.target.value})} className="w-full px-4 py-3 bg-gray-700 rounded-lg text-white" placeholder="Notes" />
+                </div>
+                <div className="flex gap-4 mt-8">
+                  <button onClick={updateReading} className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-lg font-bold">Save</button>
+                  <button onClick={() => setEditingReading(null)} className="flex-1 bg-gray-700 hover:bg-gray-600 text-white py-3 rounded-lg font-bold">Cancel</button>
+                </div>
               </div>
             </div>
           )}
@@ -517,20 +546,33 @@ const ProgressTracker = () => {
   );
 };
 
-const ProgressItem = ({ label, value, color, highlight }) => {
-  const colors = {
-    blue: 'text-blue-400',
-    purple: 'text-purple-400',
-    green: 'text-green-400',
-    red: 'text-red-400',
-    yellow: 'text-yellow-400',
-    gray: 'text-gray-400'
-  };
-
+const StatCard = ({ icon, label, value, color }) => {
+  const colors = { blue: 'from-blue-600 to-blue-700', green: 'from-green-600 to-green-700', purple: 'from-purple-600 to-purple-700', teal: 'from-teal-600 to-teal-700' };
   return (
-    <div className={`flex justify-between items-center ${highlight ? 'bg-gray-700 p-3 rounded-lg' : 'p-2'}`}>
-      <span className="text-gray-300 text-sm">{label}</span>
-      <span className={`font-bold text-lg ${colors[color]}`}>{value}</span>
+    <div className={`bg-gradient-to-br ${colors[color]} rounded-xl p-6 shadow-xl`}>
+      <div className="flex items-center justify-between mb-4">{icon}</div>
+      <p className="text-white text-sm opacity-75 mb-1">{label}</p>
+      <p className="text-2xl font-bold text-white">{value}</p>
+    </div>
+  );
+};
+
+const ProgressItem = ({ label, value, color }) => {
+  const colors = { blue: 'text-blue-400', purple: 'text-purple-400', green: 'text-green-400', yellow: 'text-yellow-400' };
+  return (
+    <div className="bg-gray-700 rounded-lg p-4 text-center">
+      <p className="text-gray-300 text-sm">{label}</p>
+      <p className={`text-xl font-bold ${colors[color]}`}>{value}</p>
+    </div>
+  );
+};
+
+const ProgressBar = ({ value, status }) => {
+  const color = status === 'on_track' ? 'bg-green-500' : status === 'under_budget' ? 'bg-blue-500' : 'bg-red-500';
+  return (
+    <div className="w-full bg-gray-700 rounded-full h-8 overflow-hidden">
+      <div className={`h-full ${color} transition-all duration-700`} style={{ width: `${value}%` }} />
+      <span className="absolute inset-0 flex items-center justify-center text-white font-bold">{value.toFixed(1)}%</span>
     </div>
   );
 };

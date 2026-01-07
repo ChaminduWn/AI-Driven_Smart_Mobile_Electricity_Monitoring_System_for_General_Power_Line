@@ -31,9 +31,11 @@ function App() {
 
       <Router>
         <Routes>
-          <Route path="/login" element={<Login />} />
+          <Route path="/" element={<Login />} />
 
-          <Route path="/" element={<DashboardLayout />}>
+          <Route path="/member1" element={<Member1Dashboard />} />
+          <Route path="/d" element={<DashboardLayout />}>
+
             <Route index element={<Dashboard />} />
             <Route path="member1" element={<Member1Dashboard />} />
             <Route path="member2" element={<Member2Dashboard />} />
