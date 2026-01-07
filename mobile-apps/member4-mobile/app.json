@@ -6,7 +6,7 @@
     "sdkVersion": "54.0.0",
     "platforms": ["ios","android"],
     "extra": {
-      "backendBaseUrl": "http://192.168.1.4:5004" 
+      "backendBaseUrl": "http://192.168.8.113:5004" 
     }
   }
 }

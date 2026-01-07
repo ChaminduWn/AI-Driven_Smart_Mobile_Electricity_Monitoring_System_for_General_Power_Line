@@ -22,8 +22,8 @@ class WeatherController {
 
       return res.status(200).json({ status: 'success', data: { weather, hazardAnalysis, safetySuggestions, riskAssessment }, timestamp: new Date().toISOString() });
     } catch (err) {
-      console.error('getWeatherByCoordinates error:', err.message);
-      return res.status(500).json({ status: 'error', message: err.message || 'Internal Server Error' });
+      console.error('getWeatherByCoordinates error:', err && err.stack ? err.stack : err);
+      return res.status(500).json({ status: 'error', message: err.message || 'Internal Server Error', detail: err.stack || null });
     }
   }
 
