@@ -10,6 +10,7 @@ import {
   Chip,
   MenuItem,
   CircularProgress,
+<<<<<<< Updated upstream
   Divider,
   Paper,
   Stack,
@@ -24,6 +25,8 @@ import {
   TableContainer,
   TableHead,
   TableRow,
+=======
+>>>>>>> Stashed changes
 } from "@mui/material";
 
 import LocationOnIcon from "@mui/icons-material/LocationOn";
@@ -86,6 +89,7 @@ function BestRecommendationSummary({ data, form }) {
 
   const { pros, cons } = getProsAndCons({ panel, inverter, battery, isSurplus });
 
+<<<<<<< Updated upstream
   return (
     <GlassCard sx={{ mb: 6, overflow: "hidden", height: 'auto', border: '2px solid #4caf50' }}>
       <Box sx={{ p: 3, background: "linear-gradient(90deg, #1b5e20 0%, #4caf50 100%)", color: "#fff" }}>
@@ -379,4 +383,226 @@ export default function Member3Dashboard() {
       </Container>
     </Box>
   );
+=======
+export default function Member3Dashboard() {
+  const API_BASE = "http://localhost:5000";
+
+  const locations = [
+    "Western Province (Colombo)",
+    "Central Province (Kandy)",
+    "Southern Province (Galle)",
+    "North Western Province (Kurunegala)",
+    "North Central Province (Anuradhapura)",
+    "Eastern Province (Batticaloa)",
+    "Northern Province (Jaffna)",
+    "Uva Province (Badulla)",
+    "Sabaragamuwa Province (Ratnapura)",
+  ];
+
+  const [form, setForm] = useState({
+    User_ID: "U001",
+    Budget_LKR: "",
+    Roof_Size_m2: "",
+    Location: "",
+    Energy_Usage_kWhPerDay: "",
+  });
+
+  const [loading, setLoading] = useState(false);
+  const [response, setResponse] = useState(null);
+  const [error, setError] = useState(null);
+
+  const handleChange = (e) => {
+    setForm({ ...form, [e.target.name]: e.target.value });
+  };
+
+  const handleSubmit = async () => {
+    setLoading(true);
+    setError(null);
+    setResponse(null);
+
+    try {
+      const res = await fetch(`${API_BASE}/recommend`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          User_ID: form.User_ID,
+          Budget_LKR: Number(form.Budget_LKR),
+          Roof_Size_m2: Number(form.Roof_Size_m2),
+          Location: form.Location,
+          Energy_Usage_kWhPerDay: Number(form.Energy_Usage_kWhPerDay),
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw data;
+
+      setResponse(data);
+    } catch (err) {
+      setError(err.error || "API request failed");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <Box sx={{ p: 4, backgroundColor: "#f5f7fb", minHeight: "100vh" }}>
+      {/* Header */}
+      <Typography variant="h4" fontWeight="bold">
+        ☀️ Solar Power Recommendation System
+      </Typography>
+      <Typography color="text.secondary" mb={4}>
+        AI-based personalized solar PV system recommendation
+      </Typography>
+
+      <Grid container spacing={3}>
+        {/* Location & Climate */}
+        <Grid item xs={12} md={6}>
+          <Card sx={{ borderRadius: 3 }}>
+            <CardContent>
+              <Typography variant="h6">
+                <LocationOnIcon /> Location & Climate
+              </Typography>
+
+              <TextField
+                select
+                fullWidth
+                label="Select Location"
+                name="Location"
+                value={form.Location}
+                onChange={handleChange}
+                sx={{ mt: 2 }}
+              >
+                {locations.map((loc) => (
+                  <MenuItem key={loc} value={loc}>
+                    {loc}
+                  </MenuItem>
+                ))}
+              </TextField>
+
+              <Box mt={2}>
+                <Chip label="Avg Temp: 28°C" color="primary" sx={{ mr: 1 }} />
+                <Chip label="Solar Friendly" color="success" />
+              </Box>
+            </CardContent>
+          </Card>
+        </Grid>
+
+        {/* Climate Suitability */}
+        <Grid item xs={12} md={6}>
+          <Card sx={{ borderRadius: 3 }}>
+            <CardContent>
+              <Typography variant="h6">
+                <ShowChartIcon /> Climate Analysis
+              </Typography>
+
+              <Typography mt={2}>
+                ✔ Suitable for solar PV installation based on district weather
+              </Typography>
+            </CardContent>
+          </Card>
+        </Grid>
+
+        {/* User Inputs */}
+        <Grid item xs={12} md={6}>
+          <Card sx={{ borderRadius: 3 }}>
+            <CardContent>
+              <Typography variant="h6">
+                <SolarPowerIcon /> User Power & Budget
+              </Typography>
+
+              <TextField
+                fullWidth
+                label="Budget (LKR)"
+                name="Budget_LKR"
+                type="number"
+                value={form.Budget_LKR}
+                onChange={handleChange}
+                sx={{ mt: 2 }}
+              />
+
+              <TextField
+                fullWidth
+                label="Roof Size (m²)"
+                name="Roof_Size_m2"
+                type="number"
+                value={form.Roof_Size_m2}
+                onChange={handleChange}
+                sx={{ mt: 2 }}
+              />
+
+              <TextField
+                fullWidth
+                label="Energy Usage (kWh/day)"
+                name="Energy_Usage_kWhPerDay"
+                type="number"
+                value={form.Energy_Usage_kWhPerDay}
+                onChange={handleChange}
+                sx={{ mt: 2 }}
+              />
+
+              <Button
+                fullWidth
+                variant="contained"
+                size="large"
+                sx={{ mt: 3 }}
+                startIcon={<WbSunnyIcon />}
+                onClick={handleSubmit}
+                disabled={loading}
+              >
+                {loading ? "Calculating..." : "Get Recommendation"}
+              </Button>
+
+              {error && (
+                <Typography color="error" mt={2}>
+                  {error}
+                </Typography>
+              )}
+            </CardContent>
+          </Card>
+        </Grid>
+
+        {/* Recommendation Output */}
+        <Grid item xs={12} md={6}>
+          <Card sx={{ borderRadius: 3 }}>
+            <CardContent>
+              <Typography variant="h6">💰 Recommended System</Typography>
+
+              {!response && !loading && (
+                <Typography color="text.secondary" mt={2}>
+                  Submit details to view recommendations.
+                </Typography>
+              )}
+
+              {loading && <CircularProgress sx={{ mt: 2 }} />}
+
+              {response && (
+                <>
+                  <Typography mt={2} fontWeight="bold" color="primary">
+                    Best Configuration
+                  </Typography>
+
+                  <pre
+                    style={{
+                      background: "#eef2ff",
+                      padding: 12,
+                      borderRadius: 6,
+                      fontSize: 12,
+                      overflow: "auto",
+                    }}
+                  >
+                    {JSON.stringify(
+                      response.recommended_configuration,
+                      null,
+                      2
+                    )}
+                  </pre>
+                </>
+              )}
+            </CardContent>
+          </Card>
+        </Grid>
+      </Grid>
+    </Box>
+  );
+>>>>>>> Stashed changes
 }
