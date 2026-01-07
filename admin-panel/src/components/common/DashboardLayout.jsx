@@ -29,7 +29,7 @@ const menuItems = [
   { text: 'Overview', icon: <DashboardIcon />, path: '/' },
   { text: 'Energy Analysis', icon: <ElectricBolt />, path: '/member1' },
   { text: 'Outage Reports', icon: <ReportProblem />, path: '/member2' },
-  { text: 'Solar Recommendations', icon: <WbSunny />, path: '/member3' },
+  { text: 'Solar Recommendations', icon: <WbSunny />, path: '/Solar Recommendations' },
   { text: 'Safety Assistant', icon: <Security />, path: '/member4' },
 ];
 
@@ -45,7 +45,7 @@ export default function DashboardLayout() {
     <div>
       <Toolbar>
         <Typography variant="h6" noWrap component="div">
-          Admin Panel
+          
         </Typography>
       </Toolbar>
       <Divider />

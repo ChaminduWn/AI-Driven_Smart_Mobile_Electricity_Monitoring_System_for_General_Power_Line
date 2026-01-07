@@ -92,9 +92,9 @@ function BestRecommendationSummary({ data, form }) {
         <Stack direction="row" justifyContent="space-between" alignItems="center">
           <Stack direction="row" alignItems="center" spacing={1}>
             <CheckCircleIcon />
-            <Typography variant="h5" fontWeight="700">Prime System Configuration</Typography>
+            <Typography variant="h5" fontWeight="700">Best System Configuration</Typography>
           </Stack>
-          <Chip label="AI OPTIMIZED" sx={{ bgcolor: 'rgba(255,255,255,0.2)', color: '#fff', fontWeight: 'bold' }} />
+          
         </Stack>
       </Box>
 
@@ -115,7 +115,7 @@ function BestRecommendationSummary({ data, form }) {
                 <Stack direction="row" spacing={2} alignItems="start">
                   <WbSunnyIcon color="warning" />
                   <Box>
-                    <Typography variant="subtitle2" fontWeight="800">{panel.brand} (Solar Array)</Typography>
+                    <Typography variant="subtitle2" fontWeight="800">{panel.brand} (Solar Brand)</Typography>
                     <Typography variant="caption" color="text.secondary">
                       {panel.details.power_w}W High-Efficiency Output • {panel.details.efficiency_percent}% Cell Conversion
                     </Typography>
