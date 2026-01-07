@@ -1,0 +1,12 @@
+{
+  "expo": {
+    "name": "Member4 Safety Assistant",
+    "slug": "member4-safety-mobile",
+    "version": "1.0.0",
+    "sdkVersion": "54.0.0",
+    "platforms": ["ios","android"],
+    "extra": {
+      "backendBaseUrl": "http://192.168.1.4:5004" 
+    }
+  }
+}
