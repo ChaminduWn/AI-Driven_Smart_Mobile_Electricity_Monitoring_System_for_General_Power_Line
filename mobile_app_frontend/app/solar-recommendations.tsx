@@ -10,7 +10,7 @@ import {
   Dimensions,
   FlatList,
   StatusBar,
-  Platform,
+  Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
@@ -20,6 +20,9 @@ import { ThemedView } from '@/components/themed-view';
 const { width, height } = Dimensions.get('window');
 const USD_TO_LKR_RATE = 320;
 
+// CHANGE THIS TO YOUR COMPUTER'S IP ADDRESS
+const SERVER_URL = "http://192.168.1.XX:5000/recommend"; 
+
 const PROVINCES = [
   "Western Province (Colombo)", "Central Province (Kandy)", "Southern Province (Galle)",
   "North Western Province (Kurunegala)", "North Central Province (Anuradhapura)",
@@ -27,7 +30,6 @@ const PROVINCES = [
   "Sabaragamuwa Province (Ratnapura)",
 ];
 
-// Define exactly what a hardware item looks like to prevent "undefined" errors
 interface HardwareItem {
   brand: string;
   rank: number | string;
@@ -54,25 +56,31 @@ export default function SolarRecommendations() {
   });
 
   const handleGenerateAnalysis = async () => {
-    if (!form.Budget_LKR || !form.Roof_Size_m2 || !form.Energy_Usage_kWhPerDay) return;
+    if (!form.Budget_LKR || !form.Roof_Size_m2 || !form.Energy_Usage_kWhPerDay) {
+        Alert.alert("Missing Info", "Please fill in all fields.");
+        return;
+    }
+
     setLoading(true);
     try {
-      // For local testing on Emulator: http://10.0.2.2:5000/recommend
-      // For Physical device: Use your Computer's IP address
-      const res = await fetch("http://localhost:5000/recommend", {
+      const res = await fetch(SERVER_URL, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          ...form,
           Budget_LKR: Number(form.Budget_LKR),
           Roof_Size_m2: Number(form.Roof_Size_m2),
           Energy_Usage_kWhPerDay: Number(form.Energy_Usage_kWhPerDay),
+          Location: form.Location,
         }),
       });
+
+      if (!res.ok) throw new Error("Server error");
+
       const data = await res.json();
       setResponse(data);
     } catch (err) {
       console.error("Connection Error:", err);
+      Alert.alert("Connection Error", "Make sure the backend server is running and the IP is correct.");
     } finally {
       setLoading(false);
     }
@@ -87,7 +95,7 @@ export default function SolarRecommendations() {
         <TouchableOpacity onPress={() => router.back()} style={styles.iconCircle}>
           <Ionicons name="chevron-back" size={24} color="#0f172a" />
         </TouchableOpacity>
-        <ThemedText style={styles.headerTitle}>Solar Expert</ThemedText>
+        <ThemedText style={styles.headerTitle}>Solar Recommendation System</ThemedText>
         <View style={{ width: 45 }} />
       </View>
 
@@ -136,11 +144,19 @@ export default function SolarRecommendations() {
             </View>
 
             {response.recommendations?.panels && (
-              <HorizontalScrollSection title="Solar Panels" data={response.recommendations.panels} onPress={(i: any) => setSelectedItem({...i, type: 'Solar Panel'})} />
+              <HorizontalScrollSection 
+                title="Solar Panels" 
+                data={response.recommendations.panels} 
+                onPress={(i: any) => setSelectedItem({...i, type: 'Solar Panel'})} 
+              />
             )}
             
             {response.recommendations?.inverters && (
-              <HorizontalScrollSection title="Inverters" data={response.recommendations.inverters} onPress={(i: any) => setSelectedItem({...i, type: 'Inverter'})} />
+              <HorizontalScrollSection 
+                title="Inverters" 
+                data={response.recommendations.inverters} 
+                onPress={(i: any) => setSelectedItem({...i, type: 'Inverter'})} 
+              />
             )}
           </View>
         )}
@@ -163,7 +179,7 @@ export default function SolarRecommendations() {
         </View>
       </Modal>
 
-      {/* --- BEAUTIFUL DETAIL MODAL --- */}
+      {/* --- DETAIL MODAL --- */}
       <Modal visible={!!selectedItem} transparent animationType="fade">
         <View style={styles.centeredModal}>
           <View style={styles.detailCard}>
@@ -200,7 +216,7 @@ export default function SolarRecommendations() {
             </View>
 
             <View style={styles.infoBox}>
-               <ThemedText style={styles.infoText}>This hardware is optimized for high-temperature climates like Sri Lanka, ensuring minimal power loss during peak sun hours.</ThemedText>
+               <ThemedText style={styles.infoText}>This hardware is optimized for high-temperature climates like Sri Lanka.</ThemedText>
             </View>
 
             <TouchableOpacity style={styles.actionBtn} onPress={() => setSelectedItem(null)}>
@@ -213,8 +229,7 @@ export default function SolarRecommendations() {
   );
 }
 
-// --- SUB-COMPONENTS ---
-
+// Sub-components and Styles remain the same as your provided code
 const InputField = ({ icon, label, value, onChange, placeholder }: any) => (
   <View style={styles.inputWrapper}>
     <ThemedText style={styles.label}>{label}</ThemedText>
@@ -240,60 +255,57 @@ const HorizontalScrollSection = ({ title, data, onPress }: any) => (
   </View>
 );
 
-// --- STYLES ---
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fdfdff' },
-  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: 60, paddingBottom: 15, backgroundColor: '#fff' },
-  iconCircle: { width: 42, height: 42, borderRadius: 21, backgroundColor: '#f1f5f9', alignItems: 'center', justifyContent: 'center' },
-  headerTitle: { fontSize: 20, fontWeight: '900', color: '#0f172a' },
-  scrollContainer: { paddingBottom: 40 },
-  inputCard: { margin: 20, backgroundColor: '#fff', borderRadius: 24, padding: 20, elevation: 4, shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 10 },
-  cardHeader: { fontSize: 16, fontWeight: '800', marginBottom: 15, color: '#1e293b' },
-  locationSelector: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#f8fafc', padding: 12, borderRadius: 12, marginBottom: 15, borderWidth: 1, borderColor: '#f1f5f9' },
-  locationTextContainer: { flex: 1, marginLeft: 10 },
-  label: { fontSize: 10, fontWeight: '700', color: '#94a3b8', textTransform: 'uppercase' },
-  value: { fontSize: 14, fontWeight: '600', color: '#1e293b' },
-  row: { flexDirection: 'row' },
-  inputWrapper: { flex: 1, marginBottom: 15 },
-  inputBox: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#f8fafc', borderRadius: 12, paddingHorizontal: 12, height: 48, borderWidth: 1, borderColor: '#f1f5f9' },
-  field: { flex: 1, marginLeft: 8, fontWeight: '600', fontSize: 14 },
-  mainBtn: { backgroundColor: '#0f172a', borderRadius: 14, height: 52, alignItems: 'center', justifyContent: 'center', marginTop: 5 },
-  btnRow: { flexDirection: 'row', alignItems: 'center' },
-  btnText: { color: '#fff', fontWeight: '800', fontSize: 15 },
-  resultsArea: { marginTop: 10 },
-  sectionTitle: { fontSize: 18, fontWeight: '800', marginLeft: 20, marginBottom: 15, color: '#0f172a' },
-  summaryCard: { marginHorizontal: 20, backgroundColor: '#0ea5e9', borderRadius: 20, padding: 20, marginBottom: 25 },
-  summaryLabel: { color: '#e0f2fe', fontSize: 9, fontWeight: '800', letterSpacing: 1 },
-  summaryPrice: { color: '#fff', fontSize: 24, fontWeight: '900', marginVertical: 4 },
-  summaryStat: { color: '#fff', opacity: 0.8, fontSize: 13, fontWeight: '600' },
-  listSection: { marginBottom: 25 },
-  listHeaderTitle: { fontSize: 15, fontWeight: '700', marginLeft: 20, marginBottom: 12, color: '#475569' },
-  productCard: { backgroundColor: '#fff', width: 140, borderRadius: 18, padding: 15, marginRight: 15, borderWidth: 1, borderColor: '#f1f5f9' },
-  badge: { backgroundColor: '#f1f5f9', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4, alignSelf: 'flex-start' },
-  badgeText: { fontSize: 9, fontWeight: '800', color: '#64748b' },
-  brandName: { marginTop: 10, fontWeight: '700', fontSize: 14, color: '#1e293b' },
-  viewLink: { marginTop: 4, fontSize: 11, color: '#0ea5e9', fontWeight: '700' },
-  
-  // MODALS
-  modalBackdrop: { flex: 1, backgroundColor: 'rgba(15,23,42,0.5)', justifyContent: 'flex-end' },
-  bottomSheet: { backgroundColor: '#fff', borderTopLeftRadius: 28, borderTopRightRadius: 28, padding: 20, maxHeight: height * 0.6 },
-  dragHandle: { width: 36, height: 4, backgroundColor: '#e2e8f0', alignSelf: 'center', borderRadius: 2, marginBottom: 15 },
-  modalTitle: { fontSize: 18, fontWeight: '800', textAlign: 'center', marginBottom: 15 },
-  provinceRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 15, borderBottomWidth: 1, borderBottomColor: '#f8fafc' },
-  provinceText: { fontSize: 15, color: '#475569' },
-  closeBtn: { padding: 15, alignItems: 'center' },
-  centeredModal: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', alignItems: 'center' },
-  detailCard: { width: width * 0.88, backgroundColor: '#fff', borderRadius: 24, padding: 24 },
-  detailHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 },
-  tierTag: { backgroundColor: '#f1f5f9', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8 },
-  tierTagText: { fontSize: 10, fontWeight: '800', color: '#0f172a' },
-  detailBrand: { fontSize: 24, fontWeight: '900', color: '#0f172a' },
-  detailTypeLabel: { fontSize: 14, color: '#64748b', fontWeight: '600', marginBottom: 20 },
-  specGrid: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 20 },
-  specItem: { alignItems: 'center', width: '30%' },
-  specLabel: { fontSize: 9, color: '#94a3b8', marginTop: 5, fontWeight: '700', textTransform: 'uppercase' },
-  specValue: { fontSize: 12, fontWeight: '800', color: '#1e293b', marginTop: 2 },
-  infoBox: { backgroundColor: '#f0f9ff', padding: 15, borderRadius: 12, marginBottom: 20 },
-  infoText: { fontSize: 12, color: '#0c4a6e', lineHeight: 18, textAlign: 'center' },
-  actionBtn: { backgroundColor: '#0f172a', padding: 15, borderRadius: 12, alignItems: 'center' }
-});
+    container: { flex: 1, backgroundColor: '#fdfdff' },
+    header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: 60, paddingBottom: 15, backgroundColor: '#fff' },
+    iconCircle: { width: 42, height: 42, borderRadius: 21, backgroundColor: '#f1f5f9', alignItems: 'center', justifyContent: 'center' },
+    headerTitle: { fontSize: 20, fontWeight: '900', color: '#0f172a' },
+    scrollContainer: { paddingBottom: 40 },
+    inputCard: { margin: 20, backgroundColor: '#fff', borderRadius: 24, padding: 20, elevation: 4, shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 10 },
+    cardHeader: { fontSize: 16, fontWeight: '800', marginBottom: 15, color: '#1e293b' },
+    locationSelector: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#f8fafc', padding: 12, borderRadius: 12, marginBottom: 15, borderWidth: 1, borderColor: '#f1f5f9' },
+    locationTextContainer: { flex: 1, marginLeft: 10 },
+    label: { fontSize: 10, fontWeight: '700', color: '#94a3b8', textTransform: 'uppercase' },
+    value: { fontSize: 14, fontWeight: '600', color: '#1e293b' },
+    row: { flexDirection: 'row' },
+    inputWrapper: { flex: 1, marginBottom: 15 },
+    inputBox: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#f8fafc', borderRadius: 12, paddingHorizontal: 12, height: 48, borderWidth: 1, borderColor: '#f1f5f9' },
+    field: { flex: 1, marginLeft: 8, fontWeight: '600', fontSize: 14 },
+    mainBtn: { backgroundColor: '#0f172a', borderRadius: 14, height: 52, alignItems: 'center', justifyContent: 'center', marginTop: 5 },
+    btnRow: { flexDirection: 'row', alignItems: 'center' },
+    btnText: { color: '#fff', fontWeight: '800', fontSize: 15 },
+    resultsArea: { marginTop: 10 },
+    sectionTitle: { fontSize: 18, fontWeight: '800', marginLeft: 20, marginBottom: 15, color: '#0f172a' },
+    summaryCard: { marginHorizontal: 20, backgroundColor: '#0ea5e9', borderRadius: 20, padding: 20, marginBottom: 25 },
+    summaryLabel: { color: '#e0f2fe', fontSize: 9, fontWeight: '800', letterSpacing: 1 },
+    summaryPrice: { color: '#fff', fontSize: 24, fontWeight: '900', marginVertical: 4 },
+    summaryStat: { color: '#fff', opacity: 0.8, fontSize: 13, fontWeight: '600' },
+    listSection: { marginBottom: 25 },
+    listHeaderTitle: { fontSize: 15, fontWeight: '700', marginLeft: 20, marginBottom: 12, color: '#475569' },
+    productCard: { backgroundColor: '#fff', width: 140, borderRadius: 18, padding: 15, marginRight: 15, borderWidth: 1, borderColor: '#f1f5f9' },
+    badge: { backgroundColor: '#f1f5f9', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4, alignSelf: 'flex-start' },
+    badgeText: { fontSize: 9, fontWeight: '800', color: '#64748b' },
+    brandName: { marginTop: 10, fontWeight: '700', fontSize: 14, color: '#1e293b' },
+    viewLink: { marginTop: 4, fontSize: 11, color: '#0ea5e9', fontWeight: '700' },
+    modalBackdrop: { flex: 1, backgroundColor: 'rgba(15,23,42,0.5)', justifyContent: 'flex-end' },
+    bottomSheet: { backgroundColor: '#fff', borderTopLeftRadius: 28, borderTopRightRadius: 28, padding: 20, maxHeight: height * 0.6 },
+    dragHandle: { width: 36, height: 4, backgroundColor: '#e2e8f0', alignSelf: 'center', borderRadius: 2, marginBottom: 15 },
+    modalTitle: { fontSize: 18, fontWeight: '800', textAlign: 'center', marginBottom: 15 },
+    provinceRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 15, borderBottomWidth: 1, borderBottomColor: '#f8fafc' },
+    provinceText: { fontSize: 15, color: '#475569' },
+    closeBtn: { padding: 15, alignItems: 'center' },
+    centeredModal: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', alignItems: 'center' },
+    detailCard: { width: width * 0.88, backgroundColor: '#fff', borderRadius: 24, padding: 24 },
+    detailHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 },
+    tierTag: { backgroundColor: '#f1f5f9', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8 },
+    tierTagText: { fontSize: 10, fontWeight: '800', color: '#0f172a' },
+    detailBrand: { fontSize: 24, fontWeight: '900', color: '#0f172a' },
+    detailTypeLabel: { fontSize: 14, color: '#64748b', fontWeight: '600', marginBottom: 20 },
+    specGrid: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 20 },
+    specItem: { alignItems: 'center', width: '30%' },
+    specLabel: { fontSize: 9, color: '#94a3b8', marginTop: 5, fontWeight: '700', textTransform: 'uppercase' },
+    specValue: { fontSize: 12, fontWeight: '800', color: '#1e293b', marginTop: 2 },
+    infoBox: { backgroundColor: '#f0f9ff', padding: 15, borderRadius: 12, marginBottom: 20 },
+    infoText: { fontSize: 12, color: '#0c4a6e', lineHeight: 18, textAlign: 'center' },
+    actionBtn: { backgroundColor: '#0f172a', padding: 15, borderRadius: 12, alignItems: 'center' }
+  });
