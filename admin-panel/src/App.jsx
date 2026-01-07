@@ -40,7 +40,7 @@ function App() {
             <Route index element={<Dashboard />} />
             <Route path="member1" element={<Member1Dashboard />} />
             <Route path="member2" element={<Member2Dashboard />} />
-            <Route path="member3" element={<Member3Dashboard />} />
+            <Route path="Solar Recommendations" element={<Member3Dashboard />} />
             <Route path="member4" element={<Member4Dashboard />} />
           </Route>
           <Route path="*" element={<Navigate to="/" replace />} />
