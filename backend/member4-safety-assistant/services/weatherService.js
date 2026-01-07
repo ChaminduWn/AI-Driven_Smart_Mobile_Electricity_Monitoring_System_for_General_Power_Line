@@ -5,8 +5,13 @@ dotenv.config();
 
 class WeatherService {
   constructor() {
-    this.apiKey = process.env.WEATHER_API_KEY;
-    this.apiUrl = process.env.WEATHER_API_URL;
+    // Use env vars when configured; fall back to the OpenWeatherMap free key and endpoint provided.
+    // NOTE: For security, prefer setting WEATHER_API_KEY and WEATHER_API_URL in your environment.
+    this.apiKey = process.env.WEATHER_API_KEY || 'ee2219cb62174095584e2239cdc0f669';
+    this.apiUrl = process.env.WEATHER_API_URL || 'https://api.openweathermap.org/data/2.5/weather';
+    console.info('WeatherService configured. Using API URL:', this.apiUrl);
+    // Warn if using the embedded default key
+    if (!process.env.WEATHER_API_KEY) console.warn('No WEATHER_API_KEY env var found — using the default API key (ensure this is intended).');
   }
 
   async getWeatherByCoordinates(lat, lon) {

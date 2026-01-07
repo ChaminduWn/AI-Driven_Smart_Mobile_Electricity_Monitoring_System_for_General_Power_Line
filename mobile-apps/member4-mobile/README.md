@@ -34,3 +34,47 @@ The app requests location permission to fetch the weather for your current locat
 - For production, consider a secure place for environment variables.
 
 Enjoy! 
+## Design & Dev: Animation libraries & setup
+
+To enable advanced animations and graphics, install the recommended packages:
+
+```bash
+cd mobile-apps/member4-mobile
+expo install react-native-reanimated react-native-gesture-handler react-native-svg lottie-react-native expo-linear-gradient expo-blur
+# then install JS deps:
+npm install
+
+# Install `expo-haptics` using `expo install` so the correct version for your Expo SDK is selected:
+expo install expo-haptics
+# For iOS (if using prebuild / bare workflow):
+npx pod-install ios
+```
+
+If you use Reanimated v2, add the plugin to `babel.config.js` (ensure last plugin):
+
+```js
+module.exports = {
+  presets: ['babel-preset-expo'],
+  plugins: [
+    // other plugins...
+    'react-native-reanimated/plugin',
+  ],
+};
+```
+
+Lottie assets & sample usage
+
+- Place Lottie JSON files in `mobile-apps/member4-mobile/assets/lottie/` (e.g. `rain.json`, `sunny.json`, `cloudy.json`, `storm.json`).
+- The app will try to load `assets/lottie/{type}.json` in `WeatherScreen` and pass it to `HeroWeatherCard`.
+- If you don't provide Lottie files, the UI falls back to an emoji placeholder.
+
+Safety Card Stack
+
+- The new `components/SafetyCardStack.js` provides a swipeable card stack for safety suggestions.
+- Usage example included on the Home screen. Swipe right to save, left to dismiss, or use action buttons.
+
+Restart Metro with cache clear after installing packages:
+
+```bash
+expo start -c
+```

@@ -1,5 +1,6 @@
 import Constants from 'expo-constants';
 import axios from 'axios';
+import { normalizeWeatherData, normalizeEmergencyProtocol, normalizeSafetyTips } from './transformers';
 
 // Compatibility: try expoConfig.extra first (newer SDKs), fall back to manifest
 const extra = Constants?.expoConfig?.extra ?? Constants?.manifest?.extra ?? {};
@@ -32,23 +33,62 @@ apiClient.interceptors.response.use(
 
 async function fetchWeatherByCoords(lat, lon) {
   const res = await apiClient.get('/api/weather/coordinates', { params: { lat, lon } });
-  return res.data;
+  const payload = res.data ?? {};
+  return {
+    status: payload.status ?? 'success',
+    message: payload.message,
+    data: normalizeWeatherData(payload.data ?? payload),
+    timestamp: payload.timestamp
+  };
 }
 
 async function fetchWeatherSummary(lat, lon) {
   const res = await apiClient.get('/api/weather/summary', { params: { lat, lon } });
-  return res.data;
+  const payload = res.data ?? {};
+  return {
+    status: payload.status ?? 'success',
+    message: payload.message,
+    data: normalizeWeatherData(payload.data ?? payload),
+    timestamp: payload.timestamp
+  };
 }
 
 async function fetchSafetyTips() {
   const res = await apiClient.get('/api/safety/tips');
-  return res.data;
+  const payload = res.data ?? {};
+  return {
+    status: payload.status ?? 'success',
+    message: payload.message,
+    data: normalizeSafetyTips(payload.data ?? payload),
+    timestamp: payload.timestamp
+  };
 }
 
 async function fetchEmergencyProtocol(type) {
   const res = await apiClient.get(`/api/safety/emergency/${encodeURIComponent(type)}`);
-  console.log('Emergency Protocol Response:', res.data);
-  return res.data;
+  const payload = res.data ?? {};
+  // Backend shape: { status, data: { disasterType, protocol: { before,during,after }, emergencyContacts }, timestamp }
+  const raw = payload.data ?? payload;
+  const protocolSource = raw.protocol ?? raw; // use nested protocol if present
+  const normalizedProtocol = normalizeEmergencyProtocol(protocolSource);
+  // Attach extra metadata (disasterType, emergencyContacts) so UI can show contacts or use the type
+  const out = {
+    ...normalizedProtocol,
+    disasterType: raw.disasterType ?? type,
+    emergencyContacts: raw.emergencyContacts ?? null
+  };
+  return {
+    status: payload.status ?? 'success',
+    message: payload.message,
+    data: out,
+    timestamp: payload.timestamp
+  };
+}
+
+async function fetchAssistant(prompt) {
+  const res = await apiClient.post('/api/assistant', { prompt });
+  // Return raw payload so caller can access data.reply
+  return res.data ?? { status: 'error', message: 'No response' };
 }
 
 export default {
@@ -56,4 +96,5 @@ export default {
   fetchWeatherSummary,
   fetchSafetyTips,
   fetchEmergencyProtocol,
+  fetchAssistant
 };
