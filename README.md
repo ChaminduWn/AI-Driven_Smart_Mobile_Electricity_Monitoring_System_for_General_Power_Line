@@ -1,5 +1,7 @@
 # AI-Driven Smart Mobile Electricity Monitoring System for General Power Line
 
+[![GitHub Repo](https://img.shields.io/badge/GitHub-Repository-blue?logo=github)](https://github.com/ChaminduWn/AI-Driven_Smart_Mobile_Electricity_Monitoring_System_for_General_Power_Line.git)
+
 ## 🎯 Project Overview
 Comprehensive electricity management platform with AI-powered energy analysis, real-time outage reporting, solar recommendation system, and safety assistant.
 
