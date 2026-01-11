@@ -8,11 +8,11 @@ Comprehensive electricity management platform with AI-powered energy analysis, r
 ## 👥 Team Members & Components
 
 ### Member 1: Energy Analysis & Bill Management
-- User onboarding & appliance profiling
-- Bill upload & OCR extraction
-- NILM (Appliance disaggregation)
-- Real-time cost monitoring
-- Anomaly detection
+- Predicts bills using ML models
+- Bill upload & OCR extraction & identify appliances via AI image recognition
+- Disaggregates energy usage to individual appliances (NILM)
+- Creates budgets and tracks progress daily
+- Calculates tariffs using official Sri Lankan CEB rates
 - AI recommendation engine
 
 ### Member 2: Outage Reporting & Technician Management
@@ -39,7 +39,7 @@ Comprehensive electricity management platform with AI-powered energy analysis, r
 
 ## 🏗️ Architecture
 ```
-monorepo/
+AI-Driven_Smart_Mobile_Electricity_Monitoring_System_for_General_Power_Line/
 ├── backend/
 │   ├── member1-energy-analysis/    (Python/FastAPI)
 │   ├── member2-outage-system/      (Node.js/Express)
@@ -47,20 +47,18 @@ monorepo/
 │   ├── member4-safety-assistant/   (Python/FastAPI + Node.js)
 │   └── shared/                     (Common utilities)
 ├── admin-panel/                    (React - Integrated)
-├── web-apps/                       (Individual React apps)
-└── mobile-apps/                    (React Native apps)
+├── web-app/                       (Individual React app)
+└── mobile-app/                    (React Native app)
 ```
+
+## 🖼️ System Architecture (Optional)
+<img width="1536" height="1024" alt="system architechture" src="https://github.com/user-attachments/assets/d81ff58c-9109-499e-b828-dac709d47e2d" />
+
 
 ## 🚀 Quick Start
 
 See [SETUP.md](./docs/SETUP.md) for detailed setup instructions.
 
-## 📚 Documentation
-
-- [Architecture Overview](./docs/ARCHITECTURE.md)
-- [API Documentation](./docs/API.md)
-- [Development Guidelines](./docs/DEVELOPMENT.md)
-- [Deployment Guide](./docs/DEPLOYMENT.md)
 
 ## 🔧 Technology Stack
 
@@ -84,6 +82,14 @@ See [SETUP.md](./docs/SETUP.md) for detailed setup instructions.
 ## 📝 License
 [Your License]
 
-## 🤝 Contributing
-See [CONTRIBUTING.md](./docs/CONTRIBUTING.md)
-EOF
+
+## 🤝 Contributions & Collaboration
+
+---
+
+| Name | IT Number | Contribution |
+|-----|-----|-----|
+| **Chamindu W N** | IT22562388 | Energy Analysis & Bill Management |
+| **CHANDRASEKARA N K D R** | IT22052988 | Outage Reporting & Technician Management  |
+| **Wijekoon  W.M.M.G.K.P** | IT22575562  | Solar Power Recommendation  |
+| **Gamage K.P** | IT22202390 | Safety & Disaster Management  |
