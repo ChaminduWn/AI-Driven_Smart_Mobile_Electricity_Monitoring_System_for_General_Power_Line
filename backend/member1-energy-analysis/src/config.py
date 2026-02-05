@@ -31,7 +31,7 @@ class Settings(BaseSettings):
 
     # API
     API_V1_PREFIX: str = "/api/v1"
-    CORS_ORIGINS: str = "http://localhost:3000"  # Keep as string
+    CORS_ORIGINS: str = "http://localhost:3000,http://localhost:5173"  # admin-panel / member1-web (Vite)
 
     class Config:
         env_file = ".env"

@@ -36,7 +36,7 @@ def test_1_tariff_calculator():
     print(f"   Energy Charge: Rs. {result['energy_charge']:.2f}")
     print(f"   Fixed Charge: Rs. {result['fixed_charge']:.2f}")
     print(f"   Subtotal: Rs. {result['subtotal']:.2f}")
-    print(f"   SSCL (2.5%): Rs. {result['sscl']:.2f}")
+    print(f"   SSCL (2.565%): Rs. {result['sscl']:.2f}")
     print(f"   TOTAL: Rs. {result['total']:.2f}")
     
     print(f"\n📋 Breakdown:")

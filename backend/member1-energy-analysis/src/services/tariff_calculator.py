@@ -29,7 +29,7 @@
 #         {'min': 181, 'max': float('inf'), 'rate': 61.00, 'fixed': 2100.00}
 #     ]
     
-#     SSCL_RATE = 0.025  # 2.5% Social Security Contribution Levy
+#     SSCL_RATE = 0.02565  # 2.565% Social Security Contribution Levy
     
 #     def calculate_bill(self, units: int, days: int = 30) -> Dict:
 #         """
@@ -206,7 +206,7 @@
 #     print(f"\nEnergy Charge: Rs.{result['energy_charge']}")
 #     print(f"Fixed Charge: Rs.{result['fixed_charge']}")
 #     print(f"Subtotal: Rs.{result['subtotal']}")
-#     print(f"SSCL (2.5%): Rs.{result['sscl']}")
+#     print(f"SSCL (2.565%): Rs.{result['sscl']}")
 #     print(f"="*70)
 #     print(f"TOTAL: Rs.{result['total']}")
 #     print(f"="*70)
@@ -247,7 +247,7 @@ class CEBTariffCalculator:
         {'min': 181, 'max': float('inf'), 'rate': 61.00, 'fixed_charge': 2100.00}
     ]
     
-    SSCL_RATE = 0.025  # 2.5% Social Security Contribution Levy
+    SSCL_RATE = 0.02565  # 2.565% Social Security Contribution Levy
     
     def calculate_bill(self, units: int, billing_days: int = 30) -> Dict:
         """
@@ -377,7 +377,7 @@ if __name__ == "__main__":
     print(f"   Fixed Charge:     Rs. {result['fixed_charge']:>10,.2f}")
     print(f"   ────────────────────────────────────")
     print(f"   Subtotal:         Rs. {result['subtotal']:>10,.2f}")
-    print(f"   SSCL Tax (2.5%):  Rs. {result['sscl']:>10,.2f}")
+    print(f"   SSCL Tax (2.565%):  Rs. {result['sscl']:>10,.2f}")
     print(f"   ════════════════════════════════════")
     print(f"   TOTAL:            Rs. {result['total']:>10,.2f}")
     
@@ -401,7 +401,7 @@ if __name__ == "__main__":
     print(f"   Energy Charge:    Rs. {result2['energy_charge']:>10,.2f}")
     print(f"   Fixed Charge:     Rs. {result2['fixed_charge']:>10,.2f} (31-60 kWh range)")
     print(f"   Subtotal:         Rs. {result2['subtotal']:>10,.2f}")
-    print(f"   SSCL Tax (2.5%):  Rs. {result2['sscl']:>10,.2f}")
+    print(f"   SSCL Tax (2.565%):  Rs. {result2['sscl']:>10,.2f}")
     print(f"   TOTAL:            Rs. {result2['total']:>10,.2f}")
     
     # Test Case 3: Just above threshold - 70 kWh
@@ -418,7 +418,7 @@ if __name__ == "__main__":
     print(f"   Energy Charge:    Rs. {result3['energy_charge']:>10,.2f}")
     print(f"   Fixed Charge:     Rs. {result3['fixed_charge']:>10,.2f} (61-90 kWh range)")
     print(f"   Subtotal:         Rs. {result3['subtotal']:>10,.2f}")
-    print(f"   SSCL Tax (2.5%):  Rs. {result3['sscl']:>10,.2f}")
+    print(f"   SSCL Tax (2.565%):  Rs. {result3['sscl']:>10,.2f}")
     print(f"   TOTAL:            Rs. {result3['total']:>10,.2f}")
     
     # Test Case 4: Very low consumption - 25 kWh
@@ -435,7 +435,7 @@ if __name__ == "__main__":
     print(f"   Energy Charge:    Rs. {result4['energy_charge']:>10,.2f}")
     print(f"   Fixed Charge:     Rs. {result4['fixed_charge']:>10,.2f} (0-30 kWh range)")
     print(f"   Subtotal:         Rs. {result4['subtotal']:>10,.2f}")
-    print(f"   SSCL Tax (2.5%):  Rs. {result4['sscl']:>10,.2f}")
+    print(f"   SSCL Tax (2.565%):  Rs. {result4['sscl']:>10,.2f}")
     print(f"   TOTAL:            Rs. {result4['total']:>10,.2f}")
     
     print("\n" + "="*70)

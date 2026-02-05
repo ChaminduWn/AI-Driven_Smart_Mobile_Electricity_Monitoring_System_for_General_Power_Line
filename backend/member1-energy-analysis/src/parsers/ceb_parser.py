@@ -110,25 +110,29 @@ class CEBBillParser:
         return None
     
     def _extract_meter_readings(self, text: str) -> List[Dict]:
-        """Extract meter readings with dates"""
+        """
+        Extract meter readings with dates.
+        CEB bills show: previous_reading previous_date current_reading current_date
+        e.g. "1824 2026-01-04  1886 2026-02-02" and "29 Days" / "62" units.
+        """
         readings = []
-        lines = text.split('\n')
-        
-        for line in lines:
-            date_match = re.search(r'(\d{4})-(\d{2})-(\d{2})', line)
-            if date_match:
-                date_str = date_match.group(0)
-                reading_match = re.search(r'(\d+)\s*' + re.escape(date_str), line)
-                if reading_match:
-                    reading = int(reading_match.group(1))
-                    if reading < 1000000:
-                        readings.append({
-                            'date': date_str,
-                            'reading': reading
-                        })
-        
-        readings.sort(key=lambda x: x['date'])
-        return readings
+        # Pattern: optional digits (units/days), then reading (4-6 digits) + date (YYYY-MM-DD)
+        # Match all "reading date" pairs in text (reading before date, typical in CEB bills)
+        pattern = r'(\d{4,6})\s+(\d{4})-(\d{2})-(\d{2})'
+        for match in re.finditer(pattern, text):
+            reading_val = int(match.group(1))
+            date_str = f"{match.group(2)}-{match.group(3)}-{match.group(4)}"
+            # Exclude very large numbers (account/meter IDs) and very small (day numbers)
+            if 100 <= reading_val < 10000000:
+                readings.append({'date': date_str, 'reading': reading_val})
+        # Sort by date and deduplicate by date (keep first reading per date)
+        seen_dates = set()
+        unique = []
+        for r in sorted(readings, key=lambda x: x['date']):
+            if r['date'] not in seen_dates:
+                seen_dates.add(r['date'])
+                unique.append(r)
+        return unique
     
     def _extract_fixed_charge(self, text: str) -> float:
         """Extract fixed charge amount"""
@@ -213,14 +217,14 @@ class CEBBillParser:
         
         # PRIORITY 4: Calculate from "Charge for Electricity Consumed (Rs.)"
         # This is the subtotal BEFORE tax (1,563.00 in your bill)
-        # We need to add 2.5% SSCL tax
+        # We need to add 2.565% SSCL tax
         consumed_pattern = r'Charge\s+for\s+Electricity\s+Consumed\s+\(Rs\.\)\s*\n?\s*(\d+(?:,\d{3})*\.?\d{2})'
         match = re.search(consumed_pattern, text, re.IGNORECASE)
         if match:
             subtotal = float(match.group(1).replace(',', ''))
-            # Add 2.5% SSCL tax
-            total_with_tax = subtotal * 1.025
-            print(f"⚠️  Calculated from subtotal: Rs. {subtotal} × 1.025 = Rs. {total_with_tax:.2f}")
+            # Add 2.565% SSCL tax
+            total_with_tax = subtotal * 1.02565
+            print(f"⚠️  Calculated from subtotal: Rs. {subtotal} × 1.02565 = Rs. {total_with_tax:.2f}")
             return round(total_with_tax, 2)
         
         # PRIORITY 5: Fallback - calculate from components
@@ -228,8 +232,8 @@ class CEBBillParser:
         consumed = self._extract_charge_for_consumed(text)
         if fixed > 0 and consumed > 0:
             subtotal = fixed + consumed
-            total = subtotal * 1.025
-            print(f"⚠️  Fallback calculation: ({fixed} + {consumed}) × 1.025 = Rs. {total:.2f}")
+            total = subtotal * 1.02565
+            print(f"⚠️  Fallback calculation: ({fixed} + {consumed}) × 1.02565 = Rs. {total:.2f}")
             return round(total, 2)
         
         print("❌ Could not extract total_charge!")

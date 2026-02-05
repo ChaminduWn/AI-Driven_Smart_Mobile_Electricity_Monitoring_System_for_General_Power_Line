@@ -214,7 +214,7 @@ class TariffStructure(Base):
     # Tariff data (JSON structure)
     rate_structure = Column(JSON, nullable=False)
     fixed_charges = Column(JSON, nullable=False)
-    sscl_rate = Column(Float, default=0.025)
+    sscl_rate = Column(Float, default=0.02565)  # 2.565%
     
     # Status
     is_active = Column(Boolean, default=True)

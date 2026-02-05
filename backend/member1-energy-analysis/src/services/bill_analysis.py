@@ -23,7 +23,7 @@ class CEBTariffCalculator:
         {'min': 181, 'max': float('inf'), 'rate': 61.00}
     ]
     
-    SSCL_RATE = 0.025
+    SSCL_RATE = 0.02565  # 2.565% Social Security Contribution Levy
     
     def calculate_bill(self, units: int, billing_days: int = 30) -> Dict:
         """Calculate electricity bill with correct fixed charge based on consumption"""

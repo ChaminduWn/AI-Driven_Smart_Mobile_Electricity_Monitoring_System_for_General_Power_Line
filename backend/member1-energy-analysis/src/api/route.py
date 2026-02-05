@@ -162,3 +162,37 @@ def get_statistics(db: Session = Depends(get_db)):
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/bills/backfill-readings")
+def backfill_bill_readings(db: Session = Depends(get_db)):
+    """
+    Backfill previous_reading, current_reading, previous_reading_date, current_reading_date
+    for bills that have extracted_data but null meter reading fields.
+    Uses meter_readings and bill_date/units_consumed from extracted_data.
+    """
+    bills = (
+        db.query(ElectricityBill)
+        .filter(ElectricityBill.current_reading.is_(None), ElectricityBill.extracted_data.isnot(None))
+        .all()
+    )
+    updated = 0
+    for bill in bills:
+        data = bill.extracted_data if isinstance(bill.extracted_data, dict) else None
+        if not data:
+            continue
+        derived = BillExtractionService.derive_readings_from_parsed(data)
+        if derived['current_reading'] is None:
+            continue
+        bill.previous_reading = derived['previous_reading']
+        bill.current_reading = derived['current_reading']
+        bill.previous_reading_date = derived['previous_reading_date']
+        bill.current_reading_date = derived['current_reading_date']
+        updated += 1
+    db.commit()
+    return {
+        "success": True,
+        "message": f"Backfilled meter readings for {updated} bill(s).",
+        "updated_count": updated,
+        "checked_count": len(bills),
+    }

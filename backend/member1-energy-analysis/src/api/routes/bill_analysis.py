@@ -37,6 +37,13 @@ class MeterReadingRequest(BaseModel):
     notes: Optional[str] = Field(None, description="Optional notes")
 
 
+class MeterReadingUpdate(BaseModel):
+    """Update an existing meter reading (value, date, notes). Recalculates progress."""
+    reading_value: int = Field(ge=0, description="Meter reading value")
+    reading_date: datetime = Field(description="Date and time of reading")
+    notes: Optional[str] = Field(None, description="Optional notes")
+
+
 class ManualBillDataRequest(BaseModel):
     """For users without past bills in system"""
     current_meter_reading: int = Field(ge=0)
@@ -317,6 +324,94 @@ def delete_budget_plan(
         raise HTTPException(status_code=500, detail=f"Error deleting plan: {str(e)}")
 
 
+@router.put("/readings/{reading_id}")
+def update_meter_reading(
+    reading_id: int,
+    request: MeterReadingUpdate,
+    db: Session = Depends(get_db)
+):
+    """
+    Update a meter reading (value, date, notes) and recalculate progress.
+    """
+    reading = db.query(MeterReading).filter(MeterReading.id == reading_id).first()
+    if not reading:
+        raise HTTPException(status_code=404, detail="Meter reading not found")
+
+    plan = db.query(BudgetPlan).filter(BudgetPlan.id == reading.budget_plan_id).first()
+    if not plan or not plan.reference_bill:
+        raise HTTPException(status_code=404, detail="Plan or reference bill not found")
+
+    # Start = earliest other reading, or plan start if this is the only/first reading
+    first_reading = db.query(MeterReading).filter(
+        MeterReading.budget_plan_id == reading.budget_plan_id,
+        MeterReading.id != reading_id
+    ).order_by(MeterReading.reading_date).first()
+    if first_reading:
+        start_reading = first_reading.reading_value
+        start_date = first_reading.reading_date
+    else:
+        start_reading = plan.reference_bill.current_reading
+        start_date = plan.plan_start_date
+
+    plan_data = {
+        'daily_targets': {'units': plan.target_daily_units, 'cost': plan.target_daily_cost},
+        'total_targets': {'days': plan.planning_days},
+        'budget_info': {'target_budget': plan.target_budget}
+    }
+    try:
+        progress = analysis_service.track_progress(
+            plan_data,
+            request.reading_value,
+            request.reading_date,
+            start_reading,
+            start_date
+        )
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Error recalculating progress: {str(e)}")
+
+    variance_percentage = 0
+    if progress['current_status']['expected_cost'] > 0:
+        variance_percentage = (
+            progress['current_status']['variance_cost'] /
+            progress['current_status']['expected_cost'] * 100
+        )
+
+    reading.reading_value = request.reading_value
+    reading.reading_date = request.reading_date
+    reading.notes = request.notes
+    reading.units_consumed_so_far = progress['current_status']['units_used']
+    reading.days_elapsed = progress['current_status']['days_elapsed']
+    reading.actual_cost_so_far = progress['current_status']['actual_cost']
+    reading.expected_cost_so_far = progress['current_status']['expected_cost']
+    reading.variance_units = progress['current_status']['variance_units']
+    reading.variance_cost = progress['current_status']['variance_cost']
+    reading.variance_percentage = variance_percentage
+    reading.status = progress['current_status']['status']
+    reading.projected_total_units = progress['projection']['projected_total_units']
+    reading.projected_total_cost = progress['projection']['projected_total_cost']
+    reading.projected_budget_variance = progress['projection']['budget_variance']
+    reading.analysis_data = progress
+
+    db.commit()
+    db.refresh(reading)
+    return {
+        'success': True,
+        'message': 'Reading updated successfully',
+        'reading': {
+            'id': reading.id,
+            'reading_value': reading.reading_value,
+            'reading_date': reading.reading_date,
+            'days_elapsed': reading.days_elapsed,
+            'units_consumed': reading.units_consumed_so_far,
+            'actual_cost': reading.actual_cost_so_far,
+            'expected_cost': reading.expected_cost_so_far,
+            'variance_cost': reading.variance_cost,
+            'status': reading.status,
+            'projected_total_cost': reading.projected_total_cost
+        }
+    }
+
+
 @router.delete("/readings/{reading_id}")
 def delete_meter_reading(
     reading_id: int,
@@ -326,14 +421,14 @@ def delete_meter_reading(
     Delete a specific meter reading
     """
     reading = db.query(MeterReading).filter(MeterReading.id == reading_id).first()
-    
+
     if not reading:
         raise HTTPException(status_code=404, detail="Meter reading not found")
-    
+
     try:
         db.delete(reading)
         db.commit()
-        
+
         return {
             'success': True,
             'message': 'Meter reading deleted successfully'
@@ -363,18 +458,41 @@ def track_budget_progress(
     if not bill:
         raise HTTPException(status_code=404, detail="Reference bill not found")
     
-    # Determine starting point
+    # Determine starting point: first meter reading in plan, or reference bill's "current" reading at plan start
     first_reading = db.query(MeterReading).filter(
         MeterReading.budget_plan_id == request.plan_id
     ).order_by(MeterReading.reading_date).first()
-    
+
     if first_reading:
         start_reading = first_reading.reading_value
         start_date = first_reading.reading_date
     else:
         start_reading = bill.current_reading
         start_date = plan.plan_start_date
-    
+        # If bill has no current_reading (e.g. old extraction), derive from previous + units
+        if start_reading is None and bill.previous_reading is not None and bill.units_consumed is not None:
+            start_reading = bill.previous_reading + bill.units_consumed
+        if start_date is None and bill.bill_date is not None:
+            start_date = bill.bill_date
+        if start_reading is None or start_date is None:
+            db.rollback()
+            raise HTTPException(
+                status_code=400,
+                detail=(
+                    "Reference bill has no meter readings. Re-upload the bill so we can extract "
+                    "previous/current reading and dates, or add them manually in the database."
+                )
+            )
+
+    # Normalize datetimes for subtraction (avoid timezone-aware vs naive)
+    _start = start_date.replace(tzinfo=None) if start_date and getattr(start_date, 'tzinfo', None) else start_date
+    _reading = request.reading_date.replace(tzinfo=None) if request.reading_date and getattr(request.reading_date, 'tzinfo', None) else request.reading_date
+    if _start and _reading and _reading < _start:
+        raise HTTPException(
+            status_code=400,
+            detail="Reading date cannot be before the plan start date."
+        )
+
     # Prepare plan data for tracking
     plan_data = {
         'daily_targets': {
@@ -388,15 +506,19 @@ def track_budget_progress(
             'target_budget': plan.target_budget
         }
     }
-    
+
+    # Use normalized datetimes for progress calculation
+    start_date_for_calc = _start if _start is not None else start_date
+    reading_date_for_calc = _reading if _reading is not None else request.reading_date
+
     # Calculate progress
     try:
         progress = analysis_service.track_progress(
             plan_data,
             request.current_reading,
-            request.reading_date,
+            reading_date_for_calc,
             start_reading,
-            start_date
+            start_date_for_calc
         )
         
         # Save meter reading to database

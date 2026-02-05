@@ -1,5 +1,5 @@
 from typing import Dict, Optional
-from datetime import datetime
+from datetime import datetime, timedelta
 from src.services.ocr import OCRService
 from src.parsers.ceb_parser import CEBBillParser
 from src.models.bill import ElectricityBill
@@ -87,26 +87,42 @@ class BillExtractionService:
     ) -> ElectricityBill:
         """Save extracted bill data to database"""
         
-        # Parse meter readings
-        meter_readings = parsed_data.get('meter_readings', [])
-        previous_reading = None
-        current_reading = None
-        previous_date = None
-        current_date = None
-        
-        if len(meter_readings) >= 2:
-            previous_reading = meter_readings[0]['reading']
-            current_reading = meter_readings[1]['reading']
-            previous_date = datetime.strptime(meter_readings[0]['date'], '%Y-%m-%d')
-            current_date = datetime.strptime(meter_readings[1]['date'], '%Y-%m-%d')
-        
-        # Parse bill date
+        # Parse meter readings and bill date first (needed for derivation)
         bill_date = None
         if parsed_data.get('bill_date'):
             try:
                 bill_date = datetime.strptime(parsed_data['bill_date'], '%Y-%m-%d')
-            except:
+            except Exception:
                 pass
+
+        meter_readings = parsed_data.get('meter_readings', [])
+        units_consumed = parsed_data.get('units_consumed')
+        billing_days = parsed_data.get('billing_period_days') or 0
+        previous_reading = None
+        current_reading = None
+        previous_date = None
+        current_date = None
+
+        if len(meter_readings) >= 2:
+            # Two readings: first = previous month, second = current (bill issue)
+            previous_reading = meter_readings[0]['reading']
+            current_reading = meter_readings[1]['reading']
+            try:
+                previous_date = datetime.strptime(meter_readings[0]['date'], '%Y-%m-%d')
+                current_date = datetime.strptime(meter_readings[1]['date'], '%Y-%m-%d')
+            except Exception:
+                previous_date = bill_date
+                current_date = bill_date
+        elif len(meter_readings) == 1 and units_consumed is not None and bill_date:
+            # One reading: treat as previous month end; derive current from previous + units
+            previous_reading = meter_readings[0]['reading']
+            current_reading = previous_reading + units_consumed
+            try:
+                previous_date = datetime.strptime(meter_readings[0]['date'], '%Y-%m-%d')
+            except Exception:
+                # Derive previous date: bill_date minus billing period days
+                previous_date = (bill_date - timedelta(days=billing_days)) if billing_days else bill_date
+            current_date = bill_date
         
         # IMPORTANT: Use total_charge instead of total_due
         # total_charge represents the actual monthly bill amount
@@ -155,6 +171,46 @@ class BillExtractionService:
         
         return bill
     
+    @staticmethod
+    def derive_readings_from_parsed(parsed_data: Dict) -> Dict:
+        """
+        Derive previous_reading, current_reading, previous_reading_date, current_reading_date
+        from parsed_data (e.g. from extracted_data JSON). Used for backfilling existing bills.
+        """
+        bill_date = None
+        if parsed_data.get('bill_date'):
+            try:
+                bill_date = datetime.strptime(parsed_data['bill_date'], '%Y-%m-%d')
+            except Exception:
+                pass
+        meter_readings = parsed_data.get('meter_readings', [])
+        units_consumed = parsed_data.get('units_consumed')
+        billing_days = parsed_data.get('billing_period_days') or 0
+        out = {
+            'previous_reading': None,
+            'current_reading': None,
+            'previous_reading_date': None,
+            'current_reading_date': None,
+        }
+        if len(meter_readings) >= 2:
+            out['previous_reading'] = meter_readings[0]['reading']
+            out['current_reading'] = meter_readings[1]['reading']
+            try:
+                out['previous_reading_date'] = datetime.strptime(meter_readings[0]['date'], '%Y-%m-%d')
+                out['current_reading_date'] = datetime.strptime(meter_readings[1]['date'], '%Y-%m-%d')
+            except Exception:
+                out['previous_reading_date'] = bill_date
+                out['current_reading_date'] = bill_date
+        elif len(meter_readings) == 1 and units_consumed is not None and bill_date:
+            out['previous_reading'] = meter_readings[0]['reading']
+            out['current_reading'] = meter_readings[0]['reading'] + units_consumed
+            try:
+                out['previous_reading_date'] = datetime.strptime(meter_readings[0]['date'], '%Y-%m-%d')
+            except Exception:
+                out['previous_reading_date'] = (bill_date - timedelta(days=billing_days)) if billing_days else bill_date
+            out['current_reading_date'] = bill_date
+        return out
+
     def _save_failed_extraction(
         self,
         db: Session,
