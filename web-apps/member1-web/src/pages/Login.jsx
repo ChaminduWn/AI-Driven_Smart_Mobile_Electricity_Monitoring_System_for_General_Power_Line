@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link as RouterLink } from 'react-router-dom';
 import {
   Box,
   Paper,
@@ -11,49 +11,104 @@ import {
   CircularProgress,
   Stack,
   Divider,
+  Alert,
 } from '@mui/material';
 import LockOutlinedIcon from '@mui/icons-material/LockOutlined';
+import apiClient from '../services/final-apiClient';
+import { useAuth } from '../contexts/AuthContext';
 
 export default function Login() {
   const navigate = useNavigate();
+  const { login } = useAuth();
   const [credentials, setCredentials] = useState({ email: '', password: '' });
   const [loading, setLoading] = useState(false);
-  const [errors, setErrors] = useState({ email: false, password: false });
+  const [errors, setErrors] = useState({ email: '', password: '' });
+  const [apiError, setApiError] = useState('');
+
+  const validateEmail = (email) => {
+    const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return re.test(email);
+  };
 
   const handleLogin = async (e) => {
     e.preventDefault();
+    setApiError('');
 
-    // Basic client-side validation
-    const newErrors = {
-      email: !credentials.email.trim(),
-      password: !credentials.password,
-    };
+    // Client-side validation
+    const newErrors = { email: '', password: '' };
+    
+    if (!credentials.email.trim()) {
+      newErrors.email = 'Email is required';
+    } else if (!validateEmail(credentials.email)) {
+      newErrors.email = 'Please enter a valid email';
+    }
+
+    if (!credentials.password) {
+      newErrors.password = 'Password is required';
+    } else if (credentials.password.length < 8) {
+      newErrors.password = 'Password must be at least 8 characters';
+    }
+
     setErrors(newErrors);
 
-    if (newErrors.email || newErrors.password) return;
+    if (newErrors.email || newErrors.password) {
+      return;
+    }
 
     setLoading(true);
 
-    // Simulate auth delay (replace with real auth)
-    setTimeout(() => {
-      setLoading(false);
-      navigate('/member1');
-    }, 1500);
+    try {
+      const response = await apiClient.post('/api/v1/auth/login', {
+        email: credentials.email.trim(),
+        password: credentials.password,
+      });
 
-    // In real app:
-    // try {
-    //   await loginAPI(credentials);
-    //   navigate('/');
-    // } catch (err) {
-    //   setLoading(false);
-    //   // handle error
-    // }
+      const { access_token, user } = response.data;
+
+      if (!access_token) {
+        throw new Error('Authentication failed. No token received.');
+      }
+
+      // Use auth context to store auth data
+      await login(access_token, user);
+
+      // Navigate to dashboard
+      navigate('/member1');
+    } catch (err) {
+      console.error('Login error:', err);
+      
+      // Handle Axios error responses
+      if (err.response) {
+        const status = err.response.status;
+        const detail = err.response.data?.detail || err.response.data?.message;
+        
+        if (status === 401) {
+          setApiError('Invalid email or password');
+        } else if (status === 403) {
+          setApiError('Account is inactive. Please contact support.');
+        } else if (status === 422) {
+          setApiError('Invalid input. Please check your credentials.');
+        } else {
+          setApiError(detail || 'Login failed. Please try again.');
+        }
+      } else if (err.request) {
+        setApiError('Cannot connect to server. Please check your connection.');
+      } else {
+        setApiError(err.message || 'Login failed. Please try again.');
+      }
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleChange = (field) => (e) => {
     setCredentials({ ...credentials, [field]: e.target.value });
+    // Clear errors when user starts typing
     if (errors[field]) {
-      setErrors({ ...errors, [field]: false });
+      setErrors({ ...errors, [field]: '' });
+    }
+    if (apiError) {
+      setApiError('');
     }
   };
 
@@ -79,7 +134,6 @@ export default function Login() {
         }}
       >
         <Stack spacing={3} alignItems="center">
-          {/* Logo/Avatar */}
           <Avatar
             sx={{
               bgcolor: 'primary.main',
@@ -102,6 +156,12 @@ export default function Login() {
 
         <Box component="form" onSubmit={handleLogin} sx={{ mt: 3 }}>
           <Stack spacing={2.5}>
+            {apiError && (
+              <Alert severity="error" onClose={() => setApiError('')}>
+                {apiError}
+              </Alert>
+            )}
+
             <TextField
               required
               fullWidth
@@ -111,8 +171,8 @@ export default function Login() {
               autoFocus
               value={credentials.email}
               onChange={handleChange('email')}
-              error={errors.email}
-              helperText={errors.email && 'Email is required'}
+              error={Boolean(errors.email)}
+              helperText={errors.email}
               variant="outlined"
               sx={{
                 '& .MuiOutlinedInput-root': {
@@ -129,8 +189,8 @@ export default function Login() {
               autoComplete="current-password"
               value={credentials.password}
               onChange={handleChange('password')}
-              error={errors.password}
-              helperText={errors.password && 'Password is required'}
+              error={Boolean(errors.password)}
+              helperText={errors.password}
               variant="outlined"
               sx={{
                 '& .MuiOutlinedInput-root': {
@@ -176,8 +236,8 @@ export default function Login() {
 
           <Typography variant="body2" color="text.secondary" align="center">
             Don't have an account?{' '}
-            <Link href="#" underline="hover" fontWeight="medium">
-              Contact administrator
+            <Link component={RouterLink} to="/register" underline="hover" fontWeight="medium">
+              Create one
             </Link>
           </Typography>
         </Box>

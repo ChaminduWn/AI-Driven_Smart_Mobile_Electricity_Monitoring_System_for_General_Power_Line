@@ -15,6 +15,7 @@ import Member2Dashboard from './pages/Member2Dashboard';
 import Member3Dashboard from './pages/Member3Dashboard';
 import Member4Dashboard from './pages/Member4Dashboard';
 import Login from './pages/Login';
+import Register from './pages/Register';
 
 const theme = createTheme({
   palette: {
@@ -32,6 +33,7 @@ function App() {
       <Router>
         <Routes>
           <Route path="/" element={<Login />} />
+          <Route path="/register" element={<Register />} />
 
           <Route path="/member1" element={<Member1Dashboard />} />
           <Route path="/d" element={<DashboardLayout />}>

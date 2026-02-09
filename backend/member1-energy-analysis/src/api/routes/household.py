@@ -22,6 +22,25 @@ class HouseholdMemberCreate(BaseModel):
     weekend_hours_at_home: float = 24
 
 
+@router.get("/member-types")
+def get_default_member_types():
+    """
+    Predefined household member categories for the UI.
+    Users can tick which ones they have and then enter exact ages.
+    """
+    categories = [
+        {"code": "newborn", "label": "Newborn (0–1 year)", "suggested_age_range": [0, 1], "gender_options": ["male", "female"]},
+        {"code": "toddler", "label": "Toddler (1–4 years)", "suggested_age_range": [1, 4], "gender_options": ["male", "female"]},
+        {"code": "school_boy", "label": "School Boy (5–17)", "suggested_age_range": [5, 17], "gender_options": ["male"]},
+        {"code": "school_girl", "label": "School Girl (5–17)", "suggested_age_range": [5, 17], "gender_options": ["female"]},
+        {"code": "adult_male", "label": "Adult Male (18–59)", "suggested_age_range": [18, 59], "gender_options": ["male"]},
+        {"code": "adult_female", "label": "Adult Female (18–59)", "suggested_age_range": [18, 59], "gender_options": ["female"]},
+        {"code": "elder_male", "label": "Elderly Male (60+)", "suggested_age_range": [60, 100], "gender_options": ["male"]},
+        {"code": "elder_female", "label": "Elderly Female (60+)", "suggested_age_range": [60, 100], "gender_options": ["female"]},
+    ]
+    return {"success": True, "categories": categories}
+
+
 @router.post("/members")
 def add_household_member(
     member: HouseholdMemberCreate,

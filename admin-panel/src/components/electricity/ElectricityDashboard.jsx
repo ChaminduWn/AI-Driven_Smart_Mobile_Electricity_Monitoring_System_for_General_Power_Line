@@ -401,12 +401,12 @@ const ElectricityDashboard = () => {
                 className="w-full px-4 py-3 bg-gray-800 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500 focus:outline-none"
               />
               <div className="mt-3 flex gap-2 flex-wrap">
-                <button onClick={() => setPresetBudget(80)} className="px-3 py-1 bg-gray-700 hover:bg-gray-600 rounded text-sm">80%</button>
-                <button onClick={() => setPresetBudget(90)} className="px-3 py-1 bg-blue-600 hover:bg-blue-700 rounded text-sm text-white">90% (Suggested)</button>
-                <button onClick={() => setPresetBudget(100)} className="px-3 py-1 bg-gray-700 hover:bg-gray-600 rounded text-sm">100%</button>
+                <button onClick={() => setPresetBudget(50)} className="px-3 py-1 bg-gray-700 hover:bg-gray-600 rounded text-sm">50%</button>
+                <button onClick={() => setPresetBudget(100)} className="px-3 py-1 bg-blue-600 hover:bg-blue-700 rounded text-sm text-white">100% (Same as last)</button>
+                <button onClick={() => setPresetBudget(150)} className="px-3 py-1 bg-gray-700 hover:bg-gray-600 rounded text-sm">150%</button>
               </div>
               <p className="text-gray-400 text-sm mt-2">
-                Recommended range: Rs. {(selectedBill?.total_charge * 0.7)?.toFixed(2)} – {(selectedBill?.total_charge * 1.2)?.toFixed(2)}
+                Allowed range: Rs. {(selectedBill?.total_charge * 0.5)?.toFixed(2)} – {(selectedBill?.total_charge * 1.5)?.toFixed(2)} (50% – 150% of last bill)
               </p>
             </div>
 

@@ -5,8 +5,20 @@ import CssBaseline from '@mui/material/CssBaseline';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
+// Auth Context
+import { AuthProvider, useAuth } from './contexts/AuthContext';
+
+// Layout
+import DashboardLayout from './components/common/DashboardLayout';
+
+// Pages
+import Dashboard from './pages/Dashboard';
 import Member1Dashboard from './pages/Member1Dashboard';
+import Member2Dashboard from './pages/Member2Dashboard';
+import Member3Dashboard from './pages/Member3Dashboard';
+import Member4Dashboard from './pages/Member4Dashboard';
 import Login from './pages/Login';
+import Register from './pages/Register';
 
 const theme = createTheme({
   palette: {
@@ -16,20 +28,118 @@ const theme = createTheme({
   },
 });
 
+// Protected Route Component
+function ProtectedRoute({ children }) {
+  const { isAuthenticated, loading } = useAuth();
+  
+  if (loading) {
+    return (
+      <div style={{ 
+        display: 'flex', 
+        justifyContent: 'center', 
+        alignItems: 'center', 
+        height: '100vh' 
+      }}>
+        <div>Loading...</div>
+      </div>
+    );
+  }
+  
+  if (!isAuthenticated) {
+    return <Navigate to="/" replace />;
+  }
+  
+  return children;
+}
+
+// Public Route Component (redirect to dashboard if already logged in)
+function PublicRoute({ children }) {
+  const { isAuthenticated, loading } = useAuth();
+  
+  if (loading) {
+    return (
+      <div style={{ 
+        display: 'flex', 
+        justifyContent: 'center', 
+        alignItems: 'center', 
+        height: '100vh' 
+      }}>
+        <div>Loading...</div>
+      </div>
+    );
+  }
+  
+  if (isAuthenticated) {
+    return <Navigate to="/member1" replace />;
+  }
+  
+  return children;
+}
+
+function AppRoutes() {
+  return (
+    <Routes>
+      {/* Public Routes - redirect to dashboard if logged in */}
+      <Route 
+        path="/" 
+        element={
+          <PublicRoute>
+            <Login />
+          </PublicRoute>
+        } 
+      />
+      <Route 
+        path="/register" 
+        element={
+          <PublicRoute>
+            <Register />
+          </PublicRoute>
+        } 
+      />
+
+      {/* Protected Routes - require authentication */}
+      <Route 
+        path="/member1" 
+        element={
+          <ProtectedRoute>
+            <Member1Dashboard />
+          </ProtectedRoute>
+        } 
+      />
+
+      <Route 
+        path="/d" 
+        element={
+          <ProtectedRoute>
+            <DashboardLayout />
+          </ProtectedRoute>
+        }
+      >
+        <Route index element={<Dashboard />} />
+        <Route path="member1" element={<Member1Dashboard />} />
+        <Route path="member2" element={<Member2Dashboard />} />
+        <Route path="member3" element={<Member3Dashboard />} />
+        <Route path="member4" element={<Member4Dashboard />} />
+
+        {/* Alias route */}
+        <Route path="electricity" element={<Member1Dashboard />} />
+      </Route>
+
+      {/* Catch all - redirect to login */}
+      <Route path="*" element={<Navigate to="/" replace />} />
+    </Routes>
+  );
+}
+
 function App() {
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
-
       <Router>
-        <Routes>
-          <Route path="/" element={<Login />} />
-          <Route path="/member1" element={<Member1Dashboard />} />
-          <Route path="/dashboard" element={<Member1Dashboard />} />
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
+        <AuthProvider>
+          <AppRoutes />
+        </AuthProvider>
       </Router>
-
       <ToastContainer position="top-right" autoClose={3000} />
     </ThemeProvider>
   );

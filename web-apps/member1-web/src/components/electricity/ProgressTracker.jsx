@@ -21,6 +21,7 @@ const ProgressTracker = () => {
   const [editingReading, setEditingReading] = useState(null);
   const [showExportModal, setShowExportModal] = useState(false);
   const [motivationalTip, setMotivationalTip] = useState('');
+  const [readingStats, setReadingStats] = useState({ count: 0, minRequired: 4, maxAllowed: 8 });
 
   useEffect(() => {
     fetchAvailableAccounts();
@@ -85,6 +86,11 @@ const ProgressTracker = () => {
       if (data.success) {
         const readingsList = data.readings || [];
         setReadings(readingsList);
+        setReadingStats({
+          count: readingsList.length,
+          minRequired: 4,
+          maxAllowed: 8
+        });
         updateMotivationalTip(readingsList);
         // Show current progress from latest reading so the block is visible without submitting
         if (readingsList.length > 0) {
@@ -144,9 +150,13 @@ const ProgressTracker = () => {
     if (!currentReading || !selectedPlan) return alert('Enter a valid reading');
     setLoading(true);
     try {
+      const token = localStorage.getItem('access_token');
       const response = await fetch(`${API_BASE}/analysis/track-progress`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
         body: JSON.stringify({
           plan_id: selectedPlan.id,
           current_reading: parseInt(currentReading),
@@ -162,7 +172,9 @@ const ProgressTracker = () => {
           current_cost: p?.current_status?.actual_cost,
           days_elapsed: p?.current_status?.days_elapsed,
           status: p?.current_status?.status,
-          projected_cost: p?.projection?.projected_total_cost
+          projected_cost: p?.projection?.projected_total_cost,
+          weekly_status: p?.weekly_status,
+          appliance_recommendations: p?.appliance_recommendations || [],
         });
         fetchReadings(selectedPlan.id);
         fetchBudgetAlerts(selectedPlan.id);
@@ -393,6 +405,24 @@ const ProgressTracker = () => {
             <StatCard icon={<Calendar className="w-6 h-6" />} label="Period" value={`${selectedPlan.planning_days} days`} color="teal" />
           </div>
 
+          {/* Start point from latest bill */}
+          {(selectedPlan.reference_bill_date || selectedPlan.reference_bill_current_reading) && (
+            <div className="bg-gray-800 rounded-xl p-4 border border-gray-700">
+              <p className="text-gray-300 text-sm">
+                Latest bill date:{" "}
+                <span className="text-white font-semibold">
+                  {selectedPlan.reference_bill_date
+                    ? new Date(selectedPlan.reference_bill_date).toLocaleString()
+                    : "N/A"}
+                </span>{" "}
+                • Start meter reading:{" "}
+                <span className="text-white font-semibold">
+                  {selectedPlan.reference_bill_current_reading ?? "N/A"}
+                </span>
+              </p>
+            </div>
+          )}
+
           {/* Motivational Tip */}
           {motivationalTip && (
             <div className="bg-gradient-to-r from-teal-900 to-green-900 rounded-xl p-6 text-center text-white">
@@ -403,6 +433,13 @@ const ProgressTracker = () => {
           {/* Record Reading */}
           <div className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-xl p-8 shadow-2xl border border-gray-700">
             <h3 className="text-2xl font-bold text-white mb-6">Record Reading</h3>
+            <p className="text-gray-300 mb-4 text-sm">
+              Readings for this plan:{" "}
+              <span className="font-semibold text-blue-400">
+                {readingStats.count}/{readingStats.maxAllowed}
+              </span>{" "}
+              (minimum {readingStats.minRequired} over the plan period, maximum {readingStats.maxAllowed}).
+            </p>
             <div className="grid md:grid-cols-3 gap-6">
               <div>
                 <label className="block text-gray-300 mb-2">Meter Reading</label>
@@ -419,7 +456,7 @@ const ProgressTracker = () => {
             </div>
             <button
               onClick={submitReading}
-              disabled={loading || !currentReading}
+              disabled={loading || !currentReading || readingStats.count >= readingStats.maxAllowed}
               className="mt-6 w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white py-4 rounded-lg font-bold disabled:opacity-50"
             >
               {loading ? 'Saving...' : 'Submit Reading'}
@@ -437,6 +474,48 @@ const ProgressTracker = () => {
                 <ProgressItem label="Spent" value={`Rs. ${(progress.current_cost != null ? progress.current_cost : 0).toFixed(2)}`} color="green" />
                 <ProgressItem label="Projected" value={progress.projected_cost != null ? `Rs. ${Number(progress.projected_cost).toFixed(2)}` : 'N/A'} color="yellow" />
               </div>
+
+              {/* Weekly status and appliance-wise suggestions */}
+              {progress.weekly_status && (
+                <div className="mt-6 bg-gray-900 rounded-lg p-4 border border-gray-700">
+                  <h4 className="text-lg font-semibold text-white mb-2">This Week</h4>
+                  <p className="text-gray-300 text-sm">
+                    Week {progress.weekly_status.week_number}: target cumulative units{" "}
+                    <span className="font-semibold text-blue-400">
+                      {progress.weekly_status.target_cumulative_units?.toFixed(1) ?? 'N/A'}
+                    </span>{" "}
+                    vs actual{" "}
+                    <span className={`font-semibold ${progress.weekly_status.exceeded ? 'text-red-400' : 'text-green-400'}`}>
+                      {progress.weekly_status.actual_units?.toFixed(1) ?? 'N/A'}
+                    </span>
+                  </p>
+                  {progress.weekly_status.exceeded && (
+                    <p className="text-red-300 text-sm mt-1">
+                      You are above the target for this week. Consider reducing usage of the high-consumption appliances below.
+                    </p>
+                  )}
+                </div>
+              )}
+
+              {progress.appliance_recommendations && progress.appliance_recommendations.length > 0 && (
+                <div className="mt-4 bg-gray-900 rounded-lg p-4 border border-gray-700">
+                  <h4 className="text-lg font-semibold text-white mb-2">AI Appliance Tips</h4>
+                  <ul className="space-y-2 text-sm">
+                    {progress.appliance_recommendations.map((rec) => (
+                      <li key={rec.appliance_id} className="flex flex-col text-gray-200">
+                        <span className="font-semibold">
+                          {rec.appliance_name} {rec.category ? `(${rec.category})` : ''}
+                        </span>
+                        <span className="text-gray-400">
+                          Uses ~{rec.monthly_kwh?.toFixed(1)} kWh/month. Suggest reducing usage by{" "}
+                          {rec.suggested_reduction_percent}% to save about {rec.potential_saving_kwh?.toFixed(1)} kWh.
+                        </span>
+                        {rec.hint && <span className="text-gray-400 italic">{rec.hint}</span>}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
             </div>
           )}
 

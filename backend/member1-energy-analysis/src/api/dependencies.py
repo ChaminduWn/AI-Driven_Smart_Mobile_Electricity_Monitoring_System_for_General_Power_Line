@@ -3,18 +3,23 @@ FastAPI dependencies for dependency injection
 """
 from typing import Generator
 from sqlalchemy.orm import Session
-from src.database import SessionLocal
+from fastapi import Depends, HTTPException, status
+from fastapi.security import OAuth2PasswordBearer
+from jose import jwt, JWTError
 import logging
 
+from src.database import SessionLocal
+from src.config import settings
+from src.models.user import User
+
 logger = logging.getLogger(__name__)
+
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login-form")
 
 
 def get_db() -> Generator[Session, None, None]:
     """
-    Dependency to get database session
-    
-    Yields:
-        Database session
+    Dependency to get database session.
     """
     db = SessionLocal()
     try:
@@ -27,28 +32,32 @@ def get_db() -> Generator[Session, None, None]:
         db.close()
 
 
-def get_current_user():
+def get_current_user(db: Session = Depends(get_db), token: str = Depends(oauth2_scheme)) -> User:
     """
-    Dependency to get current authenticated user
-    (Placeholder for future authentication implementation)
-    
-    Returns:
-        Current user information
+    Dependency to get current authenticated user using JWT bearer token.
     """
-    # TODO: Implement JWT authentication
-    return {"user_id": 1, "username": "admin"}
+    credentials_exception = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Could not validate credentials",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+
+    try:
+        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=["HS256"])
+        user_id = payload.get("sub")
+        if user_id is None:
+            raise credentials_exception
+    except JWTError:
+        raise credentials_exception
+
+    user = db.query(User).filter(User.id == int(user_id)).first()
+    if user is None or not user.is_active:
+        raise credentials_exception
+    return user
 
 
 def verify_api_key(api_key: str = None):
     """
-    Dependency to verify API key
-    (Placeholder for future API key authentication)
-    
-    Args:
-        api_key: API key from header
-        
-    Returns:
-        True if valid
+    Placeholder API key verification.
     """
-    # TODO: Implement API key verification
     return True

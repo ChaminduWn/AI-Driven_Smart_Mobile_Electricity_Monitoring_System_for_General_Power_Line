@@ -11,7 +11,7 @@ from pydantic import BaseModel, Field
 from src.database import get_db
 from src.services.bill_analysis import BillAnalysisService
 from src.models.bill import ElectricityBill
-from src.models.budget_plan import BudgetPlan, MeterReading
+from src.models.budget_plan import BudgetPlan, MeterReading, HouseholdAppliance
 
 router = APIRouter(prefix="/analysis", tags=["Bill Analysis"])
 analysis_service = BillAnalysisService()
@@ -154,6 +154,22 @@ def create_budget_plan(
     
     if not bill:
         raise HTTPException(status_code=404, detail="Bill not found")
+
+    # Ensure household appliances exist before allowing budget planning
+    appliances_count = db.query(HouseholdAppliance).filter(
+        HouseholdAppliance.account_number == bill.account_number,
+        HouseholdAppliance.is_active == True
+    ).count()
+
+    if appliances_count == 0:
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                "No appliances found for this account. "
+                "Please add your household appliances in the Appliance Manager "
+                "before creating a budget plan."
+            )
+        )
     
     # ✅ FIXED: Use total_charge instead of total_due
     bill_data = {
@@ -458,6 +474,17 @@ def track_budget_progress(
     if not bill:
         raise HTTPException(status_code=404, detail="Reference bill not found")
     
+    # Enforce maximum number of readings (8 per plan)
+    existing_readings_count = db.query(MeterReading).filter(
+        MeterReading.budget_plan_id == request.plan_id
+    ).count()
+
+    if existing_readings_count >= 8:
+        raise HTTPException(
+            status_code=400,
+            detail="You have reached the maximum of 8 meter readings for this budget plan."
+        )
+
     # Determine starting point: first meter reading in plan, or reference bill's "current" reading at plan start
     first_reading = db.query(MeterReading).filter(
         MeterReading.budget_plan_id == request.plan_id
@@ -521,6 +548,73 @@ def track_budget_progress(
             start_date_for_calc
         )
         
+        # Weekly target status (for recommendations & UI)
+        weekly_status = None
+        if plan.weekly_targets:
+            # Determine which week we are currently in (1-based)
+            # Approximate by elapsed days; cap to available weeks
+            days_elapsed = progress['current_status']['days_elapsed']
+            if days_elapsed > 0:
+                week_index = min(
+                    len(plan.weekly_targets) - 1,
+                    max(0, int((days_elapsed - 1) / 7))
+                )
+                weekly_target = plan.weekly_targets[week_index]
+                target_units = weekly_target.get('cumulative_units', weekly_target.get('target_units', 0))
+                units_used = progress['current_status']['units_used']
+                weekly_status = {
+                    'week_number': week_index + 1,
+                    'target_cumulative_units': target_units,
+                    'actual_units': units_used,
+                    'exceeded': units_used > target_units
+                }
+
+        # Appliance-wise recommendations when over budget / weekly target exceeded
+        appliance_recommendations = []
+        if progress['current_status']['status'] == 'over_budget':
+            appliances = db.query(HouseholdAppliance).filter(
+                HouseholdAppliance.account_number == bill.account_number,
+                HouseholdAppliance.is_active == True
+            ).all()
+
+            if appliances:
+                # Rank appliances by monthly consumption
+                ranked = sorted(
+                    appliances,
+                    key=lambda a: a.monthly_kwh or 0,
+                    reverse=True
+                )
+                top_appliances = ranked[:5]
+
+                for appliance in top_appliances:
+                    monthly_kwh = appliance.monthly_kwh or 0
+                    est_cost = appliance.estimated_monthly_cost or 0
+                    # Suggest 15–25% reduction depending on share
+                    share = 0
+                    if progress['projection']['projected_total_units'] > 0:
+                        share = monthly_kwh / progress['projection']['projected_total_units']
+                    reduction_factor = 0.25 if share > 0.2 else 0.15
+                    potential_kwh_saving = monthly_kwh * reduction_factor
+
+                    appliance_recommendations.append({
+                        'appliance_id': appliance.id,
+                        'appliance_name': appliance.appliance_name,
+                        'category': appliance.appliance_category,
+                        'monthly_kwh': round(monthly_kwh, 2),
+                        'estimated_monthly_cost': round(est_cost, 2),
+                        'suggested_reduction_percent': int(reduction_factor * 100),
+                        'potential_saving_kwh': round(potential_kwh_saving, 2),
+                        'hint': (
+                            f"Reduce daily usage of {appliance.appliance_name} by "
+                            f"about {int(reduction_factor * 100)}% to bring your "
+                            f"usage closer to the budget."
+                        )
+                    })
+
+        # Attach helper data for frontend
+        progress['weekly_status'] = weekly_status
+        progress['appliance_recommendations'] = appliance_recommendations
+
         # Save meter reading to database
         variance_percentage = 0
         if progress['current_status']['expected_cost'] > 0:
@@ -638,7 +732,10 @@ def get_plans_by_account(
                 'created_at': p.created_at,
                 'plan_start_date': p.plan_start_date,
                 'plan_end_date': p.plan_end_date,
-                'target_daily_units': p.target_daily_units
+                'target_daily_units': p.target_daily_units,
+                # Extra context for progress tracker start point
+                'reference_bill_date': p.reference_bill.bill_date if p.reference_bill else None,
+                'reference_bill_current_reading': p.reference_bill.current_reading if p.reference_bill else None
             }
             for p in plans
         ]

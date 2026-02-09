@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link as RouterLink } from 'react-router-dom';
 import {
   Box,
   Paper,
@@ -14,11 +14,14 @@ import {
 } from '@mui/material';
 import LockOutlinedIcon from '@mui/icons-material/LockOutlined';
 
+const API_BASE = 'http://localhost:8000/api/v1';
+
 export default function Login() {
   const navigate = useNavigate();
   const [credentials, setCredentials] = useState({ email: '', password: '' });
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState({ email: false, password: false });
+  const [apiError, setApiError] = useState('');
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -33,21 +36,32 @@ export default function Login() {
     if (newErrors.email || newErrors.password) return;
 
     setLoading(true);
+    setApiError('');
 
-    // Simulate auth delay (replace with real auth)
-    setTimeout(() => {
-      setLoading(false);
+    try {
+      const res = await fetch(`${API_BASE}/auth/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(credentials),
+      });
+
+      const data = await res.json();
+      if (!res.ok || !data.access_token) {
+        throw new Error(data.detail || 'Invalid email or password');
+      }
+
+      // Store token for later API calls
+      localStorage.setItem('access_token', data.access_token);
+      // Optionally store basic user info
+      localStorage.setItem('user', JSON.stringify(data.user));
+
       navigate('/member1');
-    }, 1500);
-
-    // In real app:
-    // try {
-    //   await loginAPI(credentials);
-    //   navigate('/');
-    // } catch (err) {
-    //   setLoading(false);
-    //   // handle error
-    // }
+    } catch (err) {
+      console.error(err);
+      setApiError(err.message || 'Login failed. Please try again.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleChange = (field) => (e) => {
@@ -139,6 +153,12 @@ export default function Login() {
               }}
             />
 
+            {apiError && (
+              <Typography variant="body2" color="error">
+                {apiError}
+              </Typography>
+            )}
+
             <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
               <Link href="#" variant="body2" underline="hover" color="primary">
                 Forgot password?
@@ -176,8 +196,8 @@ export default function Login() {
 
           <Typography variant="body2" color="text.secondary" align="center">
             Don't have an account?{' '}
-            <Link href="#" underline="hover" fontWeight="medium">
-              Contact administrator
+            <Link component={RouterLink} to="/register" underline="hover" fontWeight="medium">
+              Create one
             </Link>
           </Typography>
         </Box>

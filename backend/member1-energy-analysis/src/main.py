@@ -1,4 +1,4 @@
-""" src/main.py """
+""" src/main.py - FIXED VERSION """
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -10,7 +10,7 @@ from src.api.routes import appliances
 from src.api.routes import nilm
 from src.api.routes import household 
 from src.api.routes import ml_predictions
-
+from src.api.routes import auth
 
 import logging
 import os
@@ -51,17 +51,26 @@ app = FastAPI(
     description="AI-powered electricity bill analysis with NILM disaggregation",
 )
 
-# CORS
+# CRITICAL FIX: CORS MUST BE CONFIGURED BEFORE ROUTES
+# This allows the browser to make requests from localhost:3000 to localhost:8000
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.cors_origins_list,
+    allow_origins=[
+        "http://localhost:3000",
+        "http://127.0.0.1:3000",
+        "http://localhost:5173",
+        "http://127.0.0.1:5173",
+    ],
     allow_credentials=True,
-    allow_methods=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
     allow_headers=["*"],
+    expose_headers=["*"],
+    max_age=3600,  # Cache preflight requests for 1 hour
 )
 
-#  Include all routes
+# Include all routes
 app.include_router(main_router)
+app.include_router(auth.router, prefix="/api/v1")
 app.include_router(bill_analysis.router, prefix="/api/v1")
 app.include_router(appliances.router, prefix="/api/v1")
 app.include_router(nilm.router, prefix="/api/v1")  
@@ -113,6 +122,7 @@ def health():
 async def startup_event():
     logger.info("Application startup complete")
     logger.info(f"API documentation: http://localhost:8000/api/docs")
+    logger.info("CORS enabled for: http://localhost:3000, http://localhost:5173")
     logger.info("Features enabled:")
     logger.info("  - Bill Extraction & OCR")
     logger.info("  - Past Month Analysis")
