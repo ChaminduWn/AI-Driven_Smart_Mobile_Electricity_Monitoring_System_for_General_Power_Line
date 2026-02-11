@@ -12,6 +12,7 @@ export const member1Service = {
     headers: { 'Content-Type': 'multipart/form-data' }
   }),
   getBills: (householdId) => apiClient.get(`${MEMBER1_BASE}/bills/${householdId}`),
+  updateBill: (billId, data) => apiClient.patch(`${MEMBER1_BASE}/bills/${billId}`, data),
   
   // NILM - Appliance Disaggregation
   getAppliances: (householdId) => apiClient.get(`${MEMBER1_BASE}/nilm/appliances/${householdId}`),

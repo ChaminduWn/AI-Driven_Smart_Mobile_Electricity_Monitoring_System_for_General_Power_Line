@@ -468,14 +468,20 @@ def get_common_appliances():
         {'name': 'Rice Cooker', 'category': 'Cooking', 'typical_wattage': 700, 'usage': '30 min, 3x/day'},
         {'name': 'Microwave', 'category': 'Cooking', 'typical_wattage': 1200, 'usage': '15 min, 2x/day'},
         {'name': 'Electric Kettle', 'category': 'Cooking', 'typical_wattage': 1500, 'usage': '5 min, 3x/day'},
+        {'name': 'Air Fryer', 'category': 'Cooking', 'typical_wattage': 1500, 'usage': '20 min, 1x/day'},
+        {'name': 'Electric Oven', 'category': 'Cooking', 'typical_wattage': 2000, 'usage': '45 min, 2x/week'},
+        {'name': 'Induction Cooktop', 'category': 'Cooking', 'typical_wattage': 2000, 'usage': '30 min, 2x/day'},
         
         # Cleaning
         {'name': 'Washing Machine', 'category': 'Cleaning', 'typical_wattage': 500, 'usage': '1 hour, 2x/week'},
+        {'name': 'Vacuum Cleaner', 'category': 'Cleaning', 'typical_wattage': 1200, 'usage': '30 min, 1x/week'},
+        {'name': 'Dishwasher', 'category': 'Cleaning', 'typical_wattage': 1500, 'usage': '1 hour, 1x/day'},
         
         # Entertainment
         {'name': 'LED TV (42")', 'category': 'Entertainment', 'typical_wattage': 80, 'usage': '4-6 hours'},
         {'name': 'Desktop Computer', 'category': 'Entertainment', 'typical_wattage': 200, 'usage': '6-8 hours'},
         {'name': 'Laptop', 'category': 'Entertainment', 'typical_wattage': 50, 'usage': '6-8 hours'},
+        {'name': 'Gaming Console', 'category': 'Entertainment', 'typical_wattage': 150, 'usage': '2-3 hours'},
         
         # Lighting
         {'name': 'LED Bulb (9W)', 'category': 'Lighting', 'typical_wattage': 9, 'usage': '6-8 hours'},

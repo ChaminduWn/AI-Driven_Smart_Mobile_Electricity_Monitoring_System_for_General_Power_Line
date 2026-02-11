@@ -15,14 +15,14 @@ const ApplianceManager = () => {
   const [showAddForm, setShowAddForm] = useState(false);
   const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
-  
+
   // Image recognition states
   const [imageFile, setImageFile] = useState(null);
   const [imagePreview, setImagePreview] = useState(null);
   const [recognizing, setRecognizing] = useState(false);
   const [recognitionResult, setRecognitionResult] = useState(null);
   const [showImageUpload, setShowImageUpload] = useState(false);
-  
+
   // Form state
   const [formData, setFormData] = useState({
     appliance_name: '',
@@ -92,14 +92,14 @@ const ApplianceManager = () => {
     const file = e.target.files[0];
     if (file) {
       setImageFile(file);
-      
+
       // Create preview
       const reader = new FileReader();
       reader.onloadend = () => {
         setImagePreview(reader.result);
       };
       reader.readAsDataURL(file);
-      
+
       // Clear previous results
       setRecognitionResult(null);
     }
@@ -113,7 +113,7 @@ const ApplianceManager = () => {
 
     setRecognizing(true);
     setRecognitionResult(null);
-    
+
     const formDataUpload = new FormData();
     formDataUpload.append('file', imageFile);
 
@@ -124,10 +124,10 @@ const ApplianceManager = () => {
       });
 
       const data = await response.json();
-      
+
       if (data.success) {
         setRecognitionResult(data);
-        
+
         // Auto-fill form with recognized data
         setFormData({
           appliance_name: data.suggested_values.appliance_name,
@@ -137,7 +137,7 @@ const ApplianceManager = () => {
           usage_times_per_day: data.suggested_values.usage_times_per_day,
           usage_frequency: data.suggested_values.usage_frequency
         });
-        
+
         // Show success message
         setTimeout(() => {
           setShowImageUpload(false);
@@ -150,7 +150,7 @@ const ApplianceManager = () => {
       console.error('Error recognizing appliance:', error);
       alert('❌ Failed to recognize appliance. Please check your connection and try again.');
     }
-    
+
     setRecognizing(false);
   };
 
@@ -163,7 +163,7 @@ const ApplianceManager = () => {
 
   const addAppliance = async () => {
     setLoading(true);
-    
+
     try {
       const response = await fetch(`${API_BASE}/appliances/`, {
         method: 'POST',
@@ -200,7 +200,7 @@ const ApplianceManager = () => {
 
   const deleteAppliance = async (id, name) => {
     if (!window.confirm(`Delete ${name}?`)) return;
-    
+
     try {
       const response = await fetch(`${API_BASE}/appliances/${id}`, {
         method: 'DELETE'
@@ -230,7 +230,7 @@ const ApplianceManager = () => {
     setShowImageUpload(false);
   };
 
-  const filteredAppliances = appliances.filter(a => 
+  const filteredAppliances = appliances.filter(a =>
     a.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     (a.category && a.category.toLowerCase().includes(searchTerm.toLowerCase()))
   );
@@ -257,7 +257,7 @@ const ApplianceManager = () => {
           Appliance Manager
         </h2>
         <p className="text-purple-100 mt-2">Track and optimize your appliance energy consumption</p>
-        
+
         {/* Account Number Input */}
         <div className="mt-4 max-w-md">
           <label className="block text-purple-100 text-sm mb-2">Account Number</label>
@@ -353,9 +353,9 @@ const ApplianceManager = () => {
                 </label>
               ) : (
                 <div className="space-y-4">
-                  <img 
-                    src={imagePreview} 
-                    alt="Preview" 
+                  <img
+                    src={imagePreview}
+                    alt="Preview"
                     className="max-h-64 mx-auto rounded-lg shadow-lg"
                   />
                   <div className="flex gap-2 justify-center">
@@ -494,7 +494,7 @@ const ApplianceManager = () => {
                   type="text"
                   required
                   value={formData.appliance_name}
-                  onChange={(e) => setFormData({...formData, appliance_name: e.target.value})}
+                  onChange={(e) => setFormData({ ...formData, appliance_name: e.target.value })}
                   placeholder="e.g., Living Room TV"
                   className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-500 focus:ring-2 focus:ring-purple-500 focus:outline-none"
                 />
@@ -504,7 +504,7 @@ const ApplianceManager = () => {
                 <label className="block text-gray-300 mb-2 text-sm">Category</label>
                 <select
                   value={formData.appliance_category}
-                  onChange={(e) => setFormData({...formData, appliance_category: e.target.value})}
+                  onChange={(e) => setFormData({ ...formData, appliance_category: e.target.value })}
                   className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-purple-500 focus:outline-none"
                 >
                   <option value="Cooling">Cooling</option>
@@ -524,7 +524,7 @@ const ApplianceManager = () => {
                   required
                   min="1"
                   value={formData.wattage}
-                  onChange={(e) => setFormData({...formData, wattage: e.target.value})}
+                  onChange={(e) => setFormData({ ...formData, wattage: e.target.value })}
                   placeholder="e.g., 100"
                   className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-500 focus:ring-2 focus:ring-purple-500 focus:outline-none"
                 />
@@ -536,7 +536,7 @@ const ApplianceManager = () => {
                   type="number"
                   min="1"
                   value={formData.usage_duration_minutes}
-                  onChange={(e) => setFormData({...formData, usage_duration_minutes: parseInt(e.target.value)})}
+                  onChange={(e) => setFormData({ ...formData, usage_duration_minutes: parseInt(e.target.value) })}
                   className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-purple-500 focus:outline-none"
                 />
               </div>
@@ -547,7 +547,7 @@ const ApplianceManager = () => {
                   type="number"
                   min="1"
                   value={formData.usage_times_per_day}
-                  onChange={(e) => setFormData({...formData, usage_times_per_day: parseInt(e.target.value)})}
+                  onChange={(e) => setFormData({ ...formData, usage_times_per_day: parseInt(e.target.value) })}
                   className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-purple-500 focus:outline-none"
                 />
               </div>
@@ -556,7 +556,7 @@ const ApplianceManager = () => {
                 <label className="block text-gray-300 mb-2 text-sm">Frequency</label>
                 <select
                   value={formData.usage_frequency}
-                  onChange={(e) => setFormData({...formData, usage_frequency: e.target.value})}
+                  onChange={(e) => setFormData({ ...formData, usage_frequency: e.target.value })}
                   className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-purple-500 focus:outline-none"
                 >
                   <option value="daily">Daily</option>
@@ -578,7 +578,7 @@ const ApplianceManager = () => {
             <div className="mt-4 pt-4 border-t border-gray-700">
               <p className="text-gray-400 text-sm mb-2">Or quick add from common appliances:</p>
               <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-                {commonAppliances.slice(0, 6).map((app, idx) => (
+                {commonAppliances.slice(0, 12).map((app, idx) => (
                   <button
                     key={idx}
                     onClick={() => useCommonAppliance(app)}
@@ -615,7 +615,7 @@ const ApplianceManager = () => {
                     <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
                   ))}
                 </Pie>
-                <Tooltip 
+                <Tooltip
                   contentStyle={{ backgroundColor: '#1F2937', border: '1px solid #374151', borderRadius: '8px' }}
                 />
               </PieChart>
@@ -630,7 +630,7 @@ const ApplianceManager = () => {
                 <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
                 <XAxis dataKey="name" stroke="#9CA3AF" angle={-45} textAnchor="end" height={80} />
                 <YAxis stroke="#9CA3AF" />
-                <Tooltip 
+                <Tooltip
                   contentStyle={{ backgroundColor: '#1F2937', border: '1px solid #374151', borderRadius: '8px' }}
                 />
                 <Bar dataKey="estimated_monthly_cost" fill="#8B5CF6" radius={[8, 8, 0, 0]} />
@@ -675,7 +675,7 @@ const ApplianceManager = () => {
                   <tr key={appliance.id} className="border-b border-gray-700 hover:bg-gray-750">
                     <td className="py-3 px-4">
                       <div className="flex items-center gap-2">
-                        <div className="w-2 h-2 rounded-full" style={{backgroundColor: getCategoryColor(appliance.category)}}></div>
+                        <div className="w-2 h-2 rounded-full" style={{ backgroundColor: getCategoryColor(appliance.category) }}></div>
                         <span className="text-white font-medium">{appliance.name}</span>
                       </div>
                     </td>
@@ -711,11 +711,10 @@ const ApplianceManager = () => {
             {recommendations.map((rec, idx) => (
               <div key={idx} className="bg-black bg-opacity-30 rounded-lg p-4">
                 <div className="flex items-start gap-3">
-                  <div className={`mt-1 px-2 py-1 rounded text-xs font-bold ${
-                    rec.priority === 'high' ? 'bg-red-600 text-white' :
-                    rec.priority === 'medium' ? 'bg-yellow-600 text-white' :
-                    'bg-blue-600 text-white'
-                  }`}>
+                  <div className={`mt-1 px-2 py-1 rounded text-xs font-bold ${rec.priority === 'high' ? 'bg-red-600 text-white' :
+                      rec.priority === 'medium' ? 'bg-yellow-600 text-white' :
+                        'bg-blue-600 text-white'
+                    }`}>
                     {rec.priority.toUpperCase()}
                   </div>
                   <div className="flex-1">

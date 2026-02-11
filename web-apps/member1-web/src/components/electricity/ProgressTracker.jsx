@@ -22,6 +22,8 @@ const ProgressTracker = () => {
   const [showExportModal, setShowExportModal] = useState(false);
   const [motivationalTip, setMotivationalTip] = useState('');
   const [readingStats, setReadingStats] = useState({ count: 0, minRequired: 4, maxAllowed: 8 });
+  const [manualStartReading, setManualStartReading] = useState('');
+  const [savingManualReading, setSavingManualReading] = useState(false);
 
   useEffect(() => {
     fetchAvailableAccounts();
@@ -215,6 +217,30 @@ const ProgressTracker = () => {
     setLoading(false);
   };
 
+  const handleSaveStartReading = async () => {
+    if (!manualStartReading || !selectedPlan?.reference_bill_id) return alert('Enter a valid reading');
+    setSavingManualReading(true);
+    try {
+      const response = await fetch(`${API_BASE}/bills/${selectedPlan.reference_bill_id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          current_reading: parseInt(manualStartReading)
+        })
+      });
+      const data = await response.json();
+      if (data.success) {
+        alert('✅ Start reading saved! You can now track progress.');
+        fetchPlansForAccount(selectedAccount); // Refresh to get updated plan data
+      } else {
+        alert('❌ ' + (data.detail || 'Failed to save'));
+      }
+    } catch (err) {
+      alert('❌ Failed');
+    }
+    setSavingManualReading(false);
+  };
+
   const deleteReading = async (readingId) => {
     if (!confirm('Delete this reading?')) return;
     try {
@@ -291,13 +317,17 @@ const ProgressTracker = () => {
     const remaining = selectedPlan.planning_days - currentDay;
     if (remaining <= 0) return [];
 
-    const avgDailyUnits = readings.reduce((sum, r) => sum + (r.units_consumed || 0), 0) / readings.length;
-    const dailyCostRate = selectedPlan.target_daily_cost / selectedPlan.target_daily_units;
+    const avgDailyUnits = readings.length > 0 ? readings.reduce((sum, r) => sum + (r.units_consumed || 0), 0) / readings.length : 0;
+    const dailyCostRate = (selectedPlan.target_daily_units > 0) ? (selectedPlan.target_daily_cost / selectedPlan.target_daily_units) : 0;
+    const actualCost = lastReading.actual_cost || 0;
 
-    return Array.from({ length: Math.min(remaining, 30) }, (_, i) => ({
-      day: currentDay + i + 1,
-      projectedCost: (lastReading.actual_cost || 0) + ((i + 1) * avgDailyUnits * dailyCostRate)
-    }));
+    return Array.from({ length: Math.min(remaining, 30) }, (_, i) => {
+      const projected = actualCost + ((i + 1) * avgDailyUnits * dailyCostRate);
+      return {
+        day: currentDay + i + 1,
+        projectedCost: isFinite(projected) ? projected : actualCost
+      };
+    });
   })();
 
   return (
@@ -405,9 +435,9 @@ const ProgressTracker = () => {
             <StatCard icon={<Calendar className="w-6 h-6" />} label="Period" value={`${selectedPlan.planning_days} days`} color="teal" />
           </div>
 
-          {/* Start point from latest bill */}
-          {(selectedPlan.reference_bill_date || selectedPlan.reference_bill_current_reading) && (
-            <div className="bg-gray-800 rounded-xl p-4 border border-gray-700">
+          {/* Start point from latest bill / Manual Entry */}
+          <div className="bg-gray-800 rounded-xl p-6 border border-gray-700">
+            {selectedPlan.reference_bill_current_reading != null ? (
               <p className="text-gray-300 text-sm">
                 Latest bill date:{" "}
                 <span className="text-white font-semibold">
@@ -417,11 +447,38 @@ const ProgressTracker = () => {
                 </span>{" "}
                 • Start meter reading:{" "}
                 <span className="text-white font-semibold">
-                  {selectedPlan.reference_bill_current_reading ?? "N/A"}
+                  {selectedPlan.reference_bill_current_reading}
                 </span>
               </p>
-            </div>
-          )}
+            ) : (
+              <div className="space-y-4">
+                <div className="flex items-center gap-3 text-amber-400">
+                  <AlertCircle className="w-6 h-6" />
+                  <h4 className="font-bold text-lg">Missing Start Meter Reading</h4>
+                </div>
+                <p className="text-gray-400 text-sm">
+                  We couldn't extract the meter reading from your last bill.
+                  Please enter the <b>Current Reading</b> shown on your bill (or the reading at the start of this plan) to enable tracking.
+                </p>
+                <div className="flex gap-4">
+                  <input
+                    type="number"
+                    value={manualStartReading}
+                    onChange={e => setManualStartReading(e.target.value)}
+                    placeholder="Enter Start Reading"
+                    className="flex-1 px-4 py-2 bg-gray-700 rounded-lg text-white"
+                  />
+                  <button
+                    onClick={handleSaveStartReading}
+                    disabled={savingManualReading || !manualStartReading}
+                    className="bg-amber-600 hover:bg-amber-700 text-white px-6 py-2 rounded-lg font-bold disabled:opacity-50"
+                  >
+                    {savingManualReading ? 'Saving...' : 'Save Reading'}
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
 
           {/* Motivational Tip */}
           {motivationalTip && (
@@ -527,12 +584,12 @@ const ProgressTracker = () => {
                 <AreaChart data={readings}>
                   <defs>
                     <linearGradient id="actual" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#3B82F6" stopOpacity={0.8}/>
-                      <stop offset="95%" stopColor="#3B82F6" stopOpacity={0}/>
+                      <stop offset="5%" stopColor="#3B82F6" stopOpacity={0.8} />
+                      <stop offset="95%" stopColor="#3B82F6" stopOpacity={0} />
                     </linearGradient>
                     <linearGradient id="expected" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#10B981" stopOpacity={0.8}/>
-                      <stop offset="95%" stopColor="#10B981" stopOpacity={0}/>
+                      <stop offset="5%" stopColor="#10B981" stopOpacity={0.8} />
+                      <stop offset="95%" stopColor="#10B981" stopOpacity={0} />
                     </linearGradient>
                   </defs>
                   <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
@@ -604,7 +661,7 @@ const ProgressTracker = () => {
                           </span>
                         </td>
                         <td className="py-4 px-6 flex gap-3">
-                          <button onClick={() => setEditingReading({...r})} className="text-blue-400 hover:text-blue-300">
+                          <button onClick={() => setEditingReading({ ...r })} className="text-blue-400 hover:text-blue-300">
                             <Edit2 className="w-5 h-5" />
                           </button>
                           <button onClick={() => deleteReading(r.id)} className="text-red-400 hover:text-red-300">
@@ -625,9 +682,9 @@ const ProgressTracker = () => {
               <div className="bg-gray-800 rounded-2xl p-8 max-w-md w-full border border-gray-600 shadow-2xl">
                 <h3 className="text-2xl font-bold text-white mb-6">Edit Reading</h3>
                 <div className="space-y-5">
-                  <input type="number" value={editingReading.reading_value} onChange={e => setEditingReading({...editingReading, reading_value: e.target.value})} className="w-full px-4 py-3 bg-gray-700 rounded-lg text-white" placeholder="Reading" />
-                  <input type="datetime-local" value={editingReading.reading_date.slice(0,16)} onChange={e => setEditingReading({...editingReading, reading_date: e.target.value})} className="w-full px-4 py-3 bg-gray-700 rounded-lg text-white" />
-                  <input type="text" value={editingReading.notes || ''} onChange={e => setEditingReading({...editingReading, notes: e.target.value})} className="w-full px-4 py-3 bg-gray-700 rounded-lg text-white" placeholder="Notes" />
+                  <input type="number" value={editingReading.reading_value} onChange={e => setEditingReading({ ...editingReading, reading_value: e.target.value })} className="w-full px-4 py-3 bg-gray-700 rounded-lg text-white" placeholder="Reading" />
+                  <input type="datetime-local" value={editingReading.reading_date.slice(0, 16)} onChange={e => setEditingReading({ ...editingReading, reading_date: e.target.value })} className="w-full px-4 py-3 bg-gray-700 rounded-lg text-white" />
+                  <input type="text" value={editingReading.notes || ''} onChange={e => setEditingReading({ ...editingReading, notes: e.target.value })} className="w-full px-4 py-3 bg-gray-700 rounded-lg text-white" placeholder="Notes" />
                 </div>
                 <div className="flex gap-4 mt-8">
                   <button onClick={updateReading} className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-lg font-bold">Save</button>

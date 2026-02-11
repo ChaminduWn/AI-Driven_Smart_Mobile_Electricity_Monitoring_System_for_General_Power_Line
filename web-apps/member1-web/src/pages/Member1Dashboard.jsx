@@ -1,8 +1,7 @@
 import React, { useState } from 'react';
-import { Typography, Box } from '@mui/material';
-import { Zap } from 'lucide-react';
-
-// Electricity components
+import { Box } from '@mui/material';
+import Header from '../components/common/Header';
+import Footer from '../components/common/Footer';
 import ElectricityDashboard from '../components/electricity/ElectricityDashboard';
 import ProgressTracker from '../components/electricity/ProgressTracker';
 import ApplianceManager from '../components/electricity/ApplianceManager';
@@ -16,11 +15,10 @@ import ConsumptionEstimator from '../components/electricity/ConsumptionEstimator
 const NavButton = ({ active, onClick, children }) => (
   <button
     onClick={onClick}
-    className={`px-6 py-4 font-semibold transition-all border-b-2 ${
-      active
-        ? 'text-blue-400 border-blue-500 bg-gray-750'
-        : 'text-gray-400 border-transparent hover:text-white hover:border-gray-600'
-    }`}
+    className={`px-6 py-4 font-semibold transition-all border-b-2 ${active
+      ? 'text-blue-400 border-blue-500 bg-gray-750'
+      : 'text-gray-400 border-transparent hover:text-white hover:border-gray-600'
+      }`}
   >
     {children}
   </button>
@@ -30,24 +28,12 @@ export default function Member1Dashboard() {
   const [activeTab, setActiveTab] = useState('dashboard');
 
   return (
-   
 
-      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 rounded-lg overflow-hidden">
-        {/* Header */}
-        <header className="bg-gray-800 border-b border-gray-700">
-          <div className="max-w-7xl mx-auto px-6 py-4 flex items-center gap-3">
-            <Zap className="w-8 h-8 text-blue-500" />
-            <div>
-              <h1 className="text-xl font-bold text-white">
-                Smart Energy Monitoring
-              </h1>
-              <p className="text-sm text-gray-400">
-                Tracking, analyze, and optimize energy usage
-              </p>
-            </div>
-          </div>
-        </header>
 
+    <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', bgcolor: 'grey.900' }}>
+      <Header />
+
+      <Box sx={{ flexGrow: 1 }}>
         {/* Tabs */}
         <nav className="bg-gray-800 border-b border-gray-700">
           <div className="max-w-7xl mx-auto px-6 flex gap-2 overflow-x-auto">
@@ -55,9 +41,9 @@ export default function Member1Dashboard() {
               active={activeTab === 'dashboard'}
               onClick={() => setActiveTab('dashboard')}
             >
-               Dashboard
+              Dashboard
             </NavButton>
-           
+
             <NavButton
               active={activeTab === 'tracker'}
               onClick={() => setActiveTab('tracker')}
@@ -84,24 +70,22 @@ export default function Member1Dashboard() {
               onClick={() => setActiveTab('household')}
             >
               Household Energy Analyzer
-
             </NavButton>
 
-             <NavButton
+            <NavButton
               active={activeTab === 'ConsumptionEstimator'}
               onClick={() => setActiveTab('ConsumptionEstimator')}
             >
-              Household Consumption Predictor 
-
+              Household Consumption Predictor
             </NavButton>
 
-             <NavButton
+            <NavButton
               active={activeTab === 'calculator'}
               onClick={() => setActiveTab('calculator')}
             >
-               Tariff Calculator
+              Tariff Calculator
             </NavButton>
-            
+
           </div>
         </nav>
 
@@ -114,9 +98,10 @@ export default function Member1Dashboard() {
           {activeTab === 'Disaggregation' && <NILMDashboard />}
           {activeTab === 'household' && <HouseholdAnalyser />}
           {activeTab === 'ConsumptionEstimator' && <ConsumptionEstimator />}
-
         </main>
-      </div>
-    
+      </Box>
+      <Footer />
+    </Box>
+
   );
 }

@@ -12,6 +12,7 @@ from src.schemas.bill import (
     BillListResponse,
     BillDetailResponse,
     BillData,
+    BillUpdate,
 )
 from src.services.extractor import BillExtractionService
 from src.models.bill import ElectricityBill
@@ -102,6 +103,32 @@ def get_bill_by_id(bill_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Bill not found")
 
     return BillDetailResponse(success=True, data=BillData.from_orm(bill))
+
+
+@router.patch("/bills/{bill_id}", response_model=BillDetailResponse)
+def update_bill(
+    bill_id: int,
+    request: BillUpdate,
+    db: Session = Depends(get_db)
+):
+    """Update specific fields of a bill"""
+    bill = db.query(ElectricityBill).filter(ElectricityBill.id == bill_id).first()
+
+    if not bill:
+        raise HTTPException(status_code=404, detail="Bill not found")
+
+    # Update only provided fields
+    update_data = request.dict(exclude_unset=True)
+    for key, value in update_data.items():
+        setattr(bill, key, value)
+
+    try:
+        db.commit()
+        db.refresh(bill)
+        return BillDetailResponse(success=True, data=BillData.from_orm(bill))
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @router.delete("/bills/{bill_id}")

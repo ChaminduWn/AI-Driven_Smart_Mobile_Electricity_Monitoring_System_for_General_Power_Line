@@ -733,7 +733,9 @@ def get_plans_by_account(
                 'plan_start_date': p.plan_start_date,
                 'plan_end_date': p.plan_end_date,
                 'target_daily_units': p.target_daily_units,
+                'target_daily_cost': p.target_daily_cost,
                 # Extra context for progress tracker start point
+                'reference_bill_id': p.reference_bill_id,
                 'reference_bill_date': p.reference_bill.bill_date if p.reference_bill else None,
                 'reference_bill_current_reading': p.reference_bill.current_reading if p.reference_bill else None
             }

@@ -26,12 +26,32 @@ class BillData(BaseModel):
     units_consumed: Optional[int] = None
     billing_period_days: Optional[int] = None
     total_charge: Optional[float] = None  # ✅ Changed from total_due
+    
+    # Meter Readings
+    previous_reading: Optional[int] = None
+    current_reading: Optional[int] = None
+    previous_reading_date: Optional[datetime] = None
+    current_reading_date: Optional[datetime] = None
+    
     processing_status: str
     confidence_score: float
     created_at: datetime
     
     class Config:
         from_attributes = True
+
+class BillUpdate(BaseModel):
+    account_number: Optional[str] = None
+    bill_date: Optional[datetime] = None
+    units_consumed: Optional[int] = None
+    billing_period_days: Optional[int] = None
+    total_charge: Optional[float] = None
+    
+    # Meter Readings update
+    previous_reading: Optional[int] = None
+    current_reading: Optional[int] = None
+    previous_reading_date: Optional[datetime] = None
+    current_reading_date: Optional[datetime] = None
 
 class BillListResponse(BaseModel):
     success: bool
