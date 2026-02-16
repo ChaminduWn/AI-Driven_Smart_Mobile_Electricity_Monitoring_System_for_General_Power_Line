@@ -4,22 +4,25 @@ Household Member Management
 """
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-from typing import List
+from typing import List, Optional
 from pydantic import BaseModel
 
 from src.database import get_db
 from src.models.budget_plan import HouseholdMember
+from src.models.user import User
+from src.api.routes.auth import get_user_from_token
 
 router = APIRouter(prefix="/household", tags=["Household Management"])
 
 
 class HouseholdMemberCreate(BaseModel):
-    account_number: str
+    account_number: Optional[str] = None
     member_type: str
     occupation_status: str
     age: int
     weekday_hours_at_home: float = 12
     weekend_hours_at_home: float = 24
+    bill_id: Optional[int] = None
 
 
 @router.get("/member-types")
@@ -44,11 +47,14 @@ def get_default_member_types():
 @router.post("/members")
 def add_household_member(
     member: HouseholdMemberCreate,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_user_from_token)
 ):
     """Add a household member"""
     try:
         member_record = HouseholdMember(
+            user_id=current_user.id,
+            bill_id=member.bill_id,
             account_number=member.account_number,
             member_type=member.member_type,
             age=member.age,
@@ -78,13 +84,18 @@ def add_household_member(
 
 @router.get("/members/{account_number}")
 def get_household_members(
-    account_number: str,
-    db: Session = Depends(get_db)
+    account_number: Optional[str] = None,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_user_from_token)
 ):
-    """Get all household members for an account"""
-    members = db.query(HouseholdMember).filter(
-        HouseholdMember.account_number == account_number
-    ).all()
+    """Get all household members for a user"""
+    query = db.query(HouseholdMember).filter(
+        HouseholdMember.user_id == current_user.id
+    )
+    if account_number:
+        query = query.filter(HouseholdMember.account_number == account_number)
+    
+    members = query.all()
     
     return {
         'success': True,
@@ -106,11 +117,13 @@ def get_household_members(
 @router.delete("/members/{member_id}")
 def delete_household_member(
     member_id: int,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_user_from_token)
 ):
     """Delete a household member"""
     member = db.query(HouseholdMember).filter(
-        HouseholdMember.id == member_id
+        HouseholdMember.id == member_id,
+        HouseholdMember.user_id == current_user.id
     ).first()
     
     if not member:

@@ -8,6 +8,8 @@ from jose import jwt, JWTError
 from passlib.context import CryptContext
 from sqlalchemy.orm import Session
 
+import logging
+
 from src.config import settings
 from src.database import get_db
 from src.models.user import User, UserProfile
@@ -19,6 +21,8 @@ from src.schemas.auth import (
     RefreshTokenRequest,
     UserProfileResponse,
 )
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
 
@@ -73,14 +77,28 @@ def get_user_from_token(token: str = Depends(oauth2_scheme), db: Session = Depen
         detail="Could not validate credentials",
         headers={"WWW-Authenticate": "Bearer"},
     )
+    # DEBUG LOGGING
+    if not token:
+        logger.info("DEBUG: No token received in Authorization header")
+        raise credentials_exception
+    else:
+        logger.info(f"DEBUG: Found token in header (starts with {token[:10]}...)")
+        
     try:
+        # DEBUG LOGGING
+        logger.info(f"DEBUG: Validating token: {token[:20]}...")
+        
         payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[ALGORITHM])
         user_id: Optional[int] = payload.get("sub")
         token_type: Optional[str] = payload.get("type")
         
+        logger.info(f"DEBUG: Decoded sub={user_id}, type={token_type}")
+        
         if user_id is None or token_type != "access":
+            logger.info(f"DEBUG: Invalid payload: user_id={user_id}, type={token_type}")
             raise credentials_exception
-    except JWTError:
+    except JWTError as e:
+        logger.info(f"DEBUG: JWT Decode Error: {e}")
         raise credentials_exception
 
     user = db.query(User).filter(User.id == int(user_id)).first()

@@ -1,6 +1,6 @@
 """ src/main.py - FIXED VERSION """
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from src.config import settings
 from src.database import engine, Base
@@ -51,6 +51,13 @@ app = FastAPI(
     description="AI-powered electricity bill analysis with NILM disaggregation",
 )
 
+@app.middleware("http")
+async def log_requests(request: Request, call_next):
+    logger.info(f"DEBUG: Incoming request: {request.method} {request.url}")
+    response = await call_next(request)
+    logger.info(f"DEBUG: Response status: {response.status_code}")
+    return response
+
 # CRITICAL FIX: CORS MUST BE CONFIGURED BEFORE ROUTES
 # This allows the browser to make requests from localhost:3000 to localhost:8000
 app.add_middleware(
@@ -60,12 +67,25 @@ app.add_middleware(
         "http://127.0.0.1:3000",
         "http://localhost:5173",
         "http://127.0.0.1:5173",
+        "http://localhost:8081",
+        "http://127.0.0.1:8081",
+        "http://localhost:8813",
+        "http://127.0.0.1:8813",
+        "http://localhost:19000",
+        "http://localhost:19006",
+        "http://10.134.218.242:8081",
+        "http://10.134.218.242:8000",
+        "http://192.168.177.242:8081",
+        "http://192.168.177.242:8000",
+        "http://192.168.1.105:8081",
+        "http://192.168.1.105:8000",
+        "http://192.168.1.105:8813",
     ],
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
     allow_headers=["*"],
     expose_headers=["*"],
-    max_age=3600,  # Cache preflight requests for 1 hour
+    max_age=3600,
 )
 
 # Include all routes

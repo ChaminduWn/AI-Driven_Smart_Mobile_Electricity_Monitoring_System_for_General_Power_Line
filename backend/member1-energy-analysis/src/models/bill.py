@@ -1,4 +1,5 @@
-from sqlalchemy import Column, Integer, String, Float, DateTime, Boolean, JSON, Text
+from sqlalchemy import Column, Integer, String, Float, DateTime, Boolean, JSON, Text, ForeignKey
+from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from src.database import Base
 
@@ -50,6 +51,10 @@ class ElectricityBill(Base):
     confidence_score = Column(Float, default=0.0)
     processing_status = Column(String(50), default="pending")
     error_message = Column(Text, nullable=True)
+    
+    # Relationships
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    user = relationship("User", back_populates="bills")
     
     # Timestamps
     created_at = Column(DateTime(timezone=True), server_default=func.now())

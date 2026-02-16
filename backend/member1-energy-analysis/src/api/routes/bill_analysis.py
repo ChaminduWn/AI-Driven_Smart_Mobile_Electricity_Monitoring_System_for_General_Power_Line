@@ -12,9 +12,11 @@ from src.database import get_db
 from src.services.bill_analysis import BillAnalysisService
 from src.models.bill import ElectricityBill
 from src.models.budget_plan import BudgetPlan, MeterReading, HouseholdAppliance
+from src.services.recommendation_engine import RecommendationEngine
 
 router = APIRouter(prefix="/analysis", tags=["Bill Analysis"])
 analysis_service = BillAnalysisService()
+recommendation_engine = RecommendationEngine()
 
 
 # ========== REQUEST/RESPONSE MODELS ==========
@@ -577,39 +579,24 @@ def track_budget_progress(
                 HouseholdAppliance.is_active == True
             ).all()
 
-            if appliances:
-                # Rank appliances by monthly consumption
-                ranked = sorted(
-                    appliances,
-                    key=lambda a: a.monthly_kwh or 0,
-                    reverse=True
-                )
-                top_appliances = ranked[:5]
-
-                for appliance in top_appliances:
-                    monthly_kwh = appliance.monthly_kwh or 0
-                    est_cost = appliance.estimated_monthly_cost or 0
-                    # Suggest 15–25% reduction depending on share
-                    share = 0
-                    if progress['projection']['projected_total_units'] > 0:
-                        share = monthly_kwh / progress['projection']['projected_total_units']
-                    reduction_factor = 0.25 if share > 0.2 else 0.15
-                    potential_kwh_saving = monthly_kwh * reduction_factor
-
-                    appliance_recommendations.append({
-                        'appliance_id': appliance.id,
-                        'appliance_name': appliance.appliance_name,
-                        'category': appliance.appliance_category,
-                        'monthly_kwh': round(monthly_kwh, 2),
-                        'estimated_monthly_cost': round(est_cost, 2),
-                        'suggested_reduction_percent': int(reduction_factor * 100),
-                        'potential_saving_kwh': round(potential_kwh_saving, 2),
-                        'hint': (
-                            f"Reduce daily usage of {appliance.appliance_name} by "
-                            f"about {int(reduction_factor * 100)}% to bring your "
-                            f"usage closer to the budget."
-                        )
-                    })
+            # Prepare appliance data for engine
+            appliances_data = [
+                {
+                    'id': a.id,
+                    'name': a.appliance_name,
+                    'category': a.appliance_category,
+                    'wattage': a.wattage
+                }
+                for a in appliances
+            ]
+            
+            # Use AI Recommendation Engine
+            appliance_recommendations = recommendation_engine.generate_recommendations(
+                current_status=progress['current_status'],
+                projection=progress['projection'],
+                user_appliances=appliances_data,
+                account_number=bill.account_number
+            )
 
         # Attach helper data for frontend
         progress['weekly_status'] = weekly_status

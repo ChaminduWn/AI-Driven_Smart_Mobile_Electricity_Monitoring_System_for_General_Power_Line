@@ -11,6 +11,8 @@ from datetime import datetime, timedelta
 from src.database import get_db
 from src.models.bill import ElectricityBill
 from src.models.budget_plan import HouseholdAppliance
+from src.models.user import User
+from src.api.routes.auth import get_user_from_token
 from src.services.nilm_disaggregation import get_nilm_service
 import logging
 
@@ -22,7 +24,7 @@ router = APIRouter(prefix="/nilm", tags=["NILM Disaggregation"])
 # ========== REQUEST MODELS ==========
 
 class DisaggregationRequest(BaseModel):
-    account_number: str = Field(..., description="Account number (required)")
+    account_number: Optional[str] = Field(None, description="Account number")
     date: Optional[str] = None
     total_kwh: Optional[float] = None
 
@@ -33,7 +35,7 @@ class HouseholdMember(BaseModel):
 
 
 class EnhancedDisaggregationRequest(BaseModel):
-    account_number: str
+    account_number: Optional[str] = None
     date: Optional[str] = None
     total_kwh: Optional[float] = None
     household_members: Optional[List[HouseholdMember]] = None
@@ -44,7 +46,8 @@ class EnhancedDisaggregationRequest(BaseModel):
 @router.post("/disaggregate", response_model=dict)
 def disaggregate_consumption(
     request: DisaggregationRequest,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_user_from_token)
 ):
     """
     Disaggregate total consumption into appliance breakdown
@@ -65,10 +68,14 @@ def disaggregate_consumption(
         
         # Get appliances for THIS account with better error handling
         try:
-            appliances = db.query(HouseholdAppliance).filter(
-                HouseholdAppliance.account_number == account_number,
+            query = db.query(HouseholdAppliance).filter(
+                HouseholdAppliance.user_id == current_user.id,
                 HouseholdAppliance.is_active == True
-            ).all()
+            )
+            if request.account_number:
+                query = query.filter(HouseholdAppliance.account_number == request.account_number)
+            
+            appliances = query.all()
             
             logger.info(f"📊 Found {len(appliances)} appliances for account {account_number}")
             
@@ -124,9 +131,13 @@ def disaggregate_consumption(
         else:
             # Get from latest bill
             try:
-                latest_bill = db.query(ElectricityBill).filter(
-                    ElectricityBill.account_number == account_number
-                ).order_by(ElectricityBill.bill_date.desc()).first()
+                query = db.query(ElectricityBill).filter(
+                    ElectricityBill.user_id == current_user.id
+                )
+                if request.account_number:
+                    query = query.filter(ElectricityBill.account_number == request.account_number)
+                
+                latest_bill = query.order_by(ElectricityBill.bill_date.desc()).first()
                 
                 if not latest_bill:
                     return {
@@ -208,7 +219,8 @@ def disaggregate_consumption(
 @router.post("/disaggregate-enhanced", response_model=dict)
 def disaggregate_with_household(
     request: EnhancedDisaggregationRequest,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_user_from_token)
 ):
     """
     Enhanced disaggregation with household member patterns
@@ -222,10 +234,14 @@ def disaggregate_with_household(
         nilm_service = get_nilm_service()
         
         # Get appliances
-        appliances = db.query(HouseholdAppliance).filter(
-            HouseholdAppliance.account_number == request.account_number,
+        query = db.query(HouseholdAppliance).filter(
+            HouseholdAppliance.user_id == current_user.id,
             HouseholdAppliance.is_active == True
-        ).all()
+        )
+        if request.account_number:
+            query = query.filter(HouseholdAppliance.account_number == request.account_number)
+        
+        appliances = query.all()
         
         if not appliances:
             return {
@@ -252,9 +268,13 @@ def disaggregate_with_household(
             total_kwh = request.total_kwh
             date = datetime.strptime(request.date, '%Y-%m-%d') if request.date else datetime.now()
         else:
-            latest_bill = db.query(ElectricityBill).filter(
-                ElectricityBill.account_number == request.account_number
-            ).order_by(ElectricityBill.bill_date.desc()).first()
+            query = db.query(ElectricityBill).filter(
+                ElectricityBill.user_id == current_user.id
+            )
+            if request.account_number:
+                query = query.filter(ElectricityBill.account_number == request.account_number)
+            
+            latest_bill = query.order_by(ElectricityBill.bill_date.desc()).first()
             
             if not latest_bill:
                 raise HTTPException(status_code=404, detail="No bills found")
@@ -288,22 +308,27 @@ def disaggregate_with_household(
 
 @router.get("/verify-setup/{account_number}", response_model=dict)
 def verify_nilm_setup(
-    account_number: str,
-    db: Session = Depends(get_db)
+    account_number: Optional[str] = None,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_user_from_token)
 ):
     """Verify if account is ready for NILM disaggregation"""
     
     try:
-        # Check appliances
-        appliances_count = db.query(HouseholdAppliance).filter(
-            HouseholdAppliance.account_number == account_number,
+        appl_query = db.query(HouseholdAppliance).filter(
+            HouseholdAppliance.user_id == current_user.id,
             HouseholdAppliance.is_active == True
-        ).count()
+        )
+        bill_query = db.query(ElectricityBill).filter(
+            ElectricityBill.user_id == current_user.id
+        )
         
-        # Check bills
-        bills_count = db.query(ElectricityBill).filter(
-            ElectricityBill.account_number == account_number
-        ).count()
+        if account_number:
+            appl_query = appl_query.filter(HouseholdAppliance.account_number == account_number)
+            bill_query = bill_query.filter(ElectricityBill.account_number == account_number)
+            
+        appliances_count = appl_query.count()
+        bills_count = bill_query.count()
         
         # Determine readiness
         is_ready = appliances_count >= 3 and bills_count >= 1
@@ -335,16 +360,21 @@ def verify_nilm_setup(
 
 @router.get("/accuracy-report/{account_number}", response_model=dict)
 def get_accuracy_report(
-    account_number: str,
-    db: Session = Depends(get_db)
+    account_number: Optional[str] = None,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_user_from_token)
 ):
     """Get expected NILM accuracy for account"""
     
     try:
-        appliances = db.query(HouseholdAppliance).filter(
-            HouseholdAppliance.account_number == account_number,
+        query = db.query(HouseholdAppliance).filter(
+            HouseholdAppliance.user_id == current_user.id,
             HouseholdAppliance.is_active == True
-        ).all()
+        )
+        if account_number:
+            query = query.filter(HouseholdAppliance.account_number == account_number)
+            
+        appliances = query.all()
         
         if not appliances:
             return {
@@ -410,9 +440,10 @@ def get_accuracy_report(
 
 @router.get("/historical-breakdown/{account_number}", response_model=dict)
 def get_historical_breakdown(
-    account_number: str,
+    account_number: Optional[str] = None,
     days: int = 30,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_user_from_token)
 ):
     """Get historical NILM breakdown"""
     
@@ -420,10 +451,14 @@ def get_historical_breakdown(
         nilm_service = get_nilm_service()
         
         # Get appliances
-        appliances = db.query(HouseholdAppliance).filter(
-            HouseholdAppliance.account_number == account_number,
+        query = db.query(HouseholdAppliance).filter(
+            HouseholdAppliance.user_id == current_user.id,
             HouseholdAppliance.is_active == True
-        ).all()
+        )
+        if account_number:
+            query = query.filter(HouseholdAppliance.account_number == account_number)
+            
+        appliances = query.all()
         
         if not appliances:
             return {'success': False, 'message': 'No appliances registered'}
@@ -443,10 +478,14 @@ def get_historical_breakdown(
         
         # Get bills
         cutoff_date = datetime.now() - timedelta(days=days)
-        bills = db.query(ElectricityBill).filter(
-            ElectricityBill.account_number == account_number,
+        bill_query = db.query(ElectricityBill).filter(
+            ElectricityBill.user_id == current_user.id,
             ElectricityBill.bill_date >= cutoff_date
-        ).order_by(ElectricityBill.bill_date.desc()).all()
+        )
+        if account_number:
+            bill_query = bill_query.filter(ElectricityBill.account_number == account_number)
+            
+        bills = bill_query.order_by(ElectricityBill.bill_date.desc()).all()
         
         if not bills:
             return {'success': False, 'message': f'No bills in last {days} days'}

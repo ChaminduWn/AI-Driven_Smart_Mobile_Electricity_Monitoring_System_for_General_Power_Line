@@ -555,22 +555,39 @@ const ProgressTracker = () => {
               )}
 
               {progress.appliance_recommendations && progress.appliance_recommendations.length > 0 && (
-                <div className="mt-4 bg-gray-900 rounded-lg p-4 border border-gray-700">
-                  <h4 className="text-lg font-semibold text-white mb-2">AI Appliance Tips</h4>
-                  <ul className="space-y-2 text-sm">
+                <div className="mt-4 bg-gray-900 rounded-lg p-6 border border-gray-700 shadow-inner">
+                  <h4 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
+                    <Zap className="w-6 h-6 text-yellow-400" />
+                    Personalized AI Energy Saving Tips
+                  </h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {progress.appliance_recommendations.map((rec) => (
-                      <li key={rec.appliance_id} className="flex flex-col text-gray-200">
-                        <span className="font-semibold">
-                          {rec.appliance_name} {rec.category ? `(${rec.category})` : ''}
-                        </span>
-                        <span className="text-gray-400">
-                          Uses ~{rec.monthly_kwh?.toFixed(1)} kWh/month. Suggest reducing usage by{" "}
-                          {rec.suggested_reduction_percent}% to save about {rec.potential_saving_kwh?.toFixed(1)} kWh.
-                        </span>
-                        {rec.hint && <span className="text-gray-400 italic">{rec.hint}</span>}
-                      </li>
+                      <div key={rec.appliance_id || rec.appliance_name} className="bg-gray-800 rounded-xl p-4 border border-gray-700 hover:border-blue-500 transition-colors">
+                        <div className="flex justify-between items-start mb-2">
+                          <span className="font-bold text-blue-400 uppercase text-xs tracking-wider">
+                            {rec.category || 'Appliance'}
+                          </span>
+                          {rec.impact_percentage && (
+                            <span className="text-xs bg-red-900/50 text-red-400 px-2 py-1 rounded">
+                              Impact: {rec.impact_percentage}%
+                            </span>
+                          )}
+                        </div>
+                        <h5 className="font-bold text-white text-lg mb-1">{rec.appliance_name}</h5>
+                        <p className="text-gray-300 text-sm mb-3">
+                          {rec.actionable_tip}
+                        </p>
+                        <div className="flex flex-wrap gap-2 mt-auto">
+                          <div className="bg-blue-900/40 text-blue-300 px-3 py-1 rounded-full text-xs font-semibold">
+                            Target: -{rec.suggested_reduction_hours} hrs/day
+                          </div>
+                          <div className="bg-green-900/40 text-green-300 px-3 py-1 rounded-full text-xs font-semibold">
+                            Est. Save: Rs. {rec.potential_monthly_saving} /mo
+                          </div>
+                        </div>
+                      </div>
                     ))}
-                  </ul>
+                  </div>
                 </div>
               )}
             </div>

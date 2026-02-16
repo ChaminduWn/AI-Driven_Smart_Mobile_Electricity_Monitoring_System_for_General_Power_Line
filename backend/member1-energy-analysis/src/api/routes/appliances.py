@@ -13,6 +13,8 @@ from typing import Optional, List
 from pydantic import BaseModel, Field
 from src.database import get_db
 from src.models.budget_plan import HouseholdAppliance
+from src.models.user import User
+from src.api.routes.auth import get_user_from_token
 from src.services.bill_analysis import BillAnalysisService
 import logging
 
@@ -25,13 +27,14 @@ analysis_service = BillAnalysisService()
 # ========== REQUEST/RESPONSE MODELS ==========
 
 class ApplianceCreate(BaseModel):
-    account_number: str = Field(..., description="Account number")
+    account_number: Optional[str] = Field(None, description="Account number")
     appliance_name: str = Field(..., min_length=1, max_length=255, description="Name of appliance")
     appliance_category: Optional[str] = Field(None, description="Category (cooling, heating, entertainment, etc.)")
     wattage: int = Field(..., gt=0, description="Power consumption in Watts")
     usage_duration_minutes: int = Field(60, gt=0, description="Duration per use in minutes")
     usage_times_per_day: int = Field(1, gt=0, description="How many times used per day")
     usage_frequency: str = Field('daily', description="Frequency: daily, weekly, monthly")
+    bill_id: Optional[int] = Field(None, description="Optional link to a specific bill")
 
 
 class ApplianceUpdate(BaseModel):
@@ -66,7 +69,8 @@ class ApplianceResponse(BaseModel):
 @router.post("/", response_model=dict)
 def add_appliance(
     appliance: ApplianceCreate,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_user_from_token)
 ):
     """
     Add a new household appliance
@@ -78,7 +82,9 @@ def add_appliance(
     """
     try:
         appliance_record = HouseholdAppliance(
+            user_id=current_user.id,
             account_number=appliance.account_number,
+            bill_id=appliance.bill_id,
             appliance_name=appliance.appliance_name,
             appliance_category=appliance.appliance_category,
             wattage=appliance.wattage,
@@ -117,14 +123,18 @@ def add_appliance(
 
 @router.get("/account/{account_number}", response_model=dict)
 def get_appliances_by_account(
-    account_number: str,
+    account_number: Optional[str] = None,
     active_only: bool = True,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_user_from_token)
 ):
-    """Get all appliances for an account"""
+    """Get all appliances for a user"""
     query = db.query(HouseholdAppliance).filter(
-        HouseholdAppliance.account_number == account_number
+        HouseholdAppliance.user_id == current_user.id
     )
+    
+    if account_number:
+        query = query.filter(HouseholdAppliance.account_number == account_number)
     
     if active_only:
         query = query.filter(HouseholdAppliance.is_active == True)
@@ -155,7 +165,8 @@ def get_appliances_by_account(
 @router.get("/analysis/{account_number}", response_model=dict)
 def analyze_appliances(
     account_number: str,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_user_from_token)
 ):
     """
     Get comprehensive appliance-wise consumption breakdown
@@ -167,10 +178,14 @@ def analyze_appliances(
     - Cost estimates
     - High-consumption appliances
     """
-    appliances = db.query(HouseholdAppliance).filter(
-        HouseholdAppliance.account_number == account_number,
+    query = db.query(HouseholdAppliance).filter(
+        HouseholdAppliance.user_id == current_user.id,
         HouseholdAppliance.is_active == True
-    ).all()
+    )
+    if account_number:
+        query = query.filter(HouseholdAppliance.account_number == account_number)
+    
+    appliances = query.all()
     
     if not appliances:
         return {
@@ -267,7 +282,8 @@ def analyze_appliances(
 @router.get("/recommendations/{account_number}", response_model=dict)
 def get_recommendations(
     account_number: str,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_user_from_token)
 ):
     """
     Get smart recommendations for reducing consumption
@@ -277,10 +293,14 @@ def get_recommendations(
     - Usage patterns
     - Potential savings
     """
-    appliances = db.query(HouseholdAppliance).filter(
-        HouseholdAppliance.account_number == account_number,
+    query = db.query(HouseholdAppliance).filter(
+        HouseholdAppliance.user_id == current_user.id,
         HouseholdAppliance.is_active == True
-    ).all()
+    )
+    if account_number:
+        query = query.filter(HouseholdAppliance.account_number == account_number)
+    
+    appliances = query.all()
     
     if not appliances:
         return {'success': True, 'recommendations': []}
@@ -350,11 +370,13 @@ def get_recommendations(
 def update_appliance(
     appliance_id: int,
     updates: ApplianceUpdate,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_user_from_token)
 ):
     """Update appliance details"""
     appliance = db.query(HouseholdAppliance).filter(
-        HouseholdAppliance.id == appliance_id
+        HouseholdAppliance.id == appliance_id,
+        HouseholdAppliance.user_id == current_user.id
     ).first()
     
     if not appliance:
@@ -401,11 +423,13 @@ def update_appliance(
 def delete_appliance(
     appliance_id: int,
     soft_delete: bool = True,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_user_from_token)
 ):
     """Delete an appliance (soft delete by default)"""
     appliance = db.query(HouseholdAppliance).filter(
-        HouseholdAppliance.id == appliance_id
+        HouseholdAppliance.id == appliance_id,
+        HouseholdAppliance.user_id == current_user.id
     ).first()
     
     if not appliance:

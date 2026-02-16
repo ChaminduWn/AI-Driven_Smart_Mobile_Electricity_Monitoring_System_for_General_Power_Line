@@ -22,8 +22,10 @@ class BudgetPlan(Base):
     reference_bill_id = Column(Integer, ForeignKey('electricity_bills.id'), nullable=False)
     reference_bill = relationship("ElectricityBill", foreign_keys=[reference_bill_id])
     
-    # User information (for future multi-user support)
-    user_id = Column(Integer, nullable=True)
+    # User information
+    user_id = Column(Integer, ForeignKey('users.id', ondelete="CASCADE"), nullable=False)
+    bill_id = Column(Integer, ForeignKey('electricity_bills.id', ondelete="CASCADE"), nullable=True) # For direct linking if requested
+    
     account_number = Column(String(100), index=True)
     
     # Plan details
@@ -79,6 +81,10 @@ class MeterReading(Base):
     budget_plan_id = Column(Integer, ForeignKey('budget_plans.id'), nullable=False)
     budget_plan = relationship("BudgetPlan", back_populates="meter_readings")
     
+    # Direct link to bill
+    bill_id = Column(Integer, ForeignKey('electricity_bills.id', ondelete="CASCADE"), nullable=True)
+    bill = relationship("ElectricityBill")
+    
     # Reading information
     reading_value = Column(Integer, nullable=False)
     reading_date = Column(DateTime, nullable=False)
@@ -123,8 +129,13 @@ class HouseholdAppliance(Base):
     id = Column(Integer, primary_key=True, index=True)
     
     # User/household information
-    user_id = Column(Integer, nullable=True)
+    user_id = Column(Integer, ForeignKey('users.id', ondelete="CASCADE"), nullable=False)
+    bill_id = Column(Integer, ForeignKey('electricity_bills.id', ondelete="CASCADE"), nullable=True)
+    
     account_number = Column(String(100), index=True)
+    
+    user = relationship("User")
+    bill = relationship("ElectricityBill")
     
     # Appliance details
     appliance_name = Column(String(255), nullable=False)
@@ -176,8 +187,13 @@ class HouseholdMember(Base):
     id = Column(Integer, primary_key=True, index=True)
     
     # User/household information
-    user_id = Column(Integer, nullable=True)
+    user_id = Column(Integer, ForeignKey('users.id', ondelete="CASCADE"), nullable=False)
+    bill_id = Column(Integer, ForeignKey('electricity_bills.id', ondelete="CASCADE"), nullable=True)
+    
     account_number = Column(String(100), index=True)
+    
+    user = relationship("User")
+    bill = relationship("ElectricityBill")
     
     # Member details
     member_type = Column(String(50), nullable=False)

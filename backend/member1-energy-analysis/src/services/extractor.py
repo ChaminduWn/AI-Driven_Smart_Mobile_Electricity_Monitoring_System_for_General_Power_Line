@@ -15,9 +15,10 @@ class BillExtractionService:
     def extract_bill_data(
         self, 
         file_path: str, 
-        file_name: str,
+        file_name: str, 
         file_type: str,
-        db: Session
+        db: Session,
+        user_id: Optional[int] = None
     ) -> Dict:
         """
         Main extraction method
@@ -44,11 +45,12 @@ class BillExtractionService:
             # Step 3: Save to database
             bill = self._save_to_database(
                 db=db,
-                file_name=file_name,
                 file_path=file_path,
+                file_name=file_name,
                 file_type=file_type,
                 raw_text=raw_text,
-                parsed_data=parsed_data
+                parsed_data=parsed_data,
+                user_id=user_id
             )
             
             return {
@@ -66,7 +68,8 @@ class BillExtractionService:
                 file_name=file_name,
                 file_path=file_path,
                 file_type=file_type,
-                error_message=str(e)
+                error_message=str(e),
+                user_id=user_id
             )
             
             return {
@@ -83,7 +86,8 @@ class BillExtractionService:
         file_path: str,
         file_type: str,
         raw_text: str,
-        parsed_data: Dict
+        parsed_data: Dict,
+        user_id: Optional[int] = None
     ) -> ElectricityBill:
         """Save extracted bill data to database"""
         
@@ -138,6 +142,7 @@ class BillExtractionService:
         
         # Create bill record
         bill = ElectricityBill(
+            user_id=user_id,
             file_name=file_name,
             file_path=file_path,
             file_type=file_type,
@@ -217,11 +222,13 @@ class BillExtractionService:
         file_name: str,
         file_path: str,
         file_type: str,
-        error_message: str
+        error_message: str,
+        user_id: Optional[int] = None
     ) -> Optional[ElectricityBill]:
         """Save failed extraction attempt to database"""
         try:
             bill = ElectricityBill(
+                user_id=user_id,
                 file_name=file_name,
                 file_path=file_path,
                 file_type=file_type,

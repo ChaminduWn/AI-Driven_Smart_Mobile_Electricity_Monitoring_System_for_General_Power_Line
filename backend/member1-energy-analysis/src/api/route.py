@@ -16,6 +16,8 @@ from src.schemas.bill import (
 )
 from src.services.extractor import BillExtractionService
 from src.models.bill import ElectricityBill
+from src.models.user import User
+from src.api.routes.auth import get_user_from_token
 from src.config import settings
 
 router = APIRouter(prefix=settings.API_V1_PREFIX, tags=["bills"])
@@ -25,6 +27,7 @@ router = APIRouter(prefix=settings.API_V1_PREFIX, tags=["bills"])
 async def extract_bill(
     file: UploadFile = File(..., description="Bill file (PDF or image)"),
     db: Session = Depends(get_db),
+    current_user: User = Depends(get_user_from_token)
 ):
     """Extract data from an uploaded electricity bill"""
     
@@ -55,6 +58,7 @@ async def extract_bill(
             file_name=file.filename,
             file_type=file_ext,
             db=db,
+            user_id=current_user.id
         )
 
         return BillExtractResponse(
@@ -77,9 +81,10 @@ def get_all_bills(
     limit: int = 100,
     account_number: Optional[str] = None,
     db: Session = Depends(get_db),
+    current_user: User = Depends(get_user_from_token)
 ):
-    """Get list of all bills with pagination"""
-    query = db.query(ElectricityBill)
+    """Get list of all bills for current user"""
+    query = db.query(ElectricityBill).filter(ElectricityBill.user_id == current_user.id)
 
     if account_number:
         query = query.filter(ElectricityBill.account_number == account_number)
@@ -95,9 +100,16 @@ def get_all_bills(
 
 
 @router.get("/bills/{bill_id}", response_model=BillDetailResponse)
-def get_bill_by_id(bill_id: int, db: Session = Depends(get_db)):
+def get_bill_by_id(
+    bill_id: int, 
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_user_from_token)
+):
     """Get detailed information about a specific bill"""
-    bill = db.query(ElectricityBill).filter(ElectricityBill.id == bill_id).first()
+    bill = db.query(ElectricityBill).filter(
+        ElectricityBill.id == bill_id,
+        ElectricityBill.user_id == current_user.id
+    ).first()
 
     if not bill:
         raise HTTPException(status_code=404, detail="Bill not found")
@@ -109,10 +121,14 @@ def get_bill_by_id(bill_id: int, db: Session = Depends(get_db)):
 def update_bill(
     bill_id: int,
     request: BillUpdate,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_user_from_token)
 ):
     """Update specific fields of a bill"""
-    bill = db.query(ElectricityBill).filter(ElectricityBill.id == bill_id).first()
+    bill = db.query(ElectricityBill).filter(
+        ElectricityBill.id == bill_id,
+        ElectricityBill.user_id == current_user.id
+    ).first()
 
     if not bill:
         raise HTTPException(status_code=404, detail="Bill not found")
@@ -132,9 +148,16 @@ def update_bill(
 
 
 @router.delete("/bills/{bill_id}")
-def delete_bill(bill_id: int, db: Session = Depends(get_db)):
+def delete_bill(
+    bill_id: int, 
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_user_from_token)
+):
     """Delete a bill record"""
-    bill = db.query(ElectricityBill).filter(ElectricityBill.id == bill_id).first()
+    bill = db.query(ElectricityBill).filter(
+        ElectricityBill.id == bill_id,
+        ElectricityBill.user_id == current_user.id
+    ).first()
 
     if not bill:
         raise HTTPException(status_code=404, detail="Bill not found")
@@ -150,12 +173,19 @@ def delete_bill(bill_id: int, db: Session = Depends(get_db)):
 
 
 @router.get("/bills/account/{account_number}", response_model=BillListResponse)
-def get_bills_by_account(account_number: str, db: Session = Depends(get_db)):
+def get_bills_by_account(
+    account_number: str, 
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_user_from_token)
+):
     """Get all bills for a specific account"""
     bills = (
         db.query(ElectricityBill)
-        .filter(ElectricityBill.account_number == account_number)
-        .order_by(ElectricityBill.bill_date.desc())  # ✅ Added ordering
+        .filter(
+            ElectricityBill.account_number == account_number,
+            ElectricityBill.user_id == current_user.id
+        )
+        .order_by(ElectricityBill.bill_date.desc())
         .all()
     )
 
@@ -167,13 +197,15 @@ def get_bills_by_account(account_number: str, db: Session = Depends(get_db)):
 
 
 @router.get("/bills/stats/summary")
-def get_statistics(db: Session = Depends(get_db)):
-    """Get summary statistics"""
+def get_statistics(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_user_from_token)
+):
+    """Get summary statistics for current user"""
     try:
-        total_bills = db.query(ElectricityBill).count()
-        total_units = db.query(func.sum(ElectricityBill.units_consumed)).scalar() or 0
-        # ✅ FIXED: Changed total_due to total_charge
-        total_amount = db.query(func.sum(ElectricityBill.total_charge)).scalar() or 0
+        total_bills = db.query(ElectricityBill).filter(ElectricityBill.user_id == current_user.id).count()
+        total_units = db.query(func.sum(ElectricityBill.units_consumed)).filter(ElectricityBill.user_id == current_user.id).scalar() or 0
+        total_amount = db.query(func.sum(ElectricityBill.total_charge)).filter(ElectricityBill.user_id == current_user.id).scalar() or 0
 
         return {
             "success": True,
