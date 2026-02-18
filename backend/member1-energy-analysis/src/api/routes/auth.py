@@ -79,31 +79,37 @@ def get_user_from_token(token: str = Depends(oauth2_scheme), db: Session = Depen
     )
     # DEBUG LOGGING
     if not token:
-        logger.info("DEBUG: No token received in Authorization header")
+        logger.error("❌ DEBUG: No token received in Authorization header")
         raise credentials_exception
     else:
-        logger.info(f"DEBUG: Found token in header (starts with {token[:10]}...)")
+        logger.info(f"✓ DEBUG: Found token in header (starts with {token[:20]}...)")
         
     try:
         # DEBUG LOGGING
-        logger.info(f"DEBUG: Validating token: {token[:20]}...")
+        logger.info(f"🔐 DEBUG: Validating token: {token[:20]}...")
         
         payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[ALGORITHM])
         user_id: Optional[int] = payload.get("sub")
         token_type: Optional[str] = payload.get("type")
         
-        logger.info(f"DEBUG: Decoded sub={user_id}, type={token_type}")
+        logger.info(f"✓ DEBUG: Decoded sub={user_id}, type={token_type}")
         
         if user_id is None or token_type != "access":
-            logger.info(f"DEBUG: Invalid payload: user_id={user_id}, type={token_type}")
+            logger.error(f"❌ DEBUG: Invalid payload: user_id={user_id}, type={token_type}")
             raise credentials_exception
     except JWTError as e:
-        logger.info(f"DEBUG: JWT Decode Error: {e}")
+        logger.error(f"❌ DEBUG: JWT Decode Error: {e}")
         raise credentials_exception
 
     user = db.query(User).filter(User.id == int(user_id)).first()
-    if user is None or not user.is_active:
+    if user is None:
+        logger.error(f"❌ DEBUG: User not found with id={user_id}")
         raise credentials_exception
+    if not user.is_active:
+        logger.error(f"❌ DEBUG: User {user_id} is not active")
+        raise credentials_exception
+    
+    logger.info(f"✓ DEBUG: User {user.email} (id={user_id}) authenticated successfully")
     return user
 
 
@@ -143,8 +149,8 @@ def register_user(payload: UserRegisterRequest, db: Session = Depends(get_db)):
         db.refresh(profile)
 
         # Generate tokens
-        access_token = create_access_token({"sub": user.id})
-        refresh_token = create_refresh_token({"sub": user.id})
+        access_token = create_access_token({"sub": str(user.id)})
+        refresh_token = create_refresh_token({"sub": str(user.id)})
 
         return TokenResponse(
             access_token=access_token,
@@ -183,8 +189,8 @@ def login_user(payload: UserLoginRequest, db: Session = Depends(get_db)):
         profile = user.profile
         
         # Generate tokens
-        access_token = create_access_token({"sub": user.id})
-        refresh_token = create_refresh_token({"sub": user.id})
+        access_token = create_access_token({"sub": str(user.id)})
+        refresh_token = create_refresh_token({"sub": str(user.id)})
 
         return TokenResponse(
             access_token=access_token,
@@ -236,8 +242,8 @@ def refresh_token(payload: RefreshTokenRequest, db: Session = Depends(get_db)):
     profile = user.profile
     
     # Generate new tokens
-    new_access_token = create_access_token({"sub": user.id})
-    new_refresh_token = create_refresh_token({"sub": user.id})
+    new_access_token = create_access_token({"sub": str(user.id)})
+    new_refresh_token = create_refresh_token({"sub": str(user.id)})
 
     return TokenResponse(
         access_token=new_access_token,
@@ -270,8 +276,8 @@ def login_user_form(form_data: OAuth2PasswordRequestForm = Depends(), db: Sessio
     profile = user.profile
     
     # Generate tokens
-    access_token = create_access_token({"sub": user.id})
-    refresh_token = create_refresh_token({"sub": user.id})
+    access_token = create_access_token({"sub": str(user.id)})
+    refresh_token = create_refresh_token({"sub": str(user.id)})
 
     return TokenResponse(
         access_token=access_token,
@@ -331,8 +337,8 @@ def google_login(payload: GoogleLoginRequest, db: Session = Depends(get_db)):
         raise HTTPException(status_code=403, detail="Account is inactive")
 
     # Generate tokens
-    access_token = create_access_token({"sub": user.id})
-    refresh_token = create_refresh_token({"sub": user.id})
+    access_token = create_access_token({"sub": str(user.id)})
+    refresh_token = create_refresh_token({"sub": str(user.id)})
 
     return TokenResponse(
         access_token=access_token,
