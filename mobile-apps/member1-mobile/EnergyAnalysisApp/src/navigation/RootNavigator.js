@@ -20,6 +20,7 @@ import TrackingScreen from '../screens/TrackingScreen';
 import AnalysisScreen from '../screens/AnalysisScreen';
 import NILMScreen from '../screens/NILMScreen';
 import SmartInsightsScreen from '../screens/SmartInsightsScreen';
+import LiveMeterScreen from '../screens/LiveMeterScreen';
 
 const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator();
@@ -33,6 +34,7 @@ const TAB_CONFIG = [
   { name: 'Appliances',    label: 'Devices',  icon: '⚡' },
   { name: 'Tracking',      label: 'Track',    icon: '🎯' },
   { name: 'SmartInsights', label: 'AI',       icon: '🤖' },
+
 ];
 
 // ─── Loading Screen ───────────────────────────────────────────────────────────
@@ -123,6 +125,11 @@ const SmartInsightsStack = () => (
     <Stack.Screen
       name="SmartInsightsHome"
       component={SmartInsightsScreen}
+      options={{ headerShown: false }}
+    />
+    <Stack.Screen
+      name="LiveMeter"
+      component={LiveMeterScreen}
       options={{ headerShown: false }}
     />
     <Stack.Screen

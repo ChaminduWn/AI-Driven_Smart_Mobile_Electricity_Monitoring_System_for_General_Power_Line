@@ -409,7 +409,6 @@ const TariffWarningTab = ({ data, loading }) => {
     monitor: COLORS.primary,
   }[warning.status] || COLORS.primary;
 
-  // Period progress
   const progressPct = data.period_progress_pct || 0;
 
   return (
@@ -435,7 +434,6 @@ const TariffWarningTab = ({ data, loading }) => {
           <ProgressBar value={progressPct} max={100} color={COLORS.primary} />
         </View>
 
-        {/* kWh stats */}
         <View style={s.statGrid}>
           <View style={s.statCell}>
             <Text style={s.statValue}>{data.kwh_so_far}</Text>
@@ -568,7 +566,6 @@ const EfficiencyScoreTab = ({ data, loading }) => {
       <SectionCard>
         <Text style={s.sectionTitle}>Your Usage vs Expected</Text>
         <View style={s.compareRow}>
-          {/* Actual */}
           <View style={s.compareCell}>
             <Text style={s.compareLabel}>Actual</Text>
             <Text style={[s.compareKwh, {
@@ -587,7 +584,6 @@ const EfficiencyScoreTab = ({ data, loading }) => {
 
           <Text style={s.vsSep}>vs</Text>
 
-          {/* Expected */}
           <View style={s.compareCell}>
             <Text style={s.compareLabel}>Expected for your household</Text>
             <Text style={[s.compareKwh, { color: COLORS.textMuted }]}>
@@ -603,7 +599,6 @@ const EfficiencyScoreTab = ({ data, loading }) => {
           </View>
         </View>
 
-        {/* Saving / Extra */}
         <View style={[s.savingBox, {
           backgroundColor: saving >= 0 ? '#10B98115' : '#EF444415',
         }]}>
@@ -638,7 +633,6 @@ const EfficiencyScoreTab = ({ data, loading }) => {
           <Text style={s.peerLegendText}>100% (most efficient)</Text>
         </View>
 
-        {/* Score breakdown */}
         <View style={s.breakdownBox}>
           <Text style={s.breakdownTitle}>Your household factors</Text>
           {data.score_breakdown && Object.entries({
@@ -694,7 +688,6 @@ const SmartInsightsScreen = ({ navigation }) => {
     if (!selectedAccount) { setLoading(false); return; }
 
     try {
-      // Try unified endpoint first
       const insightsRes = await smartPredictionsAPI.getFullInsights(selectedAccount);
       const insights = insightsRes.data;
 
@@ -704,7 +697,6 @@ const SmartInsightsScreen = ({ navigation }) => {
       setAlertCount(insights.summary?.alert_count || 0);
 
     } catch (err) {
-      // Fallback: fetch bills and compute individually
       try {
         const billsRes = await billsAPI.getByAccount(selectedAccount);
         const bills = (billsRes.data?.bills || []).map((b) => ({
@@ -720,14 +712,8 @@ const SmartInsightsScreen = ({ navigation }) => {
         if (bills.length >= 2) {
           const spikeRes = await smartPredictionsAPI.getSpikePrediction(bills);
           setSpikeData(spikeRes.data);
-
-          // Efficiency from latest bill
-          const latestBill = bills[bills.length - 1];
-          // Note: profile would come from household registration
-          // For now show with basic profile from account data
         }
 
-        // Tariff warning from meter readings
         const plansRes = await analysisAPI.getPlansByAccount(selectedAccount, true);
         const plan = plansRes.data?.plans?.[0];
         if (plan) {
@@ -764,17 +750,29 @@ const SmartInsightsScreen = ({ navigation }) => {
   return (
     <View style={s.screen}>
 
-      {/* Header */}
+      {/* ── Header ─────────────────────────────────────────────────────────── */}
       <View style={s.header}>
-        <View>
+        <View style={{ flex: 1 }}>
           <Text style={s.headerTitle}>Smart Insights</Text>
           <Text style={s.headerSub}>AI-powered electricity analysis</Text>
         </View>
-        {alertCount > 0 && (
-          <View style={s.alertBadge}>
-            <Text style={s.alertBadgeText}>{alertCount}</Text>
-          </View>
-        )}
+
+        <View style={s.headerRight}>
+          {alertCount > 0 && (
+            <View style={s.alertBadge}>
+              <Text style={s.alertBadgeText}>{alertCount}</Text>
+            </View>
+          )}
+
+          {/* ── Live Meter Button ─────────────────────────────────────────── */}
+          <TouchableOpacity
+            style={s.liveMeterBtn}
+            onPress={() => navigation.navigate('LiveMeter')}
+            activeOpacity={0.8}
+          >
+            <Text style={s.liveMeterTxt}>📡 Live</Text>
+          </TouchableOpacity>
+        </View>
       </View>
 
       {/* Tab Bar */}
@@ -800,6 +798,7 @@ const SmartInsightsScreen = ({ navigation }) => {
 
 const s = StyleSheet.create({
   screen: { flex: 1, backgroundColor: COLORS.bg0, paddingTop: SPACING.xl },
+
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -810,6 +809,13 @@ const s = StyleSheet.create({
   },
   headerTitle: { color: COLORS.textPrimary, fontSize: 22, ...FONTS.bold },
   headerSub: { color: COLORS.textSecondary, fontSize: 13, marginTop: 2 },
+
+  headerRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+
   alertBadge: {
     backgroundColor: COLORS.danger,
     width: 24, height: 24,
@@ -817,6 +823,16 @@ const s = StyleSheet.create({
     justifyContent: 'center', alignItems: 'center',
   },
   alertBadgeText: { color: '#fff', fontSize: 12, ...FONTS.bold },
+
+  // ── Live Meter Button ───────────────────────────────────────────────────
+  liveMeterBtn: {
+    backgroundColor: COLORS.primary,
+    paddingHorizontal: 14,
+    paddingVertical: 7,
+    borderRadius: 99,
+  },
+  liveMeterTxt: { color: '#fff', fontSize: 12, ...FONTS.semiBold },
+
   content: { flex: 1 },
 
   // Card internals
