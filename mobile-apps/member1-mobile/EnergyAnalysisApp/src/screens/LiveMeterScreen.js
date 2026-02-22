@@ -13,12 +13,11 @@ import { COLORS, SPACING, RADIUS, FONTS, SHADOW } from '../utils/theme';
 const { width: W } = Dimensions.get('window');
 
 // ─── Auto-detect correct URL based on platform ───────────────────────────────
-// Web browser → localhost (both on same PC)
-// Physical phone → your PC IP
-const PC_IP   = '192.168.1.24';
-const HOST    = Platform.OS === 'web' ? 'localhost' : PC_IP;
-const BASE_URL = `http://${HOST}:8000/api/v1`;
-const WS_URL   = `ws://${HOST}:8000`;
+// Use centralized config for API and WS endpoints
+import { API_BASE, WS_BASE } from '../config';
+
+const BASE_URL = API_BASE; // includes /api/v1
+const WS_URL   = WS_BASE;  // ws://host:port (no path)
 // ─────────────────────────────────────────────────────────────────────────────
 
 

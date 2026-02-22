@@ -1,15 +1,9 @@
 import axios from 'axios';
 import storage from '../utils/storage';
+import { API_BASE } from '../config';
 
-// ─── Base URL ────────────────────────────────────────────────────────────────
-const getBaseUrl = () => {
-  if (typeof window !== 'undefined' && window?.location?.hostname === 'localhost') {
-    return 'http://localhost:8000/api/v1';
-  }
-  return process.env.EXPO_PUBLIC_API_URL || 'http://10.0.2.2:8000/api/v1';
-};
-
-const BASE_URL = getBaseUrl();
+// ─── Base URL (centralized) ──────────────────────────────────────────────────
+const BASE_URL = API_BASE;
 
 const apiClient = axios.create({
   baseURL: BASE_URL,
