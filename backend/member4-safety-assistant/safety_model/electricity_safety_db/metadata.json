@@ -1,0 +1,2402 @@
+[
+  {
+    "hazard_type": "Human Physiological Impact",
+    "source": "PUCSL English Safety Guideline",
+    "question": "Why can't a person let go of a live wire when they receive a shock?",
+    "answer": "At 10–20 mA, the current causes involuntary muscle contraction, making it physically impossible to release the conductor."
+  },
+  {
+    "hazard_type": "Human Physiological Impact",
+    "source": "PUCSL English Safety Guideline",
+    "question": "Can even a brief 25 mA shock cause cardiac arrest?",
+    "answer": "Yes, even short exposure to 25 mA carries the risk of causing cardiac arrest."
+  },
+  {
+    "hazard_type": "Human Physiological Impact",
+    "source": "PUCSL English Safety Guideline",
+    "question": "Does the path of current through the body affect how dangerous a shock is?",
+    "answer": "Yes. A current path through the chest, such as hand to hand, is far more dangerous because it passes through the heart and lungs."
+  },
+  {
+    "hazard_type": "Human Physiological Impact",
+    "source": "902710734-Electrical-Safety-Questions-Answers",
+    "question": "Why is it more dangerous to handle electrical equipment with wet hands?",
+    "answer": "Wet skin dramatically reduces the body's electrical resistance, allowing far more current to flow through the body and increasing the risk of lethal shock."
+  },
+  {
+    "hazard_type": "Human Physiological Impact",
+    "source": "902710734-Electrical-Safety-Questions-Answers",
+    "question": "What is the main barrier to current flow on the human body?",
+    "answer": "Dry skin provides the primary resistance, ranging from 100,000 to 600,000 ohms. Once current passes through the skin, the internal body offers very little resistance."
+  },
+  {
+    "hazard_type": "Human Physiological Impact",
+    "source": "PUCSL English Safety Guideline",
+    "question": "Why are electrical burns considered more serious than they may appear?",
+    "answer": "Electrical burns can cause severe internal tissue damage along the current path that is not visible on the skin's surface, making them medically more serious than typical thermal burns."
+  },
+  {
+    "hazard_type": "Human Physiological Impact",
+    "source": "PUCSL English Safety Guideline",
+    "question": "What type of heart condition can electric shock cause?",
+    "answer": "Electric shock can trigger ventricular fibrillation, a dangerous irregular heartbeat, at currents as low as 75 to 100 mA passing through the chest."
+  },
+  {
+    "hazard_type": "Human Physiological Impact",
+    "source": "PUCSL English Safety Guideline",
+    "question": "Does the duration of electric shock affect the severity of injury?",
+    "answer": "Yes, the longer the contact with a live conductor, the greater the heat generated in tissues and the higher the risk of fatal injury."
+  },
+  {
+    "hazard_type": "Human Physiological Impact",
+    "source": "PUCSL English Safety Guideline",
+    "question": "Are some people more at risk from electrical hazards than others?",
+    "answer": "Yes, children and the elderly face higher risks because their skin resistance and physical tolerance are lower compared to healthy adults."
+  },
+  {
+    "hazard_type": "Human Physiological Impact",
+    "source": "902710734-Electrical-Safety-Questions-Answers",
+    "question": "What happens to the heart at currents above 4.3 Amperes?",
+    "answer": "At very high currents above 4.3 Amperes, the heart may stop completely. Immediate resuscitation may still be possible, unlike with fibrillation."
+  },
+  {
+    "hazard_type": "Equipment Design",
+    "source": "PUCSL English Safety Guideline",
+    "question": "What type of socket outlet must be used outdoors?",
+    "answer": "Outdoor socket outlets must be installed in weatherproof enclosures with spring-loaded covers to prevent moisture ingress."
+  },
+  {
+    "hazard_type": "Equipment Design",
+    "source": "PUCSL English Safety Guideline",
+    "question": "What colour should an earthing cable be?",
+    "answer": "Earthing cables must be coloured green and yellow to allow easy identification during safety inspections and maintenance work."
+  },
+  {
+    "hazard_type": "Equipment Design",
+    "source": "PUCSL English Safety Guideline",
+    "question": "How should wire size be selected for an electrical circuit?",
+    "answer": "Wires must be rated to safely carry the maximum expected load, with an additional safety margin to prevent overheating and fire."
+  },
+  {
+    "hazard_type": "Equipment Design",
+    "source": "PUCSL English Safety Guideline",
+    "question": "Where is it mandatory to install a Residual Current Device?",
+    "answer": "RCDs are mandatory on circuits supplying outdoor socket outlets and bathroom outlets, where the risk of shock is highest."
+  },
+  {
+    "hazard_type": "Equipment Design",
+    "source": "PUCSL English Safety Guideline",
+    "question": "Is it acceptable to bury an open junction box in a wall?",
+    "answer": "No, junction boxes must always have an accessible cover and must never be permanently sealed inside a wall without means of access."
+  },
+  {
+    "hazard_type": "Equipment Design",
+    "source": "PUCSL English Safety Guideline",
+    "question": "Should electrical panels be kept locked?",
+    "answer": "Yes, electrical panels and distribution boards should be kept locked at all times to prevent access by unauthorized or unqualified persons."
+  },
+  {
+    "hazard_type": "Equipment Design",
+    "source": "PUCSL English Safety Guideline",
+    "question": "Can you join underground cables with ordinary connectors?",
+    "answer": "No. Underground cable joints must use approved waterproof connectors, and joints should be avoided altogether if possible."
+  },
+  {
+    "hazard_type": "Equipment Design",
+    "source": "PUCSL English Safety Guideline",
+    "question": "Can neutral and earth wires be connected together in a circuit?",
+    "answer": "No. The neutral and earth conductors must only be connected at the main earthing terminal and must remain separate throughout the rest of the installation."
+  },
+  {
+    "hazard_type": "Equipment Design",
+    "source": "PUCSL English Safety Guideline",
+    "question": "Can a light switch be installed next to a shower?",
+    "answer": "No. Switches must not be placed within reach of someone in a bath or shower due to the risk of electric shock from wet hands."
+  },
+  {
+    "hazard_type": "Equipment Design",
+    "source": "PUCSL English Safety Guideline",
+    "question": "Can I fit a higher-rated fuse to stop it blowing?",
+    "answer": "No. A fuse rated above the cable's capacity will fail to protect it, leading to overheating and potential fire. The fuse must always match or be below the cable's rated capacity."
+  },
+  {
+    "hazard_type": "RCD / Trip Switch",
+    "source": "PUCSL English Safety Guideline",
+    "question": "At what current does a standard RCD trip?",
+    "answer": "A standard 30 mA RCD will trip when it detects a leakage current of 30 milliamps between live and neutral conductors."
+  },
+  {
+    "hazard_type": "RCD / Trip Switch",
+    "source": "PUCSL English Safety Guideline",
+    "question": "What should I do if my RCD keeps tripping?",
+    "answer": "Repeated tripping indicates a persistent fault. You should not keep resetting it; instead, a qualified electrician must investigate and fix the earth leakage."
+  },
+  {
+    "hazard_type": "RCD / Trip Switch",
+    "source": "PUCSL English Safety Guideline",
+    "question": "Does an MCB protect against electric shock from earth leakage?",
+    "answer": "No. An MCB only protects against overcurrent and short circuits. An RCD is required for protection against earth leakage and electric shock."
+  },
+  {
+    "hazard_type": "RCD / Trip Switch",
+    "source": "PUCSL English Safety Guideline",
+    "question": "How do I know if my RCD test was successful?",
+    "answer": "A successful test results in the supply cutting off immediately when the test button is pressed. If it does not trip, the RCD is faulty and must be replaced."
+  },
+  {
+    "hazard_type": "RCD / Trip Switch",
+    "source": "PUCSL English Safety Guideline",
+    "question": "Are time-delayed RCDs appropriate for home use?",
+    "answer": "No. Time-delayed RCDs are designed for industrial use. Domestic installations require standard instantaneous 30 mA RCDs for personal shock protection."
+  },
+  {
+    "hazard_type": "Workshops & Labs",
+    "source": "PUCSL English Safety Guideline",
+    "question": "What electrical safety provision is required at each laboratory workbench?",
+    "answer": "An individual isolator must be installed at each workbench so the power supply can be quickly cut off in an emergency."
+  },
+  {
+    "hazard_type": "Workshops & Labs",
+    "source": "PUCSL English Safety Guideline",
+    "question": "Where should sinks be positioned in a workshop with electrical equipment?",
+    "answer": "Sinks must be kept well away from electrical outlets and equipment to prevent water from coming into contact with live electrical parts."
+  },
+  {
+    "hazard_type": "Workshops & Labs",
+    "source": "PUCSL English Safety Guideline",
+    "question": "Should I unplug a power tool before changing its blade?",
+    "answer": "Yes. Power tools must always be unplugged before any adjustment, blade change, or cleaning to prevent accidental activation."
+  },
+  {
+    "hazard_type": "Workshops & Labs",
+    "source": "PUCSL English Safety Guideline",
+    "question": "Is a master isolation switch required in a workshop?",
+    "answer": "Yes. A master isolation switch that cuts power to all equipment must be installed and easily accessible at the workshop entrance for emergencies."
+  },
+  {
+    "hazard_type": "Workshops & Labs",
+    "source": "PUCSL English Safety Guideline",
+    "question": "Can I store petrol in a room where electrical machinery is used?",
+    "answer": "No. Flammable liquids must never be stored in rooms with electrical equipment, as electrical sparks can ignite the vapours and cause an explosion."
+  },
+  {
+    "hazard_type": "Workshops & Labs",
+    "source": "PUCSL English Safety Guideline",
+    "question": "Is it acceptable to use extension cords as a permanent solution in a workshop?",
+    "answer": "No. Extension cords are only for temporary use. Workshops must have permanent fixed wiring with enough outlets to avoid reliance on extension cords."
+  },
+  {
+    "hazard_type": "Lightning Protection",
+    "source": "PUCSL English Safety Guideline",
+    "question": "What are the three main components of a building lightning protection system?",
+    "answer": "A complete lightning protection system consists of air terminals (rods) to intercept lightning, down conductors to carry current safely to ground, and an earthing termination system."
+  },
+  {
+    "hazard_type": "Lightning Protection",
+    "source": "PUCSL English Safety Guideline",
+    "question": "Where should you avoid standing during a thunderstorm?",
+    "answer": "You should avoid open fields, isolated tall trees, and elevated structures during a thunderstorm, as these make you a likely target for lightning strikes."
+  },
+  {
+    "hazard_type": "Lightning Protection",
+    "source": "PUCSL English Safety Guideline",
+    "question": "Is it safe to use a wired telephone during a thunderstorm?",
+    "answer": "No. Lightning can travel through telephone lines and cause a dangerous shock to anyone using a wired telephone during a storm."
+  },
+  {
+    "hazard_type": "Lightning Protection",
+    "source": "PUCSL English Safety Guideline",
+    "question": "How can I protect my electronics from damage caused by lightning?",
+    "answer": "Surge Protection Devices (SPDs) should be installed to absorb and redirect the voltage spikes caused by nearby lightning strikes before they can damage equipment."
+  },
+  {
+    "hazard_type": "Lightning Protection",
+    "source": "PUCSL English Safety Guideline",
+    "question": "How can you estimate how far away a lightning strike is?",
+    "answer": "Count the seconds between seeing the lightning flash and hearing the thunder, then divide by three. The result gives an approximate distance in kilometers."
+  },
+  {
+    "hazard_type": "Outdoor Hazards",
+    "source": "PUCSL English Safety Guideline",
+    "question": "Is it safe to fly a kite near power lines?",
+    "answer": "No. Kite strings and drone bodies can contact live overhead conductors, transmitting a fatal shock to the person on the ground."
+  },
+  {
+    "hazard_type": "Outdoor Hazards",
+    "source": "PUCSL English Safety Guideline",
+    "question": "Can I plant trees under power lines?",
+    "answer": "No. Fast-growing trees planted near power lines can eventually cause branches to contact live conductors, creating fire and electrical fault hazards."
+  },
+  {
+    "hazard_type": "Outdoor Hazards",
+    "source": "PUCSL English Safety Guideline",
+    "question": "How must temporary fencing be managed near overhead power lines on construction sites?",
+    "answer": "Temporary fencing must be insulated or positioned to maintain safe clearance from overhead power lines to prevent contact."
+  },
+  {
+    "hazard_type": "Outdoor Hazards",
+    "source": "PUCSL English Safety Guideline",
+    "question": "Can people swim near a power station's water source?",
+    "answer": "No. Swimming and water activities are prohibited near power generation stations or substations due to the risk of electrical hazards in the water."
+  },
+  {
+    "hazard_type": "Outdoor Hazards",
+    "source": "PUCSL English Safety Guideline",
+    "question": "What precaution should you take before raising a ladder outdoors?",
+    "answer": "Always check for overhead power lines above the work area before raising a ladder to ensure it will not come into contact with live conductors."
+  },
+  {
+    "hazard_type": "Outdoor Hazards",
+    "source": "PUCSL English Safety Guideline",
+    "question": "What is the minimum safe distance for scaffolding from overhead power lines?",
+    "answer": "Metal scaffolding must be maintained at a minimum distance of 3 meters from all overhead power lines during construction activities."
+  },
+  {
+    "hazard_type": "Extension Cords",
+    "source": "PUCSL English Safety Guideline",
+    "question": "Can I hide an extension cord under a carpet?",
+    "answer": "No. Running extension cords under carpets traps heat and can cause the insulation to overheat and potentially start a fire."
+  },
+  {
+    "hazard_type": "Extension Cords",
+    "source": "PUCSL English Safety Guideline",
+    "question": "Can I plug any appliance into any extension cord?",
+    "answer": "No. You must check the current rating of the extension cord and ensure the appliance's demand does not exceed it, otherwise the cord can overheat."
+  },
+  {
+    "hazard_type": "Extension Cords",
+    "source": "PUCSL English Safety Guideline",
+    "question": "Can I repair a frayed extension cord with electrical tape?",
+    "answer": "No. Frayed or damaged extension cords must be discarded and replaced immediately. Taping over damaged insulation is not a safe or acceptable repair."
+  },
+  {
+    "hazard_type": "Extension Cords",
+    "source": "PUCSL English Safety Guideline",
+    "question": "Is it safe to use an extension cord permanently in place of fixed wiring?",
+    "answer": "No. Extension cords are designed for temporary use only. Permanent use significantly increases the risk of overheating, damage, and fire."
+  },
+  {
+    "hazard_type": "Extension Cords",
+    "source": "PUCSL English Safety Guideline",
+    "question": "Can I connect a heater and an iron to the same extension lead?",
+    "answer": "No. Connecting multiple high-load appliances to one extension lead simultaneously can exceed its rated capacity, causing overheating and fire."
+  },
+  {
+    "hazard_type": "Appliance Safety",
+    "source": "PUCSL English Safety Guideline",
+    "question": "Can I use a standard hairdryer in the bathroom?",
+    "answer": "Only appliances specifically rated and designed for wet-area use should be used in bathrooms. Standard hairdryers and other appliances pose a serious electrocution risk near water."
+  },
+  {
+    "hazard_type": "Appliance Safety",
+    "source": "PUCSL English Safety Guideline",
+    "question": "Is it safe to use a multi-plug adaptor to run several appliances at once?",
+    "answer": "No. Overloading a socket with multiple appliances through an adaptor can exceed the socket's rated capacity and cause overheating or fire."
+  },
+  {
+    "hazard_type": "Appliance Safety",
+    "source": "PUCSL English Safety Guideline",
+    "question": "What should I do with an appliance that makes a burning smell?",
+    "answer": "An appliance that smells like burning must be switched off and unplugged immediately. It must not be used again until inspected and repaired by a qualified technician."
+  },
+  {
+    "hazard_type": "Appliance Safety",
+    "source": "PUCSL English Safety Guideline",
+    "question": "Do metal-cased appliances need to be earthed?",
+    "answer": "Yes. Any appliance with a metal casing must be connected to an earthed outlet via a three-pin plug to safely discharge fault currents."
+  },
+  {
+    "hazard_type": "Appliance Safety",
+    "source": "PUCSL English Safety Guideline",
+    "question": "Can I repair my own electrical appliances at home?",
+    "answer": "No. Appliances should only be repaired by qualified electricians. Improper repairs can create new hazards such as exposed live parts or incorrect wiring."
+  },
+  {
+    "hazard_type": "Appliance Safety",
+    "source": "PUCSL English Safety Guideline",
+    "question": "What safety valve is required on an electric water heater?",
+    "answer": "A temperature and pressure relief valve must be fitted to electric water heaters to prevent dangerous pressure build-up and potential explosion."
+  },
+  {
+    "hazard_type": "Appliance Safety",
+    "source": "PUCSL English Safety Guideline",
+    "question": "Can I leave a stove or oven unattended while it is on?",
+    "answer": "No. Electric cooking appliances should never be left unattended during operation as this increases the risk of overheating and fire."
+  },
+  {
+    "hazard_type": "Appliance Safety",
+    "source": "PUCSL English Safety Guideline",
+    "question": "Is it safe to fold an electric blanket while it is switched on?",
+    "answer": "No. Folding an electric blanket while it is in use can cause the heating elements to contact each other, overheat, and cause a fire. It must be flat during operation."
+  },
+  {
+    "hazard_type": "Fault Diagnosis",
+    "source": "PUCSL English Safety Guideline",
+    "question": "What does it mean if my circuit breaker keeps tripping?",
+    "answer": "Repeated tripping indicates a persistent overload or short circuit. The circuit must not be used until a qualified electrician identifies and resolves the fault."
+  },
+  {
+    "hazard_type": "Fault Diagnosis",
+    "source": "PUCSL English Safety Guideline",
+    "question": "What might cause lights to flicker or dim intermittently?",
+    "answer": "Flickering lights may indicate a loose electrical connection, an overloaded circuit, or faulty wiring. A qualified electrician should inspect the installation."
+  },
+  {
+    "hazard_type": "Fault Diagnosis",
+    "source": "PUCSL English Safety Guideline",
+    "question": "Should I be concerned if a wall socket feels warm?",
+    "answer": "Yes. A warm or hot socket plate indicates excessive current flow or a loose connection. Use of the socket must stop and a qualified electrician must inspect it."
+  },
+  {
+    "hazard_type": "Fault Diagnosis",
+    "source": "PUCSL English Safety Guideline",
+    "question": "What does black discoloration around a light switch indicate?",
+    "answer": "Blackening around a switch or socket is a sign of past arcing or overheating and is a serious fault. The switch must be replaced by a qualified electrician."
+  },
+  {
+    "hazard_type": "Fault Diagnosis",
+    "source": "PUCSL English Safety Guideline",
+    "question": "What does a buzzing sound from an electrical panel indicate?",
+    "answer": "Buzzing from a panel may signal a loose bus bar, failing circuit breaker, or other internal fault. A qualified electrician should inspect it immediately."
+  },
+  {
+    "hazard_type": "Emergency / First Aid",
+    "source": "PUCSL English Safety Guideline",
+    "question": "What technique should be used if a person's clothing catches fire after an electrical accident?",
+    "answer": "The person should be told to stop, drop to the ground, and roll to smother the flames. Bystanders can use a fire blanket or a non-synthetic blanket to help."
+  },
+  {
+    "hazard_type": "Emergency / First Aid",
+    "source": "PUCSL English Safety Guideline",
+    "question": "How can you free a victim from a live electrical source if you cannot switch off the power?",
+    "answer": "Use a dry, non-conductive object such as a wooden broom handle or rubber mat to push or pull the victim away from the live source without making direct contact."
+  },
+  {
+    "hazard_type": "Emergency / First Aid",
+    "source": "PUCSL English Safety Guideline",
+    "question": "What is the first thing to check after freeing an electrocution victim?",
+    "answer": "After safely removing the victim from the source, immediately check whether they are responsive and breathing before deciding on the appropriate first aid."
+  },
+  {
+    "hazard_type": "Emergency / First Aid",
+    "source": "PUCSL English Safety Guideline",
+    "question": "Who should be informed after an electrical accident at work?",
+    "answer": "Both the workplace safety officer and the electricity supply authority must be notified after any electrical accident for investigation and regulatory purposes."
+  },
+  {
+    "hazard_type": "Emergency / First Aid",
+    "source": "PUCSL English Safety Guideline",
+    "question": "What position should an unconscious but breathing shock victim be placed in?",
+    "answer": "An unconscious but breathing victim should be placed in the recovery position on their side to keep the airway clear, and emergency services must be called immediately."
+  },
+  {
+    "hazard_type": "CPR / First Aid",
+    "source": "PUCSL English Safety Guideline",
+    "question": "What is the first priority before starting CPR on an electrocution victim?",
+    "answer": "Confirm the environment is safe and that the victim is no longer in contact with the live electrical source before administering CPR."
+  },
+  {
+    "hazard_type": "CPR / First Aid",
+    "source": "PUCSL English Safety Guideline",
+    "question": "How is a rescue breath given during CPR?",
+    "answer": "Tilt the victim's head back, lift the chin to open the airway, then seal your mouth over theirs and breathe in until you see the chest rise."
+  },
+  {
+    "hazard_type": "CPR / First Aid",
+    "source": "PUCSL English Safety Guideline",
+    "question": "Should an AED be used on someone who has had cardiac arrest from electrocution?",
+    "answer": "Yes. An AED should be applied and used as soon as it is available on any cardiac arrest victim, including those caused by electrical shock."
+  },
+  {
+    "hazard_type": "CPR / First Aid",
+    "source": "PUCSL English Safety Guideline",
+    "question": "When should you stop performing CPR?",
+    "answer": "Continue CPR until qualified medical personnel take over, the victim begins to breathe normally on their own, or you are too exhausted to continue."
+  },
+  {
+    "hazard_type": "First Aid / Burns",
+    "source": "PUCSL English Safety Guideline",
+    "question": "What substances should NOT be applied to an electrical burn?",
+    "answer": "Ice, butter, toothpaste, and other home remedies must never be applied to burns as they can worsen the injury or introduce infection."
+  },
+  {
+    "hazard_type": "First Aid / Burns",
+    "source": "PUCSL English Safety Guideline",
+    "question": "How should a burn be dressed after cooling it?",
+    "answer": "After running cool water over the burn for at least 10 minutes, cover it loosely with a clean, non-fluffy bandage or cloth to prevent infection."
+  },
+  {
+    "hazard_type": "First Aid / Burns",
+    "source": "PUCSL English Safety Guideline",
+    "question": "Should blisters from a burn be popped?",
+    "answer": "No. Blisters must not be burst as the fluid inside provides a protective barrier against infection. Only medical personnel should treat blisters."
+  },
+  {
+    "hazard_type": "First Aid / Burns",
+    "source": "PUCSL English Safety Guideline",
+    "question": "Are third degree burns a medical emergency?",
+    "answer": "Yes. Third degree burns destroy all skin layers and underlying tissue and require immediate hospital treatment. Do not attempt to treat these at home."
+  },
+  {
+    "hazard_type": "Legal / Regulations",
+    "source": "Gazette Extraordinary No. 1975/44",
+    "question": "What document is required before working on a high voltage installation?",
+    "answer": "A Permit to Work (PTW) must be obtained from the responsible authority before any work commences on a high voltage electrical installation."
+  },
+  {
+    "hazard_type": "Legal / Regulations",
+    "source": "Gazette Extraordinary No. 1975/44",
+    "question": "Can any person carry out electrical installation work on a building?",
+    "answer": "No. Only licensed electrical contractors are permitted to carry out electrical installation work. Unlicensed electrical work is illegal."
+  },
+  {
+    "hazard_type": "Legal / Regulations",
+    "source": "Gazette Extraordinary No. 1975/44",
+    "question": "Is an inspection required before a new electrical installation is connected to the supply?",
+    "answer": "Yes. An Electrical Inspection Certificate from a licensed inspector is mandatory before a new installation can be connected to the electricity supply."
+  },
+  {
+    "hazard_type": "Legal / Regulations",
+    "source": "Gazette Extraordinary No. 1975/44",
+    "question": "Is it a crime to bypass an electricity meter?",
+    "answer": "Yes. Tampering with or bypassing an electricity meter constitutes meter fraud, which is a criminal offence that can lead to prosecution and penalties."
+  },
+  {
+    "hazard_type": "Legal / Regulations",
+    "source": "Gazette Extraordinary No. 1975/44",
+    "question": "Should records be kept of electrical work done on a building?",
+    "answer": "Yes. All electrical work must be documented in an approved logbook kept at the premises to support maintenance and inspection activities."
+  },
+  {
+    "hazard_type": "Clearance Requirements",
+    "source": "PUCSL English Safety Guideline",
+    "question": "What is the minimum height for a high voltage line in an open area?",
+    "answer": "High voltage overhead lines must maintain a minimum vertical clearance of 6.7 meters above the ground in open areas."
+  },
+  {
+    "hazard_type": "Clearance Requirements",
+    "source": "PUCSL English Safety Guideline",
+    "question": "How far must a 33kV power line be from the top of a building?",
+    "answer": "A 33kV power line must have a minimum vertical clearance of 3.0 meters above the highest point of any building it passes over."
+  },
+  {
+    "hazard_type": "Clearance Requirements",
+    "source": "PUCSL English Safety Guideline",
+    "question": "Can I build a shed within the right-of-way of a high voltage transmission line?",
+    "answer": "No. No structure may be built within the safety corridor on either side of a high voltage line without obtaining prior written approval from the electricity authority."
+  },
+  {
+    "hazard_type": "Clearance Requirements",
+    "source": "PUCSL English Safety Guideline",
+    "question": "How close can a power line be to a swimming pool?",
+    "answer": "A low voltage line must be at least 2.5 meters above and 1.5 meters horizontally from the edge of a swimming pool."
+  },
+  {
+    "hazard_type": "General Safety",
+    "source": "902710734-Electrical-Safety-Questions-Answers",
+    "question": "Why should only one hand be used when working near live circuits?",
+    "answer": "Using one hand reduces the risk of completing a circuit through the chest. If both hands contact live parts simultaneously, current can pass through the heart."
+  },
+  {
+    "hazard_type": "General Safety",
+    "source": "902710734-Electrical-Safety-Questions-Answers",
+    "question": "Why does electricity travel through the human body?",
+    "answer": "Electricity takes the path of least resistance. When a person bridges two conductors at different voltages, their body can become that path, allowing current to flow through them."
+  },
+  {
+    "hazard_type": "General Safety",
+    "source": "PUCSL English Safety Guideline",
+    "question": "What PPE is required for electrical work?",
+    "answer": "Appropriate electrical PPE includes insulated gloves, insulated safety footwear, protective face shields, and arc-flash-rated clothing appropriate to the hazard level."
+  },
+  {
+    "hazard_type": "General Safety",
+    "source": "PUCSL English Safety Guideline",
+    "question": "What is a Lockout/Tagout (LOTO) procedure?",
+    "answer": "LOTO is a safety procedure that involves isolating a power source, locking it in the off position, and tagging it to prevent anyone from re-energizing the circuit while work is in progress."
+  },
+  {
+    "hazard_type": "General Safety",
+    "source": "PUCSL English Safety Guideline",
+    "question": "How often should electrical safety training be conducted?",
+    "answer": "Electrical safety training and awareness programs should be conducted regularly for all workers who operate near or with electrical equipment to keep safety knowledge current."
+  },
+  {
+    "hazard_type": "General Safety",
+    "source": "902710734-Electrical-Safety-Questions-Answers",
+    "question": "Can one person work alone on a live electrical system?",
+    "answer": "No. Working alone on live electrical systems is prohibited. A second qualified person must be present as a safety observer to assist in an emergency."
+  },
+  {
+    "hazard_type": "General Safety",
+    "source": "PUCSL English Safety Guideline",
+    "question": "Where should 'Danger High Voltage' signs be displayed?",
+    "answer": "Warning signs must be posted at all entrances to switch rooms and near any exposed high voltage equipment to alert and protect people from hazards."
+  },
+  {
+    "hazard_type": "Institutional Responsibility",
+    "source": "PUCSL English Safety Guideline",
+    "question": "Who is responsible for the electrical safety of a private building?",
+    "answer": "The building owner is legally responsible for maintaining the electrical installation within their property in a safe condition at all times."
+  },
+  {
+    "hazard_type": "Institutional Responsibility",
+    "source": "PUCSL English Safety Guideline",
+    "question": "Who should oversee electrical safety in a commercial building?",
+    "answer": "A designated Responsible Electrical Person, who is competent and suitably qualified, must be appointed to manage all electrical safety matters in commercial premises."
+  },
+  {
+    "hazard_type": "Institutional Responsibility",
+    "source": "PUCSL English Safety Guideline",
+    "question": "Why do hospitals need backup generators?",
+    "answer": "Hospitals require backup generators that activate automatically within seconds of a mains failure to ensure life-critical equipment such as ventilators and monitoring systems remain operational."
+  },
+  {
+    "hazard_type": "Institutional Responsibility",
+    "source": "PUCSL English Safety Guideline",
+    "question": "What are an employer's obligations regarding electrical safety?",
+    "answer": "Employers must ensure that all electrical equipment in the workplace is properly maintained and regularly tested, and that the working environment is safe from electrical hazards."
+  },
+  {
+    "hazard_type": "User Safety Protocol",
+    "source": "PUCSL English Safety Guideline",
+    "question": "Why should you never touch electrical switches with wet hands?",
+    "answer": "Wet hands have significantly lower resistance than dry hands, which allows more current to flow through the body if contact is made with a live part."
+  },
+  {
+    "hazard_type": "User Safety Protocol",
+    "source": "PUCSL English Safety Guideline",
+    "question": "How can children be protected from electrical hazards at home?",
+    "answer": "Children should be taught about electrical dangers from an early age. Socket outlets should have child-resistant covers and panels must be locked and kept out of reach."
+  },
+  {
+    "hazard_type": "User Safety Protocol",
+    "source": "PUCSL English Safety Guideline",
+    "question": "Is it dangerous to insert a metallic object into a socket?",
+    "answer": "Yes. Inserting any metallic object into a socket creates a direct contact with live conductors and will result in a serious electric shock."
+  },
+  {
+    "hazard_type": "User Safety Protocol",
+    "source": "PUCSL English Safety Guideline",
+    "question": "Can I use an appliance again after it has fallen into water?",
+    "answer": "No. An appliance that has been submerged or exposed to water must be inspected by a qualified technician and confirmed safe before it is used again."
+  },
+  {
+    "hazard_type": "User Safety Protocol",
+    "source": "PUCSL English Safety Guideline",
+    "question": "What should you do if an electrical appliance falls into water while plugged in?",
+    "answer": "Do not reach into the water. First, switch off the power at the socket or at the mains, and only then safely retrieve the appliance."
+  },
+  {
+    "hazard_type": "Maintenance Safety",
+    "source": "PUCSL English Safety Guideline",
+    "question": "How do you confirm a circuit is safe to work on?",
+    "answer": "After isolating the supply, use a calibrated voltage tester to verify that no voltage is present on the conductors before touching them."
+  },
+  {
+    "hazard_type": "Maintenance Safety",
+    "source": "PUCSL English Safety Guideline",
+    "question": "What warning should be applied after isolating a circuit for maintenance?",
+    "answer": "A clear 'Safe to Work' or 'Do Not Switch On' notice must be placed on the isolating switch to prevent anyone from restoring power while work is in progress."
+  },
+  {
+    "hazard_type": "Maintenance Safety",
+    "source": "PUCSL English Safety Guideline",
+    "question": "Can I replace a blown fuse with a piece of wire?",
+    "answer": "No. Replacing a fuse with wire, foil, or other improvised materials removes all overcurrent protection and creates a serious fire and safety hazard. Only approved fuses must be used."
+  },
+  {
+    "hazard_type": "Maintenance Safety",
+    "source": "PUCSL English Safety Guideline",
+    "question": "Can I use any replacement part when repairing electrical equipment?",
+    "answer": "No. All replacement components must meet the relevant national or international safety standards to ensure they are compatible and safe."
+  },
+  {
+    "hazard_type": "Maintenance Safety",
+    "source": "PUCSL English Safety Guideline",
+    "question": "How frequently should electrical tools be inspected?",
+    "answer": "Electrical tools must be inspected before each use, checking the cable, plug, and insulation for any signs of damage. Damaged tools must be taken out of service immediately."
+  },
+  {
+    "hazard_type": "Infrastructure Safety",
+    "source": "Electricity Regulations 2016 (Gazette 1975/44)",
+    "question": "What fault condition must a substation be designed to withstand?",
+    "answer": "Substations must be engineered to safely handle the maximum fault current that could occur at that network point, ensuring the structure and equipment remain intact during a fault."
+  },
+  {
+    "hazard_type": "Infrastructure Safety",
+    "source": "Electricity Regulations 2016 (Gazette 1975/44)",
+    "question": "What is the purpose of insulators on utility poles?",
+    "answer": "Insulators prevent current from flowing from the live conductor into the supporting pole or tower structure, maintaining safe electrical isolation."
+  },
+  {
+    "hazard_type": "Infrastructure Safety",
+    "source": "Electricity Regulations 2016 (Gazette 1975/44)",
+    "question": "Why must transformer enclosures be earthed?",
+    "answer": "Earthing the transformer enclosure ensures that any fault current flows safely to ground rather than making the metal casing live and dangerous to touch."
+  },
+  {
+    "hazard_type": "Infrastructure Safety",
+    "source": "Electricity Regulations 2016 (Gazette 1975/44)",
+    "question": "Should earthing systems be periodically tested?",
+    "answer": "Yes. Earthing systems must be tested regularly to verify their resistance to earth is within safe limits, as soil conditions and connections can degrade over time."
+  },
+  {
+    "hazard_type": "Underground Hazards",
+    "source": "Electricity Regulations 2016 (Gazette 1975/44)",
+    "question": "What must be done before digging or excavating in an area?",
+    "answer": "Utility plans or cable-locating surveys must be obtained before any excavation to identify the exact position of underground electricity cables, gas pipes, and water mains."
+  },
+  {
+    "hazard_type": "Underground Hazards",
+    "source": "Electricity Regulations 2016 (Gazette 1975/44)",
+    "question": "What action must be taken if an underground cable is accidentally cut during digging?",
+    "answer": "All excavation work must stop immediately, the area must be kept clear, and the electricity authority must be contacted without delay to make the cable safe."
+  },
+  {
+    "hazard_type": "Underground Hazards",
+    "source": "Electricity Regulations 2016 (Gazette 1975/44)",
+    "question": "How are underground high voltage cable routes marked?",
+    "answer": "Cable route markers must be placed at regular intervals along the cable route and at each direction change to alert contractors and workers to the cable's presence."
+  },
+  {
+    "hazard_type": "Supply Standards",
+    "source": "Electricity Regulations 2016 (Gazette 1975/44)",
+    "question": "What is the standard electrical supply frequency in Sri Lanka?",
+    "answer": "The standard supply frequency in Sri Lanka is 50 Hz, which is the frequency at which alternating current cycles in the national grid."
+  },
+  {
+    "hazard_type": "Supply Standards",
+    "source": "Electricity Regulations 2016 (Gazette 1975/44)",
+    "question": "What is the standard voltage supplied to homes in Sri Lanka?",
+    "answer": "The standard single phase domestic supply voltage in Sri Lanka is 230 Volts."
+  },
+  {
+    "hazard_type": "Supply Standards",
+    "source": "Electricity Regulations 2016 (Gazette 1975/44)",
+    "question": "What voltage is typically supplied to commercial and industrial buildings?",
+    "answer": "Commercial and industrial consumers typically receive a three-phase supply at 400 Volts measured between any two line conductors."
+  },
+  {
+    "hazard_type": "Current Comparison",
+    "source": "Electrical Safety Q&A (902710734)",
+    "question": "Is DC electricity less likely than AC to cause dangerous heart fibrillation?",
+    "answer": "Yes. DC current is less likely to cause ventricular fibrillation than AC at equivalent voltage levels, though it is still dangerous and can cause severe burns and cardiac arrest."
+  },
+  {
+    "hazard_type": "Lethal Thresholds",
+    "source": "Electrical Safety Q&A (902710734)",
+    "question": "What makes a shock lethal even at low current levels?",
+    "answer": "If a small current flows through the heart during the vulnerable phase of its electrical cycle, it can trigger ventricular fibrillation, which is rapidly fatal without defibrillation."
+  },
+  {
+    "hazard_type": "Lethal Thresholds",
+    "source": "Electrical Safety Q&A (902710734)",
+    "question": "How can Ohm's Law demonstrate the danger of electricity on wet skin?",
+    "answer": "Using Ohm's Law, at 230V with wet skin resistance of only 1,000 ohms, a current of 230 mA could flow through the body. This is far above the 100–200 mA lethal range."
+  },
+  {
+    "hazard_type": "Appliance Load Management",
+    "source": "Household Appliance Dataset (Garabitos Lara et al.)",
+    "question": "Why do electric showers require dedicated circuits?",
+    "answer": "Electric showers consume between 7 and 10.5 kW, making them one of the heaviest loads in a home. A dedicated circuit with appropriately rated cable and protective devices is therefore required."
+  },
+  {
+    "hazard_type": "Appliance Load Management",
+    "source": "Household Appliance Dataset (Garabitos Lara et al.)",
+    "question": "Does a refrigerator use more current when it starts up?",
+    "answer": "Yes. While a refrigerator typically runs at 150 to 300 watts, the starting current surge from the compressor motor can be significantly higher and must be accounted for in circuit design."
+  },
+  {
+    "hazard_type": "Appliance Load Management",
+    "source": "Household Appliance Dataset (Garabitos Lara et al.)",
+    "question": "Why does a washing machine use more power on hot wash cycles?",
+    "answer": "The heating element required to warm the water consumes the majority of a washing machine's power. Hot cycles can increase consumption to up to 2,500 watts compared to cold cycles which use far less."
+  },
+  {
+    "hazard_type": "Ghost Power Consumption",
+    "source": "Household Appliance Dataset (Garabitos Lara et al.)",
+    "question": "Do devices consume electricity when left on standby?",
+    "answer": "Yes. Appliances in standby mode continue to draw 1 to 20 watts each. Across multiple devices, this standby power can add up to a significant energy cost over time."
+  },
+  {
+    "hazard_type": "Ghost Power Consumption",
+    "source": "Household Appliance Dataset (Garabitos Lara et al.)",
+    "question": "Does a phone charger still use electricity when plugged in but not charging a phone?",
+    "answer": "Yes. An unloaded charger left plugged in still draws a small current continuously. While individually small, multiple idle chargers can add up over time."
+  },
+  {
+    "hazard_type": "Emergency Protocol",
+    "source": "PUCSL English Safety Guideline",
+    "question": "Why is it important to have designated assembly points for electrical emergencies?",
+    "answer": "Assembly points ensure that all occupants evacuate to a known safe location where they can be accounted for quickly during an electrical fire or emergency."
+  },
+  {
+    "hazard_type": "Emergency Protocol",
+    "source": "PUCSL English Safety Guideline",
+    "question": "What type of lighting is required in public buildings for emergencies?",
+    "answer": "Emergency lighting with an independent power source, typically battery backed, must be installed in all public buildings to guide evacuation when the main power fails."
+  },
+  {
+    "hazard_type": "Emergency Protocol",
+    "source": "PUCSL English Safety Guideline",
+    "question": "Do emergency exit signs need to stay lit during a power cut?",
+    "answer": "Yes. Emergency exit signs must be illuminated at all times and must remain lit during power failures using battery backup or a dedicated emergency power system."
+  },
+  {
+    "hazard_type": "Equipment Testing",
+    "source": "PUCSL English Safety Guideline",
+    "question": "What test checks the insulation of an electrical installation?",
+    "answer": "An insulation resistance test, performed using a megohmmeter, measures the quality of the wiring insulation and must be done during commissioning and at scheduled intervals."
+  },
+  {
+    "hazard_type": "Equipment Testing",
+    "source": "PUCSL English Safety Guideline",
+    "question": "What instrument is used to test an earth electrode's resistance?",
+    "answer": "An earth tester (or earth resistance tester) must be used to measure earth electrode resistance. A standard multimeter is not appropriate for this test."
+  },
+  {
+    "hazard_type": "Equipment Testing",
+    "source": "PUCSL English Safety Guideline",
+    "question": "How often should portable workplace appliances be tested?",
+    "answer": "Portable appliances used in the workplace must undergo Portable Appliance Testing (PAT) at least once a year to confirm they remain in a safe condition."
+  },
+  {
+    "hazard_type": "Fire Safety",
+    "source": "PUCSL English Safety Guideline",
+    "question": "How does an overloaded cable cause a fire?",
+    "answer": "Excessive current causes the cable to overheat. This can melt the insulation, expose live conductors, and ignite nearby combustible materials, resulting in a fire."
+  },
+  {
+    "hazard_type": "Fire Safety",
+    "source": "PUCSL English Safety Guideline",
+    "question": "Can an arc fault inside a wall start a fire without tripping a circuit breaker?",
+    "answer": "Yes. Arcing faults produce intense heat but may not draw enough current to trip a standard MCB. Arc Fault Circuit Interrupters (AFCIs) are designed to detect and prevent this."
+  },
+  {
+    "hazard_type": "Fire Safety",
+    "source": "PUCSL English Safety Guideline",
+    "question": "Can paper or cardboard be stored next to an electrical panel?",
+    "answer": "No. Flammable materials must be kept well away from electrical panels and switchboards, as any spark or heat from the equipment could ignite them."
+  },
+  {
+    "hazard_type": "Fire Safety",
+    "source": "PUCSL English Safety Guideline",
+    "question": "How often should smoke detectors be tested?",
+    "answer": "Smoke detectors must be installed in every room and tested at least once a month to ensure they function correctly and will provide timely warning."
+  },
+  {
+    "hazard_type": "Fire Safety",
+    "source": "PUCSL English Safety Guideline",
+    "question": "Can a fire hose be used on an electrical fire?",
+    "answer": "No. Water conducts electricity and can carry current back to the person holding the hose, causing a fatal shock. Only CO2 or dry powder extinguishers are safe on electrical fires."
+  },
+  {
+    "hazard_type": "Supply Standards",
+    "source": "Electricity Regulations 2016 (Gazette 1975/44)",
+    "question": "What is the maximum allowable voltage imbalance in a three-phase supply?",
+    "answer": "Under normal operating conditions, the voltage imbalance between phases must not exceed 2% to prevent overheating and damage to three-phase equipment."
+  },
+  {
+    "hazard_type": "Supply Standards",
+    "source": "Electricity Regulations 2016 (Gazette 1975/44)",
+    "question": "What problems can harmonics cause in an electrical system?",
+    "answer": "Harmonics distort the waveform of the supply and can cause cables, transformers, and motors to overheat, reducing their efficiency and lifespan. Filters must be used to mitigate this."
+  },
+  {
+    "hazard_type": "Outdoor Hazards",
+    "source": "PUCSL English Safety Guideline",
+    "question": "What precaution must farmers take with irrigation equipment near power lines?",
+    "answer": "Metal irrigation systems and farm equipment must be operated and positioned to maintain safe clearance from overhead power lines to prevent lethal electrical contact."
+  },
+  {
+    "hazard_type": "Outdoor Hazards",
+    "source": "PUCSL English Safety Guideline",
+    "question": "What is step potential and when is it dangerous?",
+    "answer": "Step potential is a voltage difference between two points on the ground near a fault. A person standing with their feet at different potentials completes a circuit and can receive a dangerous shock even without touching the fault point directly."
+  },
+  {
+    "hazard_type": "General Safety",
+    "source": "PUCSL English Safety Guideline",
+    "question": "Why should electrical work not be done while standing on a metal ladder?",
+    "answer": "Metal ladders are conductive. If a live conductor is accidentally touched, the current will travel through the ladder to the ground, passing through the electrician and causing a serious or fatal shock."
+  },
+  {
+    "hazard_type": "General Safety",
+    "source": "PUCSL English Safety Guideline",
+    "question": "How often should a building's electrical installation be professionally audited?",
+    "answer": "A comprehensive electrical safety audit by a licensed inspector should be carried out at least every five years to identify deterioration or unsafe conditions."
+  },
+  {
+    "hazard_type": "Appliance Safety",
+    "source": "PUCSL English Safety Guideline",
+    "question": "Can I install an air conditioner myself?",
+    "answer": "No. Air conditioners must be installed by a licensed technician and connected to a dedicated fused circuit to ensure safe and reliable operation."
+  },
+  {
+    "hazard_type": "Appliance Safety",
+    "source": "PUCSL English Safety Guideline",
+    "question": "Can food residue in a microwave cause a fire?",
+    "answer": "Yes. Accumulated grease or food residue inside a microwave can ignite during operation, causing an internal fire. Microwaves must be kept clean at all times."
+  },
+  {
+    "hazard_type": "Appliance Safety",
+    "source": "PUCSL English Safety Guideline",
+    "question": "Why is cleaning a tumble dryer's lint filter important for fire safety?",
+    "answer": "Lint is highly flammable. Build-up in the filter and exhaust duct can ignite from the dryer's heat element, making regular cleaning essential to prevent fires."
+  },
+  {
+    "hazard_type": "User Safety Protocol",
+    "source": "PUCSL English Safety Guideline",
+    "question": "Is it safe to charge your phone under a pillow or blanket overnight?",
+    "answer": "No. Charging a phone under bedding traps heat from the charger and battery, which can build up to dangerous levels and cause a fire."
+  },
+  {
+    "hazard_type": "User Safety Protocol",
+    "source": "PUCSL English Safety Guideline",
+    "question": "How far should electrical equipment be kept from a bathtub or sink?",
+    "answer": "Electrical equipment must be kept at least 1 meter away from bathtubs, sinks, and any body of water to minimize the risk of electrocution from splash or spillage."
+  },
+  {
+    "hazard_type": "User Safety Protocol",
+    "source": "PUCSL English Safety Guideline",
+    "question": "Can a petrol generator be used inside a room or garage?",
+    "answer": "No. Generators must only be operated outdoors in well-ventilated areas. They produce carbon monoxide, an odourless, colourless gas that is rapidly fatal in enclosed spaces."
+  },
+  {
+    "hazard_type": "Human Physiological Impact",
+    "source": "PUCSL English Safety Guideline",
+    "question": "Why is 50 Hz AC particularly dangerous to the human heart?",
+    "answer": "The 50 Hz frequency of the standard supply is close to the heart's own natural electrical frequency, making it especially effective at disrupting the heart's rhythm and triggering fibrillation."
+  },
+  {
+    "hazard_type": "Fault Diagnosis",
+    "source": "PUCSL English Safety Guideline",
+    "question": "What should I do if I smell burning from inside a wall?",
+    "answer": "A burning smell from a wall indicates a possible wiring fault or fire risk within the wall cavity. Turn off the relevant circuit and contact a qualified electrician immediately."
+  },
+  {
+    "hazard_type": "Infrastructure Safety",
+    "source": "Electricity Regulations 2016 (Gazette 1975/44)",
+    "question": "Why must oil-filled transformers have containment bunds?",
+    "answer": "Transformer oil is both an environmental pollutant and flammable. Containment bunds prevent accidental spills from reaching soil and waterways and reduce fire spread risk."
+  },
+  {
+    "hazard_type": "Legal / Regulations",
+    "source": "Gazette Extraordinary No. 1975/44",
+    "question": "Can the electricity authority cut off your supply?",
+    "answer": "Yes. If a consumer's installation is found to be dangerous to the public network or other consumers, the electricity authority has the legal power to disconnect the supply immediately."
+  },
+  {
+    "hazard_type": "Clearance Requirements",
+    "source": "PUCSL English Safety Guideline",
+    "question": "What vertical clearance is required between a 132kV line and a rooftop?",
+    "answer": "A 132kV transmission line must have a minimum vertical clearance of 4.6 meters above the highest part of any building it passes over."
+  },
+  {
+    "hazard_type": "Human Physiological Impact",
+    "source": "PUCSL English Safety Guideline",
+    "question": "What are the delayed symptoms that can appear after an electrical injury?",
+    "answer": "After an electrical shock, victims may experience delayed symptoms including confusion, memory loss, seizures, and irregular heart rhythms. Medical evaluation is essential even if the person initially feels fine."
+  },
+  {
+    "hazard_type": "Emergency Protocol",
+    "source": "PUCSL English Safety Guideline",
+    "question": "Should a person who has been shocked by electricity see a doctor even if they feel okay?",
+    "answer": "Yes. Internal tissue damage and cardiac arrhythmias from an electrical shock can be delayed. Anyone involved in an electrical accident must be evaluated by a medical professional promptly."
+  },
+  {
+    "hazard_type": "Lightning Protection",
+    "source": "PUCSL English Safety Guideline",
+    "question": "Is it safer to be inside a car or outside during a lightning storm?",
+    "answer": "A car with a metal roof is safer than being outdoors. The metal body acts as a Faraday cage, directing lightning around the occupants and to the ground through the tyres."
+  },
+  {
+    "hazard_type": "Supply Standards",
+    "source": "Electricity Regulations 2016 (Gazette 1975/44)",
+    "question": "What penalty can industrial consumers face for a low power factor?",
+    "answer": "Industrial consumers operating with a power factor below 0.85 lagging will incur additional penalty charges from the utility. Power factor correction equipment such as capacitors should be installed."
+  },
+  {
+    "hazard_type": "General Safety",
+    "source": "PUCSL English Safety Guideline",
+    "question": "Is ordinary tap water a conductor of electricity?",
+    "answer": "Yes. Tap water contains dissolved minerals and impurities that make it a good conductor of electricity. It must never be used near or on live electrical equipment."
+  },
+  {
+    "hazard_type": "Maintenance Safety",
+    "source": "PUCSL English Safety Guideline",
+    "question": "What additional precaution is taken before working on de-energized high voltage equipment?",
+    "answer": "Even after isolation, temporary earthing clamps must be applied at the worksite to discharge any residual charge and prevent accidental re-energization from causing a shock."
+  },
+  {
+    "hazard_type": "Workshops & Labs",
+    "source": "PUCSL English Safety Guideline",
+    "question": "What PPE is required around switchgear panels?",
+    "answer": "Arc-flash-rated face shields or safety goggles must be worn when working near or opening switchgear or electrical panels due to the risk of a sudden arc flash causing eye and face injuries."
+  },
+  {
+    "hazard_type": "Appliance Load Management",
+    "source": "Household Appliance Dataset (Garabitos Lara et al.)",
+    "question": "What rated circuit should an electric kettle be connected to?",
+    "answer": "An electric kettle consuming 2,000 to 3,000 watts must be connected to a circuit and socket rated to handle that current demand safely without overloading."
+  },
+  {
+    "hazard_type": "Appliance Load Management",
+    "source": "Household Appliance Dataset (Garabitos Lara et al.)",
+    "question": "How much power does a ceiling fan typically consume?",
+    "answer": "A standard domestic ceiling fan consumes between 30 and 80 watts, making it significantly more energy-efficient than an air conditioner for basic cooling."
+  },
+  {
+    "hazard_type": "Human Physiological Impact",
+    "source": "902710734-Electrical-Safety-Questions-Answers",
+    "question": "What is the effect of 9 to 30 mA on a man?",
+    "answer": "A current of 9 to 30 mA causes painful shocks in men and results in loss of muscular control, making it difficult or impossible to release the source."
+  },
+  {
+    "hazard_type": "Human Physiological Impact",
+    "source": "PUCSL English Safety Guideline",
+    "question": "Why are children more vulnerable to electric shock than adults?",
+    "answer": "Children have thinner skin with lower resistance than adults. At the same voltage, a higher current can flow through their bodies, increasing the severity of injury."
+  },
+  {
+    "hazard_type": "Equipment Design",
+    "source": "PUCSL English Safety Guideline",
+    "question": "Do double insulated appliances need to be earthed?",
+    "answer": "No. Double insulated appliances are designed with two independent layers of insulation, meaning they do not require an earth connection for safety."
+  },
+  {
+    "hazard_type": "Equipment Design",
+    "source": "PUCSL English Safety Guideline",
+    "question": "What type of cable is suitable for underground installation?",
+    "answer": "Steel Wire Armoured (SWA) or similar armoured cables must be used for underground installations to protect the conductors from mechanical damage."
+  },
+  {
+    "hazard_type": "RCD / Trip Switch",
+    "source": "PUCSL English Safety Guideline",
+    "question": "Is an RCD effective if a person contacts both live and neutral conductors simultaneously?",
+    "answer": "No. If a person completes a circuit between live and neutral, the currents remain balanced and the RCD will not detect a fault. This scenario is rare but possible."
+  },
+  {
+    "hazard_type": "Institutional Responsibility",
+    "source": "PUCSL English Safety Guideline",
+    "question": "Is a landlord responsible for electrical safety in a rental property?",
+    "answer": "Yes. Landlords have a legal duty to ensure that the electrical installation in a rented property is safe before and during each tenancy."
+  },
+  {
+    "hazard_type": "User Safety Protocol",
+    "source": "PUCSL English Safety Guideline",
+    "question": "What is the danger of connecting a generator directly to household wiring?",
+    "answer": "Without a proper isolation switch, the generator can feed electricity back into the utility network through the meter. This backfeed can electrocute utility workers on what they believe is a dead line."
+  },
+  {
+    "hazard_type": "First Aid Practice",
+    "source": "PUCSL English Safety Guideline",
+    "question": "What should a rescuer stand on when helping an electrocution victim?",
+    "answer": "The rescuer must stand on an insulating surface such as dry rubber matting or a wooden board to prevent them from becoming part of the electrical circuit while assisting the victim."
+  },
+  {
+    "hazard_type": "First Aid Practice",
+    "source": "PUCSL English Safety Guideline",
+    "question": "How should you treat shock symptoms in an electrocution victim?",
+    "answer": "Keep the victim warm, lying down, and as calm as possible. Do not give food or drink, and monitor their breathing until emergency services arrive."
+  },
+  {
+    "hazard_type": "Fire Safety",
+    "source": "PUCSL English Safety Guideline",
+    "question": "Should occupants use a lift to evacuate during an electrical fire?",
+    "answer": "No. Lifts must never be used during a fire emergency. Occupants must use designated fire exit stairways to evacuate the building."
+  },
+  {
+    "hazard_type": "Clearance Requirements",
+    "source": "PUCSL English Safety Guideline",
+    "question": "What minimum height must power lines be above agricultural land?",
+    "answer": "Low voltage lines above agricultural land must have a minimum vertical clearance of 6.0 meters to allow tall farming machinery to pass safely beneath them."
+  },
+  {
+    "hazard_type": "Underground Hazards",
+    "source": "Electricity Regulations 2016 (Gazette 1975/44)",
+    "question": "What condition must underground cable route markers be kept in?",
+    "answer": "Cable route markers must be maintained in a visible and legible condition so that contractors and workers can always identify the presence of underground cables."
+  },
+  {
+    "hazard_type": "Maintenance Safety",
+    "source": "PUCSL English Safety Guideline",
+    "question": "When is it acceptable to carry out electrical work on a live system?",
+    "answer": "Live working must only be performed as a last resort when isolation is not practicable. It requires specially trained personnel and appropriate live-working tools and PPE."
+  },
+  {
+    "hazard_type": "Maintenance Safety",
+    "source": "PUCSL English Safety Guideline",
+    "question": "What must be checked before restoring power after maintenance work?",
+    "answer": "Before re-energizing, a thorough check must confirm that all tools, materials, and personnel are safely clear of all equipment and that all access covers are replaced."
+  },
+  {
+    "hazard_type": "Emergency Protocol",
+    "source": "PUCSL English Safety Guideline",
+    "question": "Why should electrical emergency drills be conducted?",
+    "answer": "Regular drills ensure all building occupants know the correct procedures, evacuation routes, and their individual roles in responding to an electrical emergency, reducing panic and injury."
+  },
+  {
+    "hazard_type": "Workshops & Labs",
+    "source": "PUCSL English Safety Guideline",
+    "question": "Must students be trained before using electrical equipment in a school lab?",
+    "answer": "Yes. All students must complete a safety induction that covers the hazards and safe operating procedures before they are allowed to use any electrical equipment in a lab or workshop."
+  },
+  {
+    "hazard_type": "Outdoor Hazards",
+    "source": "PUCSL English Safety Guideline",
+    "question": "How should a damaged cable lying on the ground be managed?",
+    "answer": "The area must be cordoned off immediately to prevent pedestrians from approaching. The electricity authority must be notified and the supply isolated until repairs are completed."
+  },
+  {
+    "hazard_type": "Equipment Design",
+    "source": "PUCSL English Safety Guideline",
+    "question": "Why are expansion fittings needed in long conduit runs?",
+    "answer": "Conduits expand and contract with temperature changes. Expansion fittings accommodate this movement and prevent the conduit from buckling, which could damage the cables inside."
+  },
+  {
+    "hazard_type": "Legal / Regulations",
+    "source": "Gazette Extraordinary No. 1975/44",
+    "question": "Is a power authority required to inform consumers before planned outages?",
+    "answer": "Yes. Where reasonably practicable, electricity supply authorities must give consumers advance notice of planned supply interruptions to minimize disruption and allow for safety preparations."
+  },
+  {
+    "hazard_type": "Fault Diagnosis",
+    "source": "PUCSL English Safety Guideline",
+    "question": "Why is a loose neutral connection so dangerous?",
+    "answer": "A loose or broken neutral can cause voltage imbalance in single-phase circuits, driving voltages well above 230V and potentially damaging or destroying sensitive electronic equipment."
+  },
+  {
+    "hazard_type": "Supply Standards",
+    "source": "Electricity Regulations 2016 (Gazette 1975/44)",
+    "question": "Can voltage spikes on the supply damage electronic equipment?",
+    "answer": "Yes. Transient voltage spikes can reach several thousand volts and can instantly destroy unprotected electronic equipment. Surge protection devices must be installed to guard against this."
+  },
+  {
+    "hazard_type": "Appliance Safety",
+    "source": "PUCSL English Safety Guideline",
+    "question": "What temperature should an immersion heater be set at and why?",
+    "answer": "An immersion heater must be set to at least 60°C to kill Legionella bacteria. However, the hot water must always be mixed with cold water before use to prevent scalding injuries."
+  },
+  {
+    "hazard_type": "Appliance Safety",
+    "source": "PUCSL English Safety Guideline",
+    "question": "Are solar panels on a rooftop electrically safe to touch?",
+    "answer": "No. Solar panels generate high voltage DC electricity continuously, even in overcast conditions. They cannot be switched off like AC circuits and are a serious shock hazard to roof workers."
+  },
+  {
+    "hazard_type": "General Safety",
+    "source": "902710734-Electrical-Safety-Questions-Answers",
+    "question": "What is the correct way to check if a wire is live?",
+    "answer": "Always use a non-contact voltage tester or a properly rated test probe to check for live voltage. Never test with your bare hands or any improvised method."
+  },
+  {
+    "hazard_type": "Infrastructure Safety",
+    "source": "Electricity Regulations 2016 (Gazette 1975/44)",
+    "question": "How are overhead line conductors maintained by the utility?",
+    "answer": "The authority must conduct regular visual inspections of overhead conductors to check for corrosion, physical damage, and ensure the lines maintain appropriate sag for safety and performance."
+  },
+  {
+    "hazard_type": "Institutional Responsibility",
+    "source": "PUCSL English Safety Guideline",
+    "question": "What safety management system is required in industrial facilities?",
+    "answer": "Industrial facilities must implement a formal Electrical Safety Management System (ESMS) that documents all hazards, procedures, responsibilities, and must be reviewed and updated annually."
+  },
+  {
+    "hazard_type": "Equipment Testing",
+    "source": "PUCSL English Safety Guideline",
+    "question": "What is polarity testing in a new electrical installation?",
+    "answer": "Polarity testing confirms that all switches and protective devices are wired in the live conductor and that sockets are correctly connected, preventing shock risks from incorrectly wired fittings."
+  },
+  {
+    "hazard_type": "Human Physiological Impact",
+    "source": "PUCSL English Safety Guideline",
+    "question": "Can a non-fatal electric shock still cause serious injury?",
+    "answer": "Yes. Even a non-lethal shock can cause violent involuntary muscle contraction, which may throw a person from a ladder, scaffold, or elevated surface, resulting in serious fall injuries."
+  },
+  {
+    "hazard_type": "Legal / Regulations",
+    "source": "Gazette Extraordinary No. 1975/44",
+    "question": "How can you verify the identity of a person claiming to be an electricity worker?",
+    "answer": "Genuine electricity workers carry official identification issued by the authority. Consumers have the right to request and inspect this ID before allowing access to their premises."
+  },
+  {
+    "hazard_type": "Emergency Protocol",
+    "source": "PUCSL English Safety Guideline",
+    "question": "What number should be called in Sri Lanka for an electricity emergency?",
+    "answer": "The CEB or LECO emergency helpline numbers must be called for electricity emergencies in Sri Lanka. These numbers must be prominently displayed in all institutions and workplaces."
+  },
+  {
+    "hazard_type": "Extension Cords",
+    "source": "PUCSL English Safety Guideline",
+    "question": "Can I run an extension cord through a closed door or window?",
+    "answer": "No. Running cords through door or window openings subjects the insulation to pinching and physical damage, which can expose live conductors and create a shock or fire risk."
+  },
+  {
+    "hazard_type": "Equipment Design",
+    "source": "PUCSL English Safety Guideline",
+    "question": "Why do bathroom shaver points use a special isolating transformer?",
+    "answer": "Shaver sockets in bathrooms use an isolation transformer to separate the circuit from the mains supply, providing a safe supply that cannot cause a fatal shock if a fault occurs near water."
+  },
+  {
+    "hazard_type": "Outdoor Hazards",
+    "source": "PUCSL English Safety Guideline",
+    "question": "Is it dangerous to fish near overhead power lines?",
+    "answer": "Yes. A fishing rod can be long enough to contact overhead power lines and conduct electricity directly to the angler, causing a fatal shock."
+  },
+  {
+    "hazard_type": "Appliance Load Management",
+    "source": "Household Appliance Dataset (Garabitos Lara et al.)",
+    "question": "Why should an electric iron never be left unattended?",
+    "answer": "An electric iron consumes up to 2,000 watts and maintains a very high surface temperature. If left unattended on a surface, it can cause a fire within minutes."
+  },
+  {
+    "hazard_type": "General Safety",
+    "source": "PUCSL English Safety Guideline",
+    "question": "Why is rubber used in electrical safety gloves and matting?",
+    "answer": "Rubber is a very poor conductor of electricity. It impedes the flow of current effectively, making it ideal for insulating gloves, mats, and other protective equipment."
+  },
+  {
+    "hazard_type": "User Safety Protocol",
+    "source": "PUCSL English Safety Guideline",
+    "question": "Why is it important to read the instructions before using a new appliance?",
+    "answer": "Manufacturer instructions include important safety precautions, rating limits, and correct usage guidelines that are specific to the appliance and must be followed to use it safely."
+  },
+  {
+    "hazard_type": "Fault Diagnosis",
+    "source": "PUCSL English Safety Guideline",
+    "question": "What does persistent earth leakage from an older installation indicate?",
+    "answer": "Persistent earth leakage suggests that the cable insulation has deteriorated with age and is breaking down. The wiring must be replaced to prevent a risk of fire or shock."
+  },
+  {
+    "hazard_type": "Infrastructure Safety",
+    "source": "Electricity Regulations 2016 (Gazette 1975/44)",
+    "question": "Why must electrical substations have adequate drainage?",
+    "answer": "Water accumulation inside a substation can bridge the electrical isolation of live equipment and reduce the safety of earthing systems, creating potentially fatal shock hazards."
+  },
+  {
+    "hazard_type": "Workshops & Labs",
+    "source": "PUCSL English Safety Guideline",
+    "question": "When should an earthing strap be worn by a technician?",
+    "answer": "Earthing straps must be worn when handling electrostatic sensitive components to prevent static discharge, and in explosive atmospheres where static sparks could ignite flammable vapours."
+  },
+  {
+    "hazard_type": "First Aid / Fractures",
+    "source": "PUCSL English Safety Guideline",
+    "question": "Should you assume a spinal injury in an electrocution victim?",
+    "answer": "Yes. If there is any possibility the victim was thrown by the shock or fell, a spinal injury must be assumed. Support the neck and spine and avoid unnecessary movement until paramedics arrive."
+  },
+  {
+    "hazard_type": "Appliance Safety",
+    "source": "PUCSL English Safety Guideline",
+    "question": "Is it safe to leave a power bank charging overnight?",
+    "answer": "No. Lithium battery devices including power banks can undergo thermal runaway if overcharged or faulty. They must not be left charging unattended, especially near flammable materials."
+  },
+  {
+    "hazard_type": "Equipment Testing",
+    "source": "PUCSL English Safety Guideline",
+    "question": "How can you ensure a voltage tester is reliable?",
+    "answer": "Test equipment must be calibrated and checked before use on a known live source to confirm it is reading correctly. An uncalibrated tester may give false safe readings."
+  },
+  {
+    "hazard_type": "Human Physiological Impact",
+    "source": "PUCSL English Safety Guideline",
+    "question": "Is high frequency electricity safer for the heart than standard 50 Hz supply?",
+    "answer": "Yes. At frequencies above 100 kHz, the body's cells cannot respond fast enough to be stimulated, reducing the risk of cardiac fibrillation compared to standard 50 Hz AC supply."
+  },
+  {
+    "hazard_type": "Legal / Regulations",
+    "source": "Gazette Extraordinary No. 1975/44",
+    "question": "Are electricity suppliers legally required to provide accurate meters?",
+    "answer": "Yes. Electricity supply undertakings are legally obligated to provide and maintain accurate meters that correctly record each consumer's electricity consumption."
+  },
+  {
+    "hazard_type": "Emergency Protocol",
+    "source": "PUCSL English Safety Guideline",
+    "question": "When is it safe to re-enter a building after an electrical fire?",
+    "answer": "A building may only be re-entered after the electrical installation has been inspected by a qualified electrician and declared safe. Re-entering too early risks exposure to live faults or structural damage."
+  },
+  {
+    "hazard_type": "General Safety",
+    "source": "PUCSL English Safety Guideline",
+    "question": "Can warning labels be removed from electrical equipment?",
+    "answer": "No. Warning labels on electrical equipment must never be removed or covered. They provide critical safety information and hazard warnings for users and maintenance personnel."
+  },
+  {
+    "hazard_type": "Clearance Requirements",
+    "source": "PUCSL English Safety Guideline",
+    "question": "How close can electrical wiring be to a gas pipeline?",
+    "answer": "Electrical installations must maintain a minimum separation of 3 meters from gas pipelines to reduce the risk of sparks igniting leaking gas."
+  },
+  {
+    "hazard_type": "Supply Standards",
+    "source": "Electricity Regulations 2016 (Gazette 1975/44)",
+    "question": "How much can the national grid frequency vary from 50 Hz?",
+    "answer": "Under normal operating conditions, the grid frequency is allowed to vary by plus or minus 1 Hz from the standard 50 Hz. Larger deviations indicate system disturbances."
+  },
+  {
+    "hazard_type": "Workshops & Labs",
+    "source": "PUCSL English Safety Guideline",
+    "question": "Can food and drink be brought into a workshop with electrical equipment?",
+    "answer": "No. Food and drink must be kept out of electrical workshops. Spills or food contamination can damage equipment and create electrical hazards."
+  },
+  {
+    "hazard_type": "User Safety Protocol",
+    "source": "PUCSL English Safety Guideline",
+    "question": "What type of footwear helps protect against electric shock?",
+    "answer": "Rubber-soled safety footwear provides insulation between the wearer and the ground, reducing the risk of current flowing through the body to earth in the event of contact with a live part."
+  },
+  {
+    "hazard_type": "Fault Diagnosis",
+    "source": "PUCSL English Safety Guideline",
+    "question": "What might cause an unexplained rise in an electricity bill?",
+    "answer": "An unexpected increase in electricity consumption without changed usage may indicate an earth leakage fault wasting energy or a faulty meter. An electrician or the supply authority should investigate."
+  },
+  {
+    "hazard_type": "Institutional Responsibility",
+    "source": "PUCSL English Safety Guideline",
+    "question": "Should factories record electrical accidents and near misses?",
+    "answer": "Yes. Factories must maintain a formal accident and near-miss register for all electrical incidents. This register is subject to inspection by the regulatory authority."
+  },
+  {
+    "hazard_type": "CPR / First Aid",
+    "source": "PUCSL English Safety Guideline",
+    "question": "How does a person know what to do when using an AED?",
+    "answer": "An AED provides clear audio and visual instructions that guide the user through each step of the defibrillation process. Training in its use is highly recommended but the device is designed to be used by untrained bystanders in an emergency."
+  },
+  {
+    "hazard_type": "Ghost Power Consumption",
+    "source": "Household Appliance Dataset (Garabitos Lara et al.)",
+    "question": "Do smart home devices and routers consume electricity constantly?",
+    "answer": "Yes. Smart home devices and routers typically draw 5 to 15 watts continuously, operating 24 hours a day, and their cumulative energy consumption over a year can be significant."
+  },
+  {
+    "hazard_type": "First Aid / Burns",
+    "source": "PUCSL English Safety Guideline",
+    "question": "Should you try to remove clothing stuck to a burn?",
+    "answer": "No. Clothing that has adhered to a burn must not be removed as this can cause further damage to the underlying tissue. Cut away the fabric around it and leave the stuck portion for medical personnel."
+  },
+  {
+    "hazard_type": "Equipment Design",
+    "source": "PUCSL English Safety Guideline",
+    "question": "Can a flexible appliance cord be used as fixed wiring inside a wall?",
+    "answer": "No. Flexible cords are designed for appliance connections only and must not be run inside walls or conduits as permanent wiring. Only appropriately rated fixed wiring cables may be used for this purpose."
+  },
+  {
+    "hazard_type": "Lightning Protection",
+    "source": "PUCSL English Safety Guideline",
+    "question": "What is the safest body position if caught outside during a lightning storm?",
+    "answer": "Crouch low to the ground with feet together to minimize your profile and contact area, and move away from trees, isolated structures, and open water. Do not lie flat."
+  },
+  {
+    "hazard_type": "Appliance Load Management",
+    "source": "Household Appliance Dataset (Garabitos Lara et al.)",
+    "question": "How much more energy efficient is LED lighting compared to incandescent bulbs?",
+    "answer": "LED lights consume up to 90% less energy than incandescent bulbs for the same level of light output, making them dramatically more efficient and cost-effective."
+  },
+  {
+    "hazard_type": "Current Comparison",
+    "source": "Electrical Safety Q&A (902710734)",
+    "question": "What is touch current or leakage current from an electrical appliance?",
+    "answer": "Touch current is the small amount of electrical current that flows through a person when they touch an operating appliance connected to a grounded supply, even under normal fault-free conditions. Safety standards limit this to safe levels."
+  },
+  {
+    "hazard_type": "Outdoor Hazards",
+    "source": "PUCSL English Safety Guideline",
+    "question": "Should you get out of a car immediately after it hits a utility pole and brings down power lines?",
+    "answer": "No. Remain inside the vehicle. The safest action is to call for help and wait until the power authority confirms that lines are de-energized. Exiting could place you in contact with live conductors on the ground."
+  },
+  {
+    "hazard_type": "Infrastructure Safety",
+    "source": "Electricity Regulations 2016 (Gazette 1975/44)",
+    "question": "What information must be displayed on an electrical substation?",
+    "answer": "Substations must display the operating voltage of the equipment inside, danger warning signs, and the contact details of the responsible electricity authority."
+  },
+  {
+    "hazard_type": "Maintenance Safety",
+    "source": "PUCSL English Safety Guideline",
+    "question": "Are capacitors dangerous even after equipment is switched off?",
+    "answer": "Yes. Capacitors can hold a high voltage charge for an extended period after power is removed. They must be safely discharged using an appropriate resistive tool before any internal work is carried out."
+  },
+  {
+    "hazard_type": "Equipment Testing",
+    "source": "PUCSL English Safety Guideline",
+    "question": "What does earth continuity testing verify?",
+    "answer": "Earth continuity testing confirms that the protective conductor provides a complete, low-resistance path from all metal parts and earth pins back to the main earthing terminal, ensuring fault current will safely flow to earth."
+  },
+  {
+    "hazard_type": "Fire Safety",
+    "source": "PUCSL English Safety Guideline",
+    "question": "Can standard electrical cables be installed in a very hot area like near a boiler?",
+    "answer": "No. Standard cables must not be installed where the ambient temperature exceeds their insulation's rated temperature. Special high-temperature rated cables must be used in hot areas such as near boilers or engines."
+  },
+  {
+    "hazard_type": "Appliance Safety",
+    "source": "PUCSL English Safety Guideline",
+    "question": "What device should be used when operating an electric lawnmower?",
+    "answer": "An electric lawnmower should always be used with an RCD adaptor in the supply circuit. If the cable is accidentally severed by the mower, the RCD will cut power immediately and prevent electrocution."
+  },
+  {
+    "hazard_type": "Institutional Responsibility",
+    "source": "PUCSL English Safety Guideline",
+    "question": "Who must oversee electrical installations at outdoor events?",
+    "answer": "Licensed electricians must be engaged to design and supervise all temporary electrical installations at outdoor events to ensure they are safe for performers, staff, and the public."
+  },
+  {
+    "hazard_type": "User Safety Protocol",
+    "source": "PUCSL English Safety Guideline",
+    "question": "What should you do if there is a gas leak and you also suspect an electrical fault?",
+    "answer": "Do not operate any electrical switches. Leave them in whatever position they are in, evacuate immediately, and contact both the gas and electricity authorities from outside the building."
+  },
+  {
+    "hazard_type": "Supply Standards",
+    "source": "Electricity Regulations 2016 (Gazette 1975/44)",
+    "question": "Can a consumer with solar panels sell electricity back to the grid in Sri Lanka?",
+    "answer": "Yes. Under the approved net metering scheme, consumers with approved solar photovoltaic installations can export surplus energy to the grid, subject to technical standards and authority approval."
+  },
+  {
+    "hazard_type": "Fault Diagnosis",
+    "source": "PUCSL English Safety Guideline",
+    "question": "What happens if the earth connection at a socket is loose or corroded?",
+    "answer": "A poor earth connection impairs the effectiveness of the RCD, meaning it may not trip as intended during a fault. This leaves users without the intended protection against electric shock."
+  },
+  {
+    "hazard_type": "Emergency Protocol",
+    "source": "PUCSL English Safety Guideline",
+    "question": "What must be done to the electricity supply when flooding is imminent?",
+    "answer": "The electricity supply must be switched off at the main fuse board or service head before rising water enters the building to prevent electrocution from submerged live equipment."
+  },
+  {
+    "hazard_type": "Human Physiological Impact",
+    "source": "PUCSL English Safety Guideline",
+    "question": "Should pregnant women avoid high voltage areas?",
+    "answer": "As a precautionary measure, pregnant women are advised to minimize their exposure to strong electric and magnetic fields from high voltage equipment."
+  },
+  {
+    "hazard_type": "Equipment Design",
+    "source": "PUCSL English Safety Guideline",
+    "question": "Why must circuit breakers be clearly labeled?",
+    "answer": "Clear circuit labeling allows the correct circuit to be quickly and safely isolated during an emergency or maintenance work, preventing accidents from isolating the wrong circuit."
+  },
+  {
+    "hazard_type": "Outdoor Hazards",
+    "source": "PUCSL English Safety Guideline",
+    "question": "Can metallic balloons cause power outages?",
+    "answer": "Yes. Metallic foil balloons or those with metallic strings can bridge conductors on overhead power lines, causing short circuit faults and power outages. They must not be released near power lines."
+  },
+  {
+    "hazard_type": "Legal / Regulations",
+    "source": "Gazette Extraordinary No. 1975/44",
+    "question": "Who is liable if a contractor damages an underground cable?",
+    "answer": "The person or company responsible for the excavation is liable for the full cost of cable repairs and may face legal penalties for failing to identify the cable route before digging."
+  },
+  {
+    "hazard_type": "Maintenance Safety",
+    "source": "PUCSL English Safety Guideline",
+    "question": "What training is required to operate an aerial work platform near power lines?",
+    "answer": "Only trained and authorized personnel may operate aerial work platforms near power lines. They must be aware of the minimum safe clearance distances and maintain them at all times during operation."
+  },
+  {
+    "hazard_type": "General Safety",
+    "source": "PUCSL English Safety Guideline",
+    "question": "What do yellow and red colours on electrical safety signs mean?",
+    "answer": "Yellow indicates a warning of a specific hazard, while red is used for prohibition signs indicating actions that must not be done. Green indicates safe conditions and blue indicates a mandatory required action."
+  },
+  {
+    "hazard_type": "Appliance Load Management",
+    "source": "Household Appliance Dataset (Garabitos Lara et al.)",
+    "question": "What is the typical power consumption of a domestic dishwasher?",
+    "answer": "A domestic dishwasher generally consumes between 1,200 and 2,400 watts per cycle, with the heating element for water and the drying phase accounting for the bulk of the energy use."
+  },
+  {
+    "hazard_type": "Fire Safety",
+    "source": "PUCSL English Safety Guideline",
+    "question": "How should cables passing through a fire wall be sealed?",
+    "answer": "Any cable passing through a fire-rated wall or floor must be sealed with approved intumescent or other fire-stopping materials to maintain the fire rating and prevent fire and smoke spread."
+  },
+  {
+    "hazard_type": "Workshops & Labs",
+    "source": "PUCSL English Safety Guideline",
+    "question": "Can a single person carry out switching operations in a high voltage switchroom?",
+    "answer": "No. High voltage switching operations must be performed by two qualified persons: one to perform the operation and one to supervise and verify, to prevent errors and provide emergency assistance."
+  },
+  {
+    "hazard_type": "User Safety Protocol",
+    "source": "PUCSL English Safety Guideline",
+    "question": "What should you look for when buying an electrical appliance to ensure it is safe?",
+    "answer": "Look for a recognised safety certification mark such as SLSI, CE, or UL on the appliance, confirming it has been independently tested and meets the applicable safety standards."
+  },
+  {
+    "hazard_type": "Equipment Testing",
+    "source": "PUCSL English Safety Guideline",
+    "question": "What is the purpose of loop impedance testing?",
+    "answer": "Loop impedance testing verifies that the fault loop has low enough impedance to allow sufficient fault current to flow to operate the circuit's protective device (fuse or MCB) within the required disconnection time."
+  },
+  {
+    "hazard_type": "Infrastructure Safety",
+    "source": "Electricity Regulations 2016 (Gazette 1975/44)",
+    "question": "Who can make joints in a high voltage underground cable?",
+    "answer": "Only qualified and certified cable jointers using approved materials and techniques may make joints in high voltage cables. All joints must be tested after installation to confirm their integrity."
+  },
+  {
+    "hazard_type": "Lethal Thresholds",
+    "source": "Electrical Safety Q&A (902710734)",
+    "question": "What is a common cause of fatal electrical accidents in the workplace?",
+    "answer": "Many fatal electrical accidents in the workplace result from failure to follow established safety procedures such as isolation, testing for dead, and use of appropriate PPE."
+  },
+  {
+    "hazard_type": "Human Physiological Impact",
+    "source": "PUCSL English Safety Guideline",
+    "question": "Can electric shock cause permanent nerve damage?",
+    "answer": "Yes. Electrical current passing through the body can cause lasting nerve damage, resulting in chronic pain, numbness, or weakness in the affected areas."
+  },
+  {
+    "hazard_type": "Human Physiological Impact",
+    "source": "PUCSL English Safety Guideline",
+    "question": "Can an electrical shock to the head cause eye problems later?",
+    "answer": "Yes. Electrical current passing through the head region can lead to the development of cataracts in the eyes, sometimes weeks or months after the initial injury."
+  },
+  {
+    "hazard_type": "Equipment Design",
+    "source": "PUCSL English Safety Guideline",
+    "question": "What is the advantage of a ring main circuit compared to a radial circuit?",
+    "answer": "A ring main allows current to flow to each outlet from two directions, reducing the load on any single cable section and providing a more resilient supply compared to a radial circuit."
+  },
+  {
+    "hazard_type": "Equipment Design",
+    "source": "PUCSL English Safety Guideline",
+    "question": "How do you select the correct MCB rating for a circuit?",
+    "answer": "The MCB rating must not exceed the current carrying capacity of the cable it protects. If the cable is rated 20A, the MCB must be 20A or less to ensure it trips before the cable overheats."
+  },
+  {
+    "hazard_type": "RCD / Trip Switch",
+    "source": "PUCSL English Safety Guideline",
+    "question": "What is the difference between a 30 mA and a 100 mA RCD?",
+    "answer": "A 30 mA RCD provides personal protection against electric shock. A 100 mA RCD is used for fire protection where earth faults could cause arcing or overheating, but is not sensitive enough for direct shock protection."
+  },
+  {
+    "hazard_type": "Workshops & Labs",
+    "source": "PUCSL English Safety Guideline",
+    "question": "Why is double insulated equipment preferred in a chemistry laboratory?",
+    "answer": "Corrosive chemicals can attack and degrade earth conductors over time. Double insulated equipment relies on two layers of insulation rather than earthing, making it more reliable in corrosive environments."
+  },
+  {
+    "hazard_type": "Lightning Protection",
+    "source": "PUCSL English Safety Guideline",
+    "question": "What structures particularly require lightning protection systems?",
+    "answer": "Tall structures including masts, chimneys, and water towers are highly exposed to lightning strikes and must be fitted with compliant lightning protection systems."
+  },
+  {
+    "hazard_type": "Lightning Protection",
+    "source": "PUCSL English Safety Guideline",
+    "question": "Why must a lightning protection down conductor be installed without sharp bends?",
+    "answer": "Sharp bends in a down conductor can cause the high current from a lightning strike to arc across the bend to nearby materials, potentially starting a fire or damaging the structure."
+  },
+  {
+    "hazard_type": "Outdoor Hazards",
+    "source": "PUCSL English Safety Guideline",
+    "question": "Is it safe to climb a utility pole to inspect a transformer?",
+    "answer": "No. Pole-mounted transformers have exposed high voltage terminals that are extremely dangerous. Only authorized and trained utility workers with appropriate PPE may access them."
+  },
+  {
+    "hazard_type": "Outdoor Hazards",
+    "source": "PUCSL English Safety Guideline",
+    "question": "What should you do if an animal is trapped near a power line?",
+    "answer": "Never approach or attempt to rescue the animal yourself. Contact the electricity authority immediately to safely de-energize the line before any rescue attempt."
+  },
+  {
+    "hazard_type": "Extension Cords",
+    "source": "PUCSL English Safety Guideline",
+    "question": "Can a very long extension cord damage appliances with motors?",
+    "answer": "Yes. A very long extension cord causes a significant voltage drop, which can lead to under-voltage at the appliance. Motors running at under-voltage draw more current and can overheat and burn out."
+  },
+  {
+    "hazard_type": "Extension Cords",
+    "source": "PUCSL English Safety Guideline",
+    "question": "Can I use a standard indoor extension cord outside?",
+    "answer": "No. Outdoor extension cords must be specifically rated for outdoor use with weather-resistant insulation and connectors. Standard indoor cords can degrade rapidly in moisture and sunlight."
+  },
+  {
+    "hazard_type": "Appliance Safety",
+    "source": "PUCSL English Safety Guideline",
+    "question": "What type of outlet should be used for garden power tools?",
+    "answer": "All garden power tools must be powered through an RCD-protected socket or via an RCD adaptor to ensure the supply cuts off instantly if a fault or cable damage occurs."
+  },
+  {
+    "hazard_type": "Appliance Safety",
+    "source": "PUCSL English Safety Guideline",
+    "question": "Can petrol or solvents be used to clean electrical equipment?",
+    "answer": "No. Petrol and solvents produce flammable vapours that can be ignited by sparks from electrical equipment or outlets, causing a fire or explosion. Only approved electrical cleaning agents must be used."
+  },
+  {
+    "hazard_type": "Fault Diagnosis",
+    "source": "PUCSL English Safety Guideline",
+    "question": "How can rodents cause electrical faults in buildings?",
+    "answer": "Rodents can gnaw through cable insulation, exposing bare conductors that may short circuit or create earth faults. This is a common cause of unexplained tripping and fires in buildings."
+  },
+  {
+    "hazard_type": "Fault Diagnosis",
+    "source": "PUCSL English Safety Guideline",
+    "question": "What does it mean if touching an appliance gives a slight tingling feeling?",
+    "answer": "A tingling feeling from an appliance casing indicates a partial electrical fault that has energized the metal parts. The appliance must be switched off and unplugged immediately, and a qualified technician must investigate."
+  },
+  {
+    "hazard_type": "Emergency / First Aid",
+    "source": "PUCSL English Safety Guideline",
+    "question": "What information must you give when calling emergency services after an electrical accident?",
+    "answer": "You must clearly communicate the type of accident, exact location, number and condition of casualties, and whether the power has been switched off, so responders can prepare appropriately."
+  },
+  {
+    "hazard_type": "Emergency / First Aid",
+    "source": "PUCSL English Safety Guideline",
+    "question": "Should you move an electrocution victim to a more comfortable position?",
+    "answer": "Only move the victim if they are in immediate danger from the scene. Unnecessary movement can worsen internal injuries, burns, and possible spinal damage. Wait for trained medical personnel."
+  },
+  {
+    "hazard_type": "CPR / First Aid",
+    "source": "PUCSL English Safety Guideline",
+    "question": "How does CPR technique differ for infants compared to adults?",
+    "answer": "For infants, only two fingers are used for chest compressions rather than the full heel of the hand, and much less force is applied. The 30:2 ratio remains the same."
+  },
+  {
+    "hazard_type": "First Aid / Burns",
+    "source": "PUCSL English Safety Guideline",
+    "question": "At what extent of body coverage is a burn considered a major medical emergency?",
+    "answer": "Burns covering more than 10% of an adult's body surface area are classified as major burns and require immediate hospital treatment."
+  },
+  {
+    "hazard_type": "First Aid / Burns",
+    "source": "PUCSL English Safety Guideline",
+    "question": "How should a chemical burn from battery electrolyte be treated?",
+    "answer": "Rinse the affected area with large amounts of running water for at least 20 minutes to dilute and remove the chemical, then seek immediate medical attention."
+  },
+  {
+    "hazard_type": "Legal / Regulations",
+    "source": "Gazette Extraordinary No. 1975/44",
+    "question": "Which standards must new electrical installations follow?",
+    "answer": "All new electrical installations must comply with the requirements of the current edition of the national wiring regulations that are in force at the time of installation."
+  },
+  {
+    "hazard_type": "Legal / Regulations",
+    "source": "Gazette Extraordinary No. 1975/44",
+    "question": "What can the electricity authority do if a consumer's installation is found unsafe?",
+    "answer": "The authority can issue a notice requiring the consumer to carry out remedial work within a specified period. Failure to comply can result in disconnection of the electricity supply."
+  },
+  {
+    "hazard_type": "Clearance Requirements",
+    "source": "PUCSL English Safety Guideline",
+    "question": "Can power lines pass over a building's roof?",
+    "answer": "Power lines must not pass over roofs unless specific minimum clearances are maintained and written approval is obtained from the electricity authority."
+  },
+  {
+    "hazard_type": "General Safety",
+    "source": "PUCSL English Safety Guideline",
+    "question": "What does it mean to 'earth' an electrical installation?",
+    "answer": "Earthing connects metal parts of the electrical system to the physical ground, which maintains those parts at zero volts reference potential and provides a safe path for fault current to flow safely to earth."
+  },
+  {
+    "hazard_type": "General Safety",
+    "source": "PUCSL English Safety Guideline",
+    "question": "Why are isolation transformers considered safer for certain applications?",
+    "answer": "An isolation transformer breaks the direct connection between the supply and the output circuit. This means contact with one output conductor does not complete a circuit through earth, greatly reducing shock risk."
+  },
+  {
+    "hazard_type": "Appliance Safety",
+    "source": "PUCSL English Safety Guideline",
+    "question": "How far must a space heater be kept from combustible materials?",
+    "answer": "Electric space heaters must be positioned at least 1 metre away from curtains, bedding, and other flammable materials to prevent heat igniting them."
+  },
+  {
+    "hazard_type": "Appliance Safety",
+    "source": "PUCSL English Safety Guideline",
+    "question": "What should be done with an appliance that repeatedly trips the RCD?",
+    "answer": "Any appliance causing repeated RCD trips has an earth fault and must be removed from service immediately. It must not be used until a qualified technician has found and repaired the fault."
+  },
+  {
+    "hazard_type": "Maintenance Safety",
+    "source": "PUCSL English Safety Guideline",
+    "question": "What type of equipment must be used in a potentially explosive atmosphere?",
+    "answer": "Only explosion-proof or Ex-rated electrical equipment that is specifically certified for use in hazardous atmospheres may be used in areas where flammable gases or dust may be present."
+  },
+  {
+    "hazard_type": "Maintenance Safety",
+    "source": "PUCSL English Safety Guideline",
+    "question": "How must the correct supply board be identified before maintenance work?",
+    "answer": "The circuit to be isolated must be positively identified through inspection of single-line diagrams and confirmation using test equipment, to ensure the correct board and circuit are isolated."
+  },
+  {
+    "hazard_type": "Infrastructure Safety",
+    "source": "Electricity Regulations 2016 (Gazette 1975/44)",
+    "question": "What is the role of a protection relay in a power system?",
+    "answer": "Protection relays continuously monitor the system for abnormal conditions such as overcurrent or earth faults, and automatically trip circuit breakers to isolate the affected section and protect equipment and people."
+  },
+  {
+    "hazard_type": "Infrastructure Safety",
+    "source": "Electricity Regulations 2016 (Gazette 1975/44)",
+    "question": "What is an automatic recloser on a distribution line?",
+    "answer": "An automatic recloser is a device that temporarily interrupts supply after a fault and then attempts to restore it. If the fault is permanent, it locks out after a predetermined number of attempts."
+  },
+  {
+    "hazard_type": "Underground Hazards",
+    "source": "Electricity Regulations 2016 (Gazette 1975/44)",
+    "question": "What physical warning is placed above underground cables during installation?",
+    "answer": "Warning tiles or brightly coloured marker tape are placed above underground cables to alert anyone carrying out future excavation work in the area to the presence of buried cables."
+  },
+  {
+    "hazard_type": "Outdoor Hazards",
+    "source": "PUCSL English Safety Guideline",
+    "question": "What should you do if a tree branch falls on a power line?",
+    "answer": "Never attempt to remove a branch from a power line yourself. Contact the electricity authority who will safely de-energize the line before any clearance work is done."
+  },
+  {
+    "hazard_type": "User Safety Protocol",
+    "source": "PUCSL English Safety Guideline",
+    "question": "Should appliances be switched off at the wall when not in use?",
+    "answer": "Yes. Switching appliances off at the wall when not in use reduces standby power consumption and eliminates any risk of fire from a fault developing while the appliance is unattended."
+  },
+  {
+    "hazard_type": "User Safety Protocol",
+    "source": "PUCSL English Safety Guideline",
+    "question": "Why is it useful to keep a record of what each circuit breaker controls?",
+    "answer": "A circuit schedule allows the correct circuit to be quickly isolated in an emergency or during maintenance, preventing accidental isolation of critical equipment or delays in emergency situations."
+  },
+  {
+    "hazard_type": "Institutional Responsibility",
+    "source": "PUCSL English Safety Guideline",
+    "question": "How often must shopping centres have electrical safety inspections?",
+    "answer": "Shopping centres must undergo electrical safety inspections by licensed inspectors at least every three years to ensure the installation remains safe for the public."
+  },
+  {
+    "hazard_type": "Institutional Responsibility",
+    "source": "PUCSL English Safety Guideline",
+    "question": "How quickly must emergency lighting activate in a public venue during a power failure?",
+    "answer": "Emergency lighting in places of public assembly such as cinemas and stadiums must activate automatically within 5 seconds of a mains power failure."
+  },
+  {
+    "hazard_type": "Supply Standards",
+    "source": "Electricity Regulations 2016 (Gazette 1975/44)",
+    "question": "Why are large factories supplied at medium voltage rather than 230V?",
+    "answer": "Supplying large industrial loads at medium voltage such as 11kV reduces current in the supply cables, minimising energy losses in transmission and allowing efficient delivery of high power."
+  },
+  {
+    "hazard_type": "Current Comparison",
+    "source": "Electrical Safety Q&A (902710734)",
+    "question": "Can static electricity cause more than a mild shock?",
+    "answer": "Static electricity discharges are very high in voltage and instantaneous current but extremely brief. They are rarely lethal but can cause falls from shock, ignite flammable vapours, and damage sensitive electronic components."
+  },
+  {
+    "hazard_type": "Lethal Thresholds",
+    "source": "Electrical Safety Q&A (902710734)",
+    "question": "Does a person's body weight affect their vulnerability to electric shock?",
+    "answer": "Yes. Smaller, lighter individuals including children require less current to cause fibrillation, making them proportionally more vulnerable to lower currents than larger adults."
+  },
+  {
+    "hazard_type": "Ghost Power Consumption",
+    "source": "Household Appliance Dataset (Garabitos Lara et al.)",
+    "question": "Does a microwave with a digital display use power when not cooking?",
+    "answer": "Yes. The digital clock and control panel of a microwave draw power continuously. Unplugging it when not in use eliminates this standby consumption."
+  },
+  {
+    "hazard_type": "Ghost Power Consumption",
+    "source": "Household Appliance Dataset (Garabitos Lara et al.)",
+    "question": "Do gaming consoles use electricity when in standby mode?",
+    "answer": "Yes. Gaming consoles in standby can consume 1 to 10 watts, particularly if set to download updates automatically overnight. Powering them off completely eliminates this usage."
+  },
+  {
+    "hazard_type": "Emergency Protocol",
+    "source": "PUCSL English Safety Guideline",
+    "question": "Where should electrical emergency procedures be displayed in a building?",
+    "answer": "Emergency procedures must be posted in prominent, easily visible locations throughout the building so that all occupants can quickly access and follow them during an incident."
+  },
+  {
+    "hazard_type": "Equipment Testing",
+    "source": "PUCSL English Safety Guideline",
+    "question": "How can thermal imaging be used in electrical safety inspections?",
+    "answer": "Thermal imaging cameras detect heat signatures from loose connections, overloaded cables, or failing components. This allows faults to be identified and repaired before they cause equipment failure or fire."
+  },
+  {
+    "hazard_type": "Equipment Testing",
+    "source": "PUCSL English Safety Guideline",
+    "question": "Why is voltage drop testing performed on long electrical circuits?",
+    "answer": "Voltage drop testing confirms that the voltage at the far end of a circuit is still within acceptable limits. Excessive drop can cause equipment to malfunction or motors to overheat."
+  },
+  {
+    "hazard_type": "Fire Safety",
+    "source": "PUCSL English Safety Guideline",
+    "question": "What is the disadvantage of using a dry powder extinguisher on electrical equipment?",
+    "answer": "While effective on electrical fires, dry powder leaves a corrosive residue that can cause additional damage to sensitive electronic equipment. CO2 extinguishers are preferred for electronic environments as they leave no residue."
+  },
+  {
+    "hazard_type": "Fire Safety",
+    "source": "PUCSL English Safety Guideline",
+    "question": "Is it safe to use a CO2 extinguisher in a small enclosed room?",
+    "answer": "No. CO2 displaces oxygen in the atmosphere. Using a CO2 extinguisher in a confined space can reduce oxygen levels to dangerous or lethal concentrations, causing suffocation."
+  },
+  {
+    "hazard_type": "Clearance Requirements",
+    "source": "PUCSL English Safety Guideline",
+    "question": "What minimum clearance must power lines have above a private driveway?",
+    "answer": "Overhead power lines must have a minimum clearance of 5.0 metres above private roads and driveways to allow for safe passage of vehicles."
+  },
+  {
+    "hazard_type": "Clearance Requirements",
+    "source": "PUCSL English Safety Guideline",
+    "question": "What minimum distance must separate electrical cables from gas or water pipes in parallel runs?",
+    "answer": "Electrical cables must maintain a minimum separation of 150 mm from water and gas pipes running in parallel to prevent thermal damage and reduce risk from pipe leaks."
+  },
+  {
+    "hazard_type": "User Safety Protocol",
+    "source": "PUCSL English Safety Guideline",
+    "question": "What should you do if you notice damaged street lighting or utility equipment?",
+    "answer": "Damaged or vandalised street lights and utility equipment must be reported to the electricity supply authority promptly. Public safety can be at risk if such faults are left unreported."
+  },
+  {
+    "hazard_type": "General Safety",
+    "source": "PUCSL English Safety Guideline",
+    "question": "What is the buddy system in electrical safety?",
+    "answer": "The buddy system requires that no electrical worker works alone. A colleague must be present at all times who is aware of the work, knows basic first aid, and can respond in an emergency."
+  },
+  {
+    "hazard_type": "General Safety",
+    "source": "902710734-Electrical-Safety-Questions-Answers",
+    "question": "Do fuses and circuit breakers protect people from electric shock?",
+    "answer": "No. Fuses and MCBs protect cables and equipment from damage by overcurrent, but they are not designed to protect people from electric shock. RCDs are required for personal protection."
+  },
+  {
+    "hazard_type": "Institutional Responsibility",
+    "source": "PUCSL English Safety Guideline",
+    "question": "What documentation must an electrical contractor provide before starting work?",
+    "answer": "Contractors must submit method statements and risk assessments to the building owner or their representative before commencing any electrical work on the premises."
+  },
+  {
+    "hazard_type": "Maintenance Safety",
+    "source": "PUCSL English Safety Guideline",
+    "question": "What must not be placed near live busbars in a switchroom?",
+    "answer": "No tools, clothing, or any other material must be placed on or near live busbars as these items could bridge conductors or be accidentally knocked onto live parts, causing arcing and injury."
+  },
+  {
+    "hazard_type": "Appliance Load Management",
+    "source": "Household Appliance Dataset (Garabitos Lara et al.)",
+    "question": "Which is more energy efficient: a desktop or a laptop computer?",
+    "answer": "A laptop is significantly more energy efficient, consuming 20 to 60 watts compared to a desktop and monitor which use 150 to 300 watts for similar computing tasks."
+  },
+  {
+    "hazard_type": "Appliance Load Management",
+    "source": "Household Appliance Dataset (Garabitos Lara et al.)",
+    "question": "How much power does a modern LED television consume?",
+    "answer": "A 50-inch LED television typically consumes between 80 and 150 watts, making it considerably more energy efficient than older plasma or CRT equivalents."
+  },
+  {
+    "hazard_type": "Supply Standards",
+    "source": "Electricity Regulations 2016 (Gazette 1975/44)",
+    "question": "What is demand side management in electricity supply?",
+    "answer": "Demand side management involves the utility temporarily cycling or reducing certain consumer loads such as water heaters during peak demand periods to stabilise the grid without increasing generation capacity."
+  },
+  {
+    "hazard_type": "Human Physiological Impact",
+    "source": "PUCSL English Safety Guideline",
+    "question": "How long should an electrocution victim be monitored in hospital?",
+    "answer": "Victims of electric shock must receive continuous cardiac monitoring for a period determined by medical staff, as dangerous arrhythmias can develop hours after the initial shock even if the person initially appears stable."
+  },
+  {
+    "hazard_type": "Legal / Regulations",
+    "source": "Gazette Extraordinary No. 1975/44",
+    "question": "Are electricity utilities required to maintain records of accidents?",
+    "answer": "Yes. Electricity undertakings must maintain a public register of all electrical accidents occurring on their network and make this available for regulatory inspection."
+  },
+  {
+    "hazard_type": "Infrastructure Safety",
+    "source": "Electricity Regulations 2016 (Gazette 1975/44)",
+    "question": "Why is periodic maintenance of circuit breakers in substations important?",
+    "answer": "Circuit breakers that have not been maintained can fail to operate during a fault, allowing the fault to persist and causing much greater damage. Periodic maintenance ensures mechanisms operate correctly and contacts are in good condition."
+  },
+  {
+    "hazard_type": "Fault Diagnosis",
+    "source": "PUCSL English Safety Guideline",
+    "question": "What does a buzzing sound from a fluorescent light indicate?",
+    "answer": "Buzzing from a fluorescent lamp usually indicates a failing or overheating ballast. The ballast must be replaced as it can overheat and pose a fire risk."
+  },
+  {
+    "hazard_type": "Fault Diagnosis",
+    "source": "PUCSL English Safety Guideline",
+    "question": "Can I use wall sockets after my home has been flooded?",
+    "answer": "No. Sockets exposed to flood water must not be used until a qualified electrician has inspected and tested them and confirmed they are safe. Water inside outlets causes corrosion and short circuit risks."
+  },
+  {
+    "hazard_type": "Emergency / First Aid",
+    "source": "PUCSL English Safety Guideline",
+    "question": "How can a fire blanket help in an electrical fire emergency?",
+    "answer": "A fire blanket can smother small flames on a person or object by cutting off the oxygen supply. It can also be wrapped around a person to protect them from flames during evacuation."
+  },
+  {
+    "hazard_type": "Equipment Design",
+    "source": "PUCSL English Safety Guideline",
+    "question": "Why must recessed downlights be kept clear of ceiling insulation?",
+    "answer": "Recessed downlights generate heat that must be able to dissipate. Contact with insulation traps this heat, which can build up to temperatures that ignite the insulation or surrounding timber."
+  },
+  {
+    "hazard_type": "Equipment Design",
+    "source": "PUCSL English Safety Guideline",
+    "question": "What electrical protection is required for a submersible water pump?",
+    "answer": "Submersible pumps must be rated for permanent submersion and must be connected through a Ground Fault Circuit Interrupter (GFCI) protected supply to prevent electrocution risk from water contact."
+  },
+  {
+    "hazard_type": "Lightning Protection",
+    "source": "PUCSL English Safety Guideline",
+    "question": "When must a swimming pool be evacuated during a storm?",
+    "answer": "At the first sign of thunderstorm activity, all swimmers must immediately leave the water and seek shelter indoors. Water conducts electricity and a nearby lightning strike can be fatal to anyone in or near the pool."
+  },
+  {
+    "hazard_type": "General Safety",
+    "source": "PUCSL English Safety Guideline",
+    "question": "Why is copper the most commonly used conductor material in electrical wiring?",
+    "answer": "Copper offers excellent electrical conductivity, is flexible and easy to work with, and maintains reliable performance over a long service life, making it the preferred material for domestic and commercial wiring."
+  },
+  {
+    "hazard_type": "General Safety",
+    "source": "PUCSL English Safety Guideline",
+    "question": "What are the special risks associated with aluminium electrical wiring?",
+    "answer": "Aluminium is prone to oxidation at connections, which increases resistance and causes heat. Special anti-oxidant compounds and connectors rated for aluminium must be used to prevent loose connections and fire risk."
+  },
+  {
+    "hazard_type": "Appliance Safety",
+    "source": "PUCSL English Safety Guideline",
+    "question": "What safety feature should a portable generator have to protect against carbon monoxide?",
+    "answer": "Modern portable generators should be equipped with an automatic carbon monoxide shut-off system that detects dangerous CO levels and stops the engine before concentration builds to lethal levels."
+  },
+  {
+    "hazard_type": "Appliance Safety",
+    "source": "PUCSL English Safety Guideline",
+    "question": "Must an extension reel be fully unwound before connecting an appliance?",
+    "answer": "Yes. Using an extension reel while still partially coiled traps heat in the wound cable. This can cause the conductor to overheat and the insulation to melt, creating a fire risk."
+  },
+  {
+    "hazard_type": "Outdoor Hazards",
+    "source": "PUCSL English Safety Guideline",
+    "question": "What power supply should be used for an electric livestock fence?",
+    "answer": "Only approved electric fence energizers rated for livestock control must be used. Direct connection to the mains is dangerous and prohibited. Fences must also be clearly signed to warn people."
+  },
+  {
+    "hazard_type": "Outdoor Hazards",
+    "source": "PUCSL English Safety Guideline",
+    "question": "How can roof workers be protected from overhead power lines during work?",
+    "answer": "Insulating barriers or approved coverings must be installed over any overhead power lines within reach of the roof work area to prevent accidental contact by workers or their tools."
+  },
+  {
+    "hazard_type": "Maintenance Safety",
+    "source": "PUCSL English Safety Guideline",
+    "question": "What procedure must be followed when entering an electrical substation?",
+    "answer": "Every person entering a substation must sign the access register, record the reason for their visit, and confirm their authorisation to access the facility."
+  },
+  {
+    "hazard_type": "User Safety Protocol",
+    "source": "PUCSL English Safety Guideline",
+    "question": "How can you tell if a smell of smoke is from an electrical fault?",
+    "answer": "Electrical faults produce an acrid, chemical smell different from the smell of burning wood or paper. Any such smell must be taken seriously and the affected circuit isolated and inspected immediately."
+  },
+  {
+    "hazard_type": "Fault Diagnosis",
+    "source": "PUCSL English Safety Guideline",
+    "question": "What happens to PVC cable insulation when it overheats repeatedly?",
+    "answer": "Repeated overheating causes PVC insulation to harden and crack over time, reducing its effectiveness as an insulator and increasing the risk of shock and fire from exposed conductors."
+  },
+  {
+    "hazard_type": "Institutional Responsibility",
+    "source": "PUCSL English Safety Guideline",
+    "question": "Should large organisations have an electrical safety representative on their safety committee?",
+    "answer": "Yes. Large organisations should designate a competent electrical safety representative to serve on the health and safety committee, ensuring electrical hazards receive dedicated attention and expertise."
+  },
+  {
+    "hazard_type": "Emergency Protocol",
+    "source": "PUCSL English Safety Guideline",
+    "question": "Is it safe to use candles near electrical panels during a power cut?",
+    "answer": "No. Candles near electrical equipment or flammable materials present a significant fire risk. Battery-powered emergency lighting or torches must be used instead."
+  },
+  {
+    "hazard_type": "Infrastructure Safety",
+    "source": "Electricity Regulations 2016 (Gazette 1975/44)",
+    "question": "Who may access an electrical substation or high voltage room?",
+    "answer": "Access to substations and high voltage rooms must be restricted to authorised and trained personnel only. Unauthorised access must be prevented by locked doors and appropriate warning signage."
+  },
+  {
+    "hazard_type": "Clearance Requirements",
+    "source": "PUCSL English Safety Guideline",
+    "question": "Must clearances between power lines and trees be maintained as trees grow?",
+    "answer": "Yes. Trees beneath or near power lines must be regularly trimmed to maintain the required minimum clearance throughout the year, as seasonal growth and wind loading can reduce clearance to unsafe levels."
+  },
+  {
+    "hazard_type": "Supply Standards",
+    "source": "Electricity Regulations 2016 (Gazette 1975/44)",
+    "question": "What factors define the quality of an electricity supply?",
+    "answer": "Supply quality is defined by the maintenance of the correct voltage level, frequency, clean waveform without excessive harmonics, and reliable continuity of supply without excessive interruptions."
+  },
+  {
+    "hazard_type": "Human Physiological Impact",
+    "source": "902710734-Electrical-Safety-Questions-Answers",
+    "question": "Should people with pacemakers avoid working near high voltage equipment?",
+    "answer": "Yes. Strong electromagnetic fields from high voltage equipment can interfere with pacemakers. Individuals with pacemakers must consult their doctor and avoid working in high electromagnetic field environments."
+  },
+  {
+    "hazard_type": "General Safety",
+    "source": "PUCSL English Safety Guideline",
+    "question": "What makes an arc flash so dangerous?",
+    "answer": "Arc flash produces temperatures exceeding 20,000°C and releases a violent pressure wave, intense ultraviolet radiation, and molten metal droplets that can cause severe burns, blindness, and blast injuries."
+  },
+  {
+    "hazard_type": "Workshops & Labs",
+    "source": "PUCSL English Safety Guideline",
+    "question": "What safety measures protect sensitive components in an electronics workshop?",
+    "answer": "Anti-static work mats and grounded wrist straps must be used when handling sensitive integrated circuits to prevent electrostatic discharge from damaging components."
+  },
+  {
+    "hazard_type": "Equipment Testing",
+    "source": "PUCSL English Safety Guideline",
+    "question": "Is testing required after electrical repairs or alterations?",
+    "answer": "Yes. Following any significant repair or alteration to an installation, the affected circuits must be re-tested to confirm they remain safe before being returned to service."
+  },
+  {
+    "hazard_type": "Appliance Load Management",
+    "source": "Household Appliance Dataset (Garabitos Lara et al.)",
+    "question": "Why is induction cooking more efficient than a standard electric hotplate?",
+    "answer": "Induction cooking heats the cookware directly through magnetic induction, transferring nearly all energy into the pot. Conventional hotplates heat an element first, wasting energy through radiation and conduction losses."
+  },
+  {
+    "hazard_type": "Lightning Protection",
+    "source": "PUCSL English Safety Guideline",
+    "question": "When is the lightning risk highest in tropical countries like Sri Lanka?",
+    "answer": "In tropical climates, convective thunderstorms are most frequent during the afternoon and early evening, making this the highest risk period for lightning strikes."
+  },
+  {
+    "hazard_type": "Legal / Regulations",
+    "source": "Gazette Extraordinary No. 1975/44",
+    "question": "Can any person perform electrical testing on an installation?",
+    "answer": "No. Electrical testing must only be performed by licensed or appropriately qualified persons as specified under the Electricity Act and its regulations."
+  },
+  {
+    "hazard_type": "Maintenance Safety",
+    "source": "PUCSL English Safety Guideline",
+    "question": "When must arc flash PPE be worn by electrical workers?",
+    "answer": "Arc flash rated PPE must be worn whenever work involves the possibility of arc flash exposure, including routine switching operations on energized equipment."
+  },
+  {
+    "hazard_type": "First Aid Practice",
+    "source": "PUCSL English Safety Guideline",
+    "question": "Should you remove clothing from an electrocution victim to treat injuries?",
+    "answer": "Do not remove clothing from an electrocution victim unless it is on fire. Removing clothing can disturb wounds and cause further harm. Leave this to trained medical personnel."
+  },
+  {
+    "hazard_type": "Emergency Protocol",
+    "source": "PUCSL English Safety Guideline",
+    "question": "Why must the main isolation switch be clearly marked and accessible?",
+    "answer": "Clear marking and easy accessibility of the main isolation switch allows occupants and emergency responders to quickly cut off the electricity supply during a fire, flood, or electrical emergency without delay."
+  },
+  {
+    "hazard_type": "Outdoor Hazards",
+    "source": "PUCSL English Safety Guideline",
+    "question": "Is it dangerous to climb or swing on electrical utility poles?",
+    "answer": "Yes. Climbing or swinging on any structure attached to a power pole is extremely dangerous and strictly prohibited. Contact with conductors or equipment can be instantly fatal."
+  },
+  {
+    "hazard_type": "User Safety Protocol",
+    "source": "PUCSL English Safety Guideline",
+    "question": "Why should you keep a phone available when working with electrical equipment?",
+    "answer": "Having a phone readily available ensures emergency services can be contacted immediately in the event of an accident, preventing delays in getting help to an injured person."
+  },
+  {
+    "hazard_type": "General Safety",
+    "source": "PUCSL English Safety Guideline",
+    "question": "What are the standard wire colours used in Sri Lanka's electrical installations?",
+    "answer": "In Sri Lanka and following international standards, brown indicates the live conductor, blue indicates neutral, and green/yellow stripe indicates the protective earth conductor."
+  },
+  {
+    "hazard_type": "Appliance Safety",
+    "source": "PUCSL English Safety Guideline",
+    "question": "Is it safe to use second-hand electrical appliances without checking them first?",
+    "answer": "No. Second-hand appliances may have deteriorated insulation or wiring faults. They must be inspected and tested by a qualified person before use to confirm they are safe."
+  },
+  {
+    "hazard_type": "Infrastructure Safety",
+    "source": "Electricity Regulations 2016 (Gazette 1975/44)",
+    "question": "How must the entry point of supply cables through a building wall be treated?",
+    "answer": "The cable entry point through the building wall must be sealed with an approved compound or fitting to prevent moisture ingress and vermin from entering the building through the cable entry."
+  },
+  {
+    "hazard_type": "Fault Diagnosis",
+    "source": "PUCSL English Safety Guideline",
+    "question": "What does an MCB that trips immediately upon resetting indicate?",
+    "answer": "An MCB that trips instantly even with all loads disconnected indicates a short circuit fault in the fixed wiring of the circuit. The circuit must not be used until the fault is located and repaired."
+  },
+  {
+    "hazard_type": "Human Physiological Impact",
+    "source": "PUCSL English Safety Guideline",
+    "question": "Can an electric shock have psychological effects beyond the physical injury?",
+    "answer": "Yes. Electric shock can cause lasting psychological effects including PTSD, anxiety, and fear of electricity. Survivors should be offered appropriate psychological support alongside physical treatment."
+  },
+  {
+    "hazard_type": "Workshops & Labs",
+    "source": "PUCSL English Safety Guideline",
+    "question": "Can portable electric heaters be freely used in school workshops?",
+    "answer": "No. Portable heaters are a fire risk in workshops where combustible materials are present. They must only be used with specific approval and must never be left unattended near materials."
+  },
+  {
+    "hazard_type": "Institutional Responsibility",
+    "source": "PUCSL English Safety Guideline",
+    "question": "Must hotels inspect electrical safety in rooms between guests?",
+    "answer": "Yes. Hotel management is responsible for ensuring guest rooms are free of electrical hazards and must include electrical safety as part of room inspection protocols between occupancies."
+  },
+  {
+    "hazard_type": "Supply Standards",
+    "source": "Electricity Regulations 2016 (Gazette 1975/44)",
+    "question": "How much advance notice must be given for planned power cuts exceeding four hours?",
+    "answer": "The electricity supply authority must notify consumers at least 24 hours in advance of planned outages that are expected to last more than four hours."
+  },
+  {
+    "hazard_type": "Equipment Design",
+    "source": "PUCSL English Safety Guideline",
+    "question": "What type of socket should be used where young children can access them?",
+    "answer": "Socket outlets in areas accessible to young children must be fitted with child-resistant shutters that only open when simultaneous pressure is applied to both live and neutral apertures."
+  },
+  {
+    "hazard_type": "Equipment Design",
+    "source": "PUCSL English Safety Guideline",
+    "question": "What device protects sensitive electronics from voltage fluctuations?",
+    "answer": "A voltage stabilizer or automatic voltage regulator (AVR) maintains a steady output voltage to sensitive equipment despite fluctuations in the incoming supply."
+  },
+  {
+    "hazard_type": "Emergency / First Aid",
+    "source": "PUCSL English Safety Guideline",
+    "question": "What specific items must a workplace first aid kit contain for electrical accidents?",
+    "answer": "First aid kits must include burn dressings, eyewash for arc flash injuries, and resuscitation face shields for CPR, ensuring that responders are equipped to manage electrical accident casualties."
+  },
+  {
+    "hazard_type": "General Safety",
+    "source": "PUCSL English Safety Guideline",
+    "question": "Should jewellery be removed before working near live electrical equipment?",
+    "answer": "Yes. All metallic jewellery including rings, watches, and bracelets must be removed before working near live electrical equipment as they can bridge live conductors and cause severe arc burns."
+  },
+  {
+    "hazard_type": "Lethal Thresholds",
+    "source": "Electrical Safety Q&A (902710734)",
+    "question": "Can 110V electricity kill a person?",
+    "answer": "Yes. 110V is capable of delivering a lethal shock, particularly when wet skin reduces body resistance. No voltage should be considered safe without appropriate protective measures."
+  },
+  {
+    "hazard_type": "Maintenance Safety",
+    "source": "PUCSL English Safety Guideline",
+    "question": "Why is good lighting important during electrical maintenance work?",
+    "answer": "Adequate lighting allows electrical workers to correctly identify conductors, terminals, and safety labels, reducing the risk of mistakes such as touching wrong terminals or misreading warning signs."
+  },
+  {
+    "hazard_type": "Appliance Load Management",
+    "source": "Household Appliance Dataset (Garabitos Lara et al.)",
+    "question": "What electrical protection is required for a domestic water pump motor?",
+    "answer": "A domestic water pump motor requires a dedicated supply circuit with appropriate overload protection such as a thermal overload relay to protect the motor windings from overheating."
+  },
+  {
+    "hazard_type": "Fire Safety",
+    "source": "PUCSL English Safety Guideline",
+    "question": "What type of enclosure should house an electrical switchboard?",
+    "answer": "Main electrical switchboards must be housed in fire-resistant enclosures to contain any internal fire or arcing fault and prevent it from spreading to adjacent areas of the building."
+  },
+  {
+    "hazard_type": "Infrastructure Safety",
+    "source": "Electricity Regulations 2016 (Gazette 1975/44)",
+    "question": "What mechanical property must overhead line conductors have?",
+    "answer": "Overhead line conductors must have adequate tensile strength to support their own weight between poles and resist wind loading without breaking, sagging excessively, or losing required clearances."
+  },
+  {
+    "hazard_type": "Emergency Protocol",
+    "source": "PUCSL English Safety Guideline",
+    "question": "What must follow a serious electrical accident at a workplace?",
+    "answer": "A formal post-incident review must be conducted to identify the root causes of the accident, determine contributing factors, and implement corrective actions to prevent similar events from occurring."
+  },
+  {
+    "hazard_type": "User Safety Protocol",
+    "source": "PUCSL English Safety Guideline",
+    "question": "What additional benefit does a surge-protected power strip provide over a standard one?",
+    "answer": "A surge-protected power strip includes a metal oxide varistor or similar component that absorbs and diverts voltage spikes, protecting connected equipment from damage during power surges."
+  },
+  {
+    "hazard_type": "Clearance Requirements",
+    "source": "PUCSL English Safety Guideline",
+    "question": "What separation is required between electrical wiring and gas pipes?",
+    "answer": "Electrical installation work must maintain a minimum separation of 50mm from gas pipes. Where this is not possible, approved physical separation barriers must be installed."
+  },
+  {
+    "hazard_type": "Equipment Design",
+    "source": "PUCSL English Safety Guideline",
+    "question": "What is the purpose of an Uninterruptible Power Supply (UPS)?",
+    "answer": "A UPS provides immediate battery backup power when the mains supply fails, preventing sudden shutdown of critical equipment such as computers and medical devices while allowing for a controlled shutdown or generator startup."
+  },
+  {
+    "hazard_type": "General Safety",
+    "source": "PUCSL English Safety Guideline",
+    "question": "Why must incoming metal water pipes be bonded to the electrical earth?",
+    "answer": "Metal pipes can become energized if an electrical fault occurs within the building. Bonding them to the earth system ensures that any fault current is safely discharged rather than making the pipes dangerous to touch."
+  },
+  {
+    "hazard_type": "Legal / Regulations",
+    "source": "Gazette Extraordinary No. 1975/44",
+    "question": "Are electrical contractors required to hold insurance?",
+    "answer": "Yes. Licensed electrical contractors must carry adequate public liability insurance to cover any claims for damage or injury arising from their work on consumer installations."
+  },
+  {
+    "hazard_type": "RCD / Trip Switch",
+    "source": "PUCSL English Safety Guideline",
+    "question": "Which circuits in a bathroom require RCD protection?",
+    "answer": "All electrical circuits in a bathroom must be protected by an RCD, with the exception of approved shaver socket circuits which are protected through their own isolation transformer."
+  },
+  {
+    "hazard_type": "Maintenance Safety",
+    "source": "PUCSL English Safety Guideline",
+    "question": "What isolation is required when replacing a distribution board?",
+    "answer": "The incoming supply must be isolated at the service head or meter tails level and confirmed dead with a voltage tester before any connections in the new distribution board are made."
+  },
+  {
+    "hazard_type": "Outdoor Hazards",
+    "source": "PUCSL English Safety Guideline",
+    "question": "Why must a metal ladder never be raised near power lines?",
+    "answer": "A metal ladder is conductive and can act as a bridge between a live power line and the ground. Contact with or proximity to an overhead line can cause a fatal shock to anyone holding the ladder."
+  },
+  {
+    "hazard_type": "Appliance Safety",
+    "source": "PUCSL English Safety Guideline",
+    "question": "Should a pool or tank immersion heater be switched off before swimming?",
+    "answer": "Yes. Any electrical immersion heater must be switched off and confirmed isolated before anyone enters the water to prevent electrocution from leakage currents."
+  },
+  {
+    "hazard_type": "Fault Diagnosis",
+    "source": "PUCSL English Safety Guideline",
+    "question": "What is a likely cause of an electrical circuit that works only intermittently?",
+    "answer": "Intermittent operation often indicates a loose connection that makes or breaks contact due to vibration, thermal expansion, or physical movement. All connections in the circuit must be inspected and tightened."
+  },
+  {
+    "hazard_type": "CPR / First Aid",
+    "source": "PUCSL English Safety Guideline",
+    "question": "Is hospital care still needed after successful CPR restores a pulse?",
+    "answer": "Yes. Even after successful resuscitation, the victim must be transported to hospital immediately. Cardiac function can remain unstable and deteriorate again without medical monitoring and treatment."
+  },
+  {
+    "hazard_type": "Fire Safety",
+    "source": "PUCSL English Safety Guideline",
+    "question": "Are older buildings with original wiring at greater fire risk from electrical faults?",
+    "answer": "Yes. Cable insulation degrades over decades, becoming brittle and prone to cracking. Older wiring that has not been updated presents a significantly higher risk of earth faults, arcing, and fire."
+  },
+  {
+    "hazard_type": "Infrastructure Safety",
+    "source": "Electricity Regulations 2016 (Gazette 1975/44)",
+    "question": "Can the neutral conductor be disconnected independently in a three-phase system?",
+    "answer": "No. The neutral must not be disconnected unless all phase conductors on the same circuit are disconnected at the same time. Isolating the neutral alone can cause dangerous voltage imbalance in the system."
+  },
+  {
+    "hazard_type": "User Safety Protocol",
+    "source": "PUCSL English Safety Guideline",
+    "question": "How should a tenant report an electrical fault in a rented property?",
+    "answer": "Tenants should report electrical faults to the landlord in writing, providing a clear description of the fault. A written record creates an enforceable request for the landlord to carry out necessary repairs."
+  },
+  {
+    "hazard_type": "Equipment Testing",
+    "source": "PUCSL English Safety Guideline",
+    "question": "Should new circuits be tested before being connected to the electrical supply?",
+    "answer": "Yes. All new circuits must be tested for correct wiring polarity, insulation resistance, and earth continuity before being energized to confirm they are safe and correctly installed."
+  },
+  {
+    "hazard_type": "Appliance Load Management",
+    "source": "Household Appliance Dataset (Garabitos Lara et al.)",
+    "question": "How significant is a swimming pool pump in a home's electricity consumption?",
+    "answer": "Pool pumps running 6 to 12 hours daily at 750 to 1,500 watts are among the larger energy consumers in a home with a pool. Using a variable speed pump and timer can significantly reduce this consumption."
+  },
+  {
+    "hazard_type": "General Safety",
+    "source": "PUCSL English Safety Guideline",
+    "question": "How must live electrical conductors be protected from accidental contact?",
+    "answer": "Live conductors must be enclosed within insulated cables, placed inside earthed metal or insulated enclosures, or positioned at sufficient clearance distances to prevent accidental touch by people or objects."
+  },
+  {
+    "hazard_type": "Institutional Responsibility",
+    "source": "PUCSL English Safety Guideline",
+    "question": "Are public buildings required to disclose electrical records to regulators?",
+    "answer": "Yes. Electricity consumption data and safety inspection records of large public buildings must be made available to the electricity regulatory authority upon request."
+  },
+  {
+    "hazard_type": "Human Physiological Impact",
+    "source": "PUCSL English Safety Guideline",
+    "question": "How can electric current cause suffocation?",
+    "answer": "Current passing through the chest can cause the respiratory muscles to contract involuntarily and freeze, preventing the victim from breathing. Suffocation can occur if the victim cannot be quickly freed from the source."
+  },
+  {
+    "hazard_type": "Emergency Protocol",
+    "source": "PUCSL English Safety Guideline",
+    "question": "Who may restore the electricity supply after an emergency isolation?",
+    "answer": "Only authorised persons may restore supply after an emergency isolation, and only after confirming that the hazard has been resolved and the area is declared safe for re-energization."
+  },
+  {
+    "hazard_type": "Equipment Design",
+    "source": "PUCSL English Safety Guideline",
+    "question": "How must the weight of a pendant light fitting be supported?",
+    "answer": "The weight of a pendant light must be carried by a mechanical support such as a chain or hook, not by the electrical cable connections. The cable must only carry current, not mechanical load."
+  },
+  {
+    "hazard_type": "General Safety",
+    "source": "PUCSL English Safety Guideline",
+    "question": "Why is electricity considered particularly hazardous compared to other dangers?",
+    "answer": "Unlike fire or chemical hazards, electricity usually gives no sensory warning. A live conductor looks identical to a dead one, making vigilance and testing essential before any contact."
+  },
+  {
+    "hazard_type": "Human Physiological Impact",
+    "source": "PUCSL English Safety Guideline",
+    "question": "What cognitive effects can follow an electric shock?",
+    "answer": "Survivors of electric shock can experience memory loss, concentration difficulties, and sleep disturbance for weeks or months after the injury, requiring ongoing medical follow-up."
+  },
+  {
+    "hazard_type": "Equipment Design",
+    "source": "PUCSL English Safety Guideline",
+    "question": "What protection is required for a spur taken from a ring main circuit?",
+    "answer": "A spur circuit branching from a ring main must be protected by a fused connection unit rated appropriately for the load it supplies."
+  },
+  {
+    "hazard_type": "Appliance Safety",
+    "source": "PUCSL English Safety Guideline",
+    "question": "What is the difference between Class I and Class II electrical appliances?",
+    "answer": "Class I appliances depend on an earth connection via a three-pin plug for fault protection. Class II appliances have double insulation built in and are safe without any earth connection."
+  },
+  {
+    "hazard_type": "Outdoor Hazards",
+    "source": "PUCSL English Safety Guideline",
+    "question": "What should a motorcyclist do after their bike contacts a fallen power line?",
+    "answer": "Stay clear of the bike and any metal connected to it. Do not touch anything and call the electricity authority immediately. Only approach when officials confirm the cables are de-energized."
+  },
+  {
+    "hazard_type": "Fire Safety",
+    "source": "PUCSL English Safety Guideline",
+    "question": "Why are electrical fires in walls particularly dangerous?",
+    "answer": "Fires inside walls and ceiling voids are hidden from view and can spread extensively through a structure before producing visible smoke or flames, making early detection devices essential."
+  },
+  {
+    "hazard_type": "Maintenance Safety",
+    "source": "PUCSL English Safety Guideline",
+    "question": "Can outdoor electrical work proceed in rainy conditions?",
+    "answer": "No. Outdoor electrical work during rain must be postponed or carried out under sufficient weather protection to prevent the electrician and the installation from being exposed to moisture."
+  },
+  {
+    "hazard_type": "Legal / Regulations",
+    "source": "Gazette Extraordinary No. 1975/44",
+    "question": "Are electricity authorities required to investigate consumer safety complaints?",
+    "answer": "Yes. Electricity supply authorities are obligated to investigate all consumer complaints regarding supply quality and reported safety hazards within a reasonable and defined timeframe."
+  },
+  {
+    "hazard_type": "Clearance Requirements",
+    "source": "PUCSL English Safety Guideline",
+    "question": "What additional protection is required for wiring in areas prone to mechanical damage?",
+    "answer": "Wiring in areas subject to mechanical impact must be installed in steel conduit or as armoured cable to prevent physical damage from cutting, crushing, or abrasion."
+  },
+  {
+    "hazard_type": "Emergency Protocol",
+    "source": "PUCSL English Safety Guideline",
+    "question": "What knowledge must emergency wardens have regarding electrical systems?",
+    "answer": "Emergency wardens must know the location of all main and sub-main isolation points in the building so they can quickly and correctly isolate the power supply in an electrical emergency."
+  },
+  {
+    "hazard_type": "Supply Standards",
+    "source": "Electricity Regulations 2016 (Gazette 1975/44)",
+    "question": "What can a consumer do if they experience persistent poor supply quality?",
+    "answer": "Consumers suffering persistent supply quality problems such as voltage fluctuations or frequent outages may formally complain to the electricity regulatory authority for investigation and rectification."
+  },
+  {
+    "hazard_type": "User Safety Protocol",
+    "source": "PUCSL English Safety Guideline",
+    "question": "Should the supply be switched off before replacing a fuse?",
+    "answer": "Yes. The supply must always be isolated and confirmed dead before replacing a fuse. Attempting to replace a fuse in an energized circuit risks arcing and serious shock."
+  },
+  {
+    "hazard_type": "Equipment Testing",
+    "source": "PUCSL English Safety Guideline",
+    "question": "What does RCD trip time testing measure?",
+    "answer": "RCD trip time testing measures the time taken for the device to disconnect the supply once the rated leakage current is applied, confirming it complies with the maximum permitted disconnection time for shock protection."
+  },
+  {
+    "hazard_type": "Infrastructure Safety",
+    "source": "Electricity Regulations 2016 (Gazette 1975/44)",
+    "question": "How should a distribution transformer be sized for consumer supply?",
+    "answer": "Transformers must be rated to handle the current maximum demand of connected consumers plus an appropriate margin for future load growth to prevent overloading and premature failure."
+  },
+  {
+    "hazard_type": "Appliance Load Management",
+    "source": "Household Appliance Dataset (Garabitos Lara et al.)",
+    "question": "What circuit requirements apply to a home EV charger?",
+    "answer": "Electric vehicle home chargers draw 7 to 22 kW and must be installed on a dedicated circuit with appropriate cable ratings and protective devices by a licensed electrician."
+  },
+  {
+    "hazard_type": "Lightning Protection",
+    "source": "PUCSL English Safety Guideline",
+    "question": "Should people huddle together during a thunderstorm outdoors?",
+    "answer": "No. Groups should spread out with several metres between individuals so that a single lightning strike or step potential event does not affect multiple people simultaneously."
+  },
+  {
+    "hazard_type": "Workshops & Labs",
+    "source": "PUCSL English Safety Guideline",
+    "question": "What maintenance requirement applies to emergency stop buttons on workshop machinery?",
+    "answer": "Emergency stop buttons must be clearly identified with appropriate markings, kept unobstructed and accessible at all times, and tested regularly to confirm they function correctly."
+  },
+  {
+    "hazard_type": "Fault Diagnosis",
+    "source": "PUCSL English Safety Guideline",
+    "question": "What electrical fault can result from undersized cables on a long circuit run?",
+    "answer": "Undersized cables on long runs produce high voltage drop at the end of the circuit. Equipment connected at low voltage draws more current than rated, causing overheating and potential motor burnout."
+  },
+  {
+    "hazard_type": "Human Physiological Impact",
+    "source": "902710734-Electrical-Safety-Questions-Answers",
+    "question": "What four factors determine the severity of an electrical injury?",
+    "answer": "The four key factors are: the magnitude of current, the path it takes through the body, the duration of contact, and the individual's physical condition and skin resistance at the time."
+  },
+  {
+    "hazard_type": "General Safety",
+    "source": "PUCSL English Safety Guideline",
+    "question": "Can an electrostatic discharge too small to feel damage electronic components?",
+    "answer": "Yes. Electrostatic discharge of just 10 to 100 volts, far below the threshold of human perception, can permanently damage or destroy sensitive electronic components and printed circuit boards."
+  },
+  {
+    "hazard_type": "Institutional Responsibility",
+    "source": "PUCSL English Safety Guideline",
+    "question": "How often must temporary electrical installations on construction sites be inspected?",
+    "answer": "Temporary electrical installations on construction sites must be inspected by a licensed person at the start of each working day before any work commences, as they are subject to damage from the working environment."
+  },
+  {
+    "hazard_type": "Maintenance Safety",
+    "source": "PUCSL English Safety Guideline",
+    "question": "How must high voltage insulating gloves be inspected and stored?",
+    "answer": "Insulating gloves must be stored dry and away from ozone-generating equipment. Before each use, inflate the gloves and check for air leaks that would indicate punctures compromising their insulating properties."
+  },
+  {
+    "hazard_type": "Fire Safety",
+    "source": "PUCSL English Safety Guideline",
+    "question": "How are lithium-ion battery fires different from ordinary fires?",
+    "answer": "Lithium-ion fires burn at extremely high temperatures and can reignite hours after appearing to be extinguished. Large volumes of water must be applied to cool the cells permanently and prevent reignition."
+  },
+  {
+    "hazard_type": "Equipment Design",
+    "source": "PUCSL English Safety Guideline",
+    "question": "Why are SELV circuits considered safer than standard mains circuits?",
+    "answer": "SELV circuits operate at voltages below 50V AC or 120V DC, levels at which the risk of lethal shock is greatly reduced. They are isolated from earth and from other voltage systems."
+  },
+  {
+    "hazard_type": "Emergency / First Aid",
+    "source": "PUCSL English Safety Guideline",
+    "question": "How should a high voltage electrocution victim be transported to hospital?",
+    "answer": "A high voltage shock victim must be transported by ambulance with trained paramedic support, not private vehicle. They are a major trauma patient requiring continuous monitoring and possible resuscitation en route."
+  },
+  {
+    "hazard_type": "Legal / Regulations",
+    "source": "Gazette Extraordinary No. 1975/44",
+    "question": "What penalties exist for electrical offences such as illegal connections?",
+    "answer": "Electrical offences including illegal connections, meter tampering, and unlicensed installation work can result in substantial fines and terms of imprisonment under the Electricity Act."
+  },
+  {
+    "hazard_type": "User Safety Protocol",
+    "source": "PUCSL English Safety Guideline",
+    "question": "How can RCD protection be added to an appliance on a non-RCD circuit?",
+    "answer": "An approved RCD plug adaptor can be inserted between the appliance plug and the socket to provide personal protection for that specific appliance even where the circuit itself does not have RCD protection."
+  }
+]
