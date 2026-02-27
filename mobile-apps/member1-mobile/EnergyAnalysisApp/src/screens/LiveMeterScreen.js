@@ -18,6 +18,18 @@ import { API_BASE, WS_BASE } from '../config';
 
 const BASE_URL = API_BASE; // includes /api/v1
 const WS_URL   = WS_BASE;  // ws://host:port (no path)
+
+// Extract host from WS_URL for debug display
+const HOST = (() => {
+  try {
+    const url = new URL(WS_URL);
+    return url.hostname;
+  } catch (e) {
+    // Fallback: try to parse manually (for platforms without URL support)
+    const match = WS_URL?.match(/\/\/([^:/]+)/);
+    return match ? match[1] : 'unknown';
+  }
+})();
 // ─────────────────────────────────────────────────────────────────────────────
 
 
@@ -293,7 +305,13 @@ export default function LiveMeterScreen({ navigation }) {
 
       ws.onmessage = (e) => {
         try {
-          const msg = JSON.parse(e.data);
+          // Guard against plain-text pongs (some servers reply with 'pong')
+          const payload = typeof e.data === 'string' ? e.data : JSON.stringify(e.data);
+          if (payload === 'pong' || payload === '{"type":"pong"}') {
+            return; // ignore pong
+          }
+
+          const msg = JSON.parse(payload);
           console.log('[LiveMeter] Message received:', msg.type);
           if (msg.type === 'live_reading') {
             setLiveData(msg.data);

@@ -16,6 +16,7 @@ from src.models.budget_plan import (
     HouseholdMember,
     TariffStructure
 )
+from src.models.iot_reading import LiveMeterReading, ApplianceEvent
 
 # Export all models
 __all__ = [
@@ -27,5 +28,7 @@ __all__ = [
     'MeterReading',
     'HouseholdAppliance',
     'HouseholdMember',
-    'TariffStructure'
+    'TariffStructure',
+    'LiveMeterReading',
+    'ApplianceEvent',
 ]

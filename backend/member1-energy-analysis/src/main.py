@@ -15,6 +15,21 @@ from src.api.routes import smart_predictions
 from src.api.routes import iot                          # ← ADDED
 from src.services.iot_service import iot_service        # ← ADDED
 
+# Import all models to register them with SQLAlchemy (needed for create_all)
+from src.models import (
+    Base as ModelsBase,
+    ElectricityBill,
+    User,
+    UserProfile,
+    BudgetPlan,
+    MeterReading,
+    HouseholdAppliance,
+    HouseholdMember,
+    TariffStructure,
+    LiveMeterReading,
+    ApplianceEvent,
+)
+
 import logging
 import os
 
@@ -159,11 +174,11 @@ async def startup_event():
     logger.info("  - Appliance Management")
     logger.info("  - AI Disaggregation (NILM)") 
     logger.info("  - Image Recognition")
-    logger.info("  - IoT Live Meter (HiveMQ)")   # ← ADDED
+    logger.info("  - IoT Live Meter (HiveMQ)")   # ADDED
 
-    # ── Start IoT MQTT service ────────────────────────────────────────────────
-    iot_service.start()                           # ← ADDED
-    logger.info("  - IoT service started → subscribed to HiveMQ energyiq/#")
+    # Start IoT MQTT service
+    iot_service.start()                           # ADDED
+    logger.info("  - IoT service started - subscribed to HiveMQ energyiq/#")
 
 
 @app.on_event("shutdown")
