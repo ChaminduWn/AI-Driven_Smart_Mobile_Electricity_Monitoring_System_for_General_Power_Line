@@ -9,6 +9,7 @@ import { COLORS, SPACING, RADIUS, FONTS, SHADOW } from '../utils/theme';
 import { PrimaryButton } from '../components/SharedComponents';
 import * as Google from 'expo-auth-session/providers/google';
 import * as WebBrowser from 'expo-web-browser';
+import * as AuthSession from 'expo-auth-session';
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -26,32 +27,96 @@ const RegisterScreen = ({ navigation }) => {
     full_name: '', email: '', phone_number: '', password: '', confirm: '',
   });
   const [showPass, setShowPass] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [errors, setErrors] = useState({});
+  const [loading, setLoading]   = useState(false);
+  const [errors, setErrors]     = useState({});
 
-  const [request, response, promptAsync] = Google.useAuthRequest({
-    androidClientId: process.env.EXPO_PUBLIC_ANDROID_CLIENT_ID,
-    iosClientId: process.env.EXPO_PUBLIC_IOS_CLIENT_ID,
-    webClientId: process.env.EXPO_PUBLIC_WEB_CLIENT_ID,
+  // ── Google Auth Setup ───────────────────────────────────────────────────────
+  const redirectUri = AuthSession.makeRedirectUri({
+    scheme: 'energyanalysis',
+    useProxy: false,
   });
 
+  const [request, response, promptAsync] = Google.useAuthRequest({
+    webClientId:     process.env.EXPO_PUBLIC_WEB_CLIENT_ID,
+    androidClientId: process.env.EXPO_PUBLIC_ANDROID_CLIENT_ID,
+    iosClientId:     process.env.EXPO_PUBLIC_IOS_CLIENT_ID,
+    redirectUri,
+  });
+
+  // ── Handle Google response ──────────────────────────────────────────────────
   React.useEffect(() => {
-    if (response?.type === 'success') {
-      const { id_token } = response.params;
-      handleGoogleLogin(id_token);
+    if (!response) return;
+
+    if (response.type === 'success') {
+      const idToken = response.params?.id_token;
+
+      if (!idToken) {
+        const accessToken = response.params?.access_token;
+        if (accessToken) {
+          fetchGoogleUserInfo(accessToken);
+        } else {
+          Alert.alert('Google Error', 'No token received from Google. Try again.');
+        }
+        return;
+      }
+
+      handleGoogleLogin(idToken);
+
+    } else if (response.type === 'error') {
+      Alert.alert('Google Sign-In Failed', response.error?.message || 'Please try again.');
     }
   }, [response]);
 
+  // ── Fetch user info via access_token (fallback) ───────────────────────────
+  const fetchGoogleUserInfo = async (accessToken) => {
+    try {
+      setLoading(true);
+      const res = await fetch(
+        `https://www.googleapis.com/oauth2/v3/userinfo`,
+        { headers: { Authorization: `Bearer ${accessToken}` } }
+      );
+      const userInfo = await res.json();
+
+      if (!userInfo.email) {
+        Alert.alert('Google Error', 'Could not get email from Google account.');
+        return;
+      }
+
+      const backendRes = await authAPI.googleLogin(accessToken, userInfo);
+      const data = backendRes.data;
+
+      const appAccessToken  = data.access_token || data.accessToken || data.token;
+      const appRefreshToken = data.refresh_token || data.refreshToken || appAccessToken;
+      const userData        = data.user || data.profile;
+
+      await login(appAccessToken, appRefreshToken, userData);
+
+    } catch (err) {
+      console.error('Google user info error:', err);
+      Alert.alert('Google Auth Failed', 'Could not complete Google sign-in.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // ── Standard Google login with id_token ────────────────────────────────────
   const handleGoogleLogin = async (idToken) => {
     setLoading(true);
     try {
       const res = await authAPI.googleLogin(idToken);
       const data = res.data;
-      const accessToken = data.access_token || data.accessToken || data.token;
-      const refreshToken = data.refresh_token || data.refreshToken || data.access_token || data.token;
-      const userData = data.user || data.profile;
+
+      const accessToken  = data.access_token || data.accessToken || data.token;
+      const refreshToken = data.refresh_token || data.refreshToken || accessToken;
+      const userData     = data.user || data.profile;
+
+      if (!accessToken) {
+        Alert.alert('Error', 'No token received from server.');
+        return;
+      }
 
       await login(accessToken, refreshToken, userData);
+
     } catch (err) {
       console.error('Google Login Error:', err.response?.data || err.message);
       Alert.alert('Google Auth Failed', err.response?.data?.detail || 'Could not authenticate with Google.');
@@ -81,22 +146,25 @@ const RegisterScreen = ({ navigation }) => {
     setLoading(true);
     try {
       const payload = {
-        email: form.email.trim().toLowerCase(),
-        password: form.password,
-        full_name: form.full_name.trim() || null,
+        email:        form.email.trim().toLowerCase(),
+        password:     form.password,
+        full_name:    form.full_name.trim() || null,
         phone_number: form.phone_number.replace(/\D/g, '') || null,
       };
-      const res = await authAPI.register(payload);
+      const res  = await authAPI.register(payload);
       const data = res.data;
-      const accessToken = data.access_token || data.accessToken || data.token;
-      const refreshToken = data.refresh_token || data.refreshToken || data.access_token || data.token;
-      const userData = data.user || data.profile || { email: form.email.trim().toLowerCase() };
+
+      const accessToken  = data.access_token || data.accessToken || data.token;
+      const refreshToken = data.refresh_token || data.refreshToken || accessToken;
+      const userData     = data.user || data.profile || { email: form.email.trim().toLowerCase() };
+
       if (!accessToken) {
-        console.error("Register response:", JSON.stringify(data));
-        Alert.alert("Error", "Server response missing token. Check console.");
+        Alert.alert('Error', 'Server response missing token.');
         return;
       }
+
       await login(accessToken, refreshToken, userData);
+
     } catch (err) {
       const msg = err.response?.data?.detail || 'Registration failed.';
       Alert.alert('Registration Failed', msg);
@@ -105,10 +173,16 @@ const RegisterScreen = ({ navigation }) => {
     }
   };
 
+  // ── UI ──────────────────────────────────────────────────────────────────────
   return (
-    <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.flex}>
-      <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
-
+    <KeyboardAvoidingView
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      style={styles.flex}
+    >
+      <ScrollView
+        contentContainerStyle={styles.container}
+        keyboardShouldPersistTaps="handled"
+      >
         <View style={styles.header}>
           <View style={styles.logoWrap}>
             <Text style={styles.logoIcon}>⚡</Text>
@@ -195,7 +269,7 @@ const RegisterScreen = ({ navigation }) => {
           </View>
 
           <TouchableOpacity
-            style={styles.googleBtn}
+            style={[styles.googleBtn, (!request || loading) && styles.googleBtnDisabled]}
             onPress={() => promptAsync()}
             disabled={!request || loading}
           >
@@ -216,9 +290,9 @@ const RegisterScreen = ({ navigation }) => {
 };
 
 const styles = StyleSheet.create({
-  flex: { flex: 1, backgroundColor: COLORS.bg1 },
-  container: { flexGrow: 1, padding: SPACING.xl, paddingTop: SPACING.xxxl },
-  header: { alignItems: 'center', marginBottom: SPACING.xl },
+  flex:       { flex: 1, backgroundColor: COLORS.bg1 },
+  container:  { flexGrow: 1, padding: SPACING.xl, paddingTop: SPACING.xxxl },
+  header:     { alignItems: 'center', marginBottom: SPACING.xl },
   logoWrap: {
     width: 70, height: 70,
     backgroundColor: COLORS.secondary,
@@ -227,16 +301,16 @@ const styles = StyleSheet.create({
     marginBottom: SPACING.md,
     ...SHADOW.md,
   },
-  logoIcon: { fontSize: 36 },
-  title: { color: COLORS.textPrimary, fontSize: 26, ...FONTS.bold },
-  subtitle: { color: COLORS.textSecondary, fontSize: 14, marginTop: 4 },
+  logoIcon:   { fontSize: 36 },
+  title:      { color: COLORS.textPrimary, fontSize: 26, ...FONTS.bold },
+  subtitle:   { color: COLORS.textSecondary, fontSize: 14, marginTop: 4 },
   form: {
     backgroundColor: COLORS.bg2,
     borderRadius: RADIUS.xl,
     padding: SPACING.xl,
     ...SHADOW.md,
   },
-  fieldWrap: { marginBottom: SPACING.md },
+  fieldWrap:  { marginBottom: SPACING.md },
   fieldLabel: { color: COLORS.textSecondary, fontSize: 13, ...FONTS.medium, marginBottom: 6 },
   input: {
     backgroundColor: COLORS.bg3,
@@ -248,18 +322,18 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: COLORS.border,
   },
-  inputError: { borderColor: COLORS.danger },
-  passWrap: { position: 'relative' },
-  passInput: { paddingRight: 50 },
-  eyeBtn: { position: 'absolute', right: SPACING.md, top: '50%', transform: [{ translateY: -12 }] },
-  errText: { color: COLORS.danger, fontSize: 12, marginTop: 4 },
-  btn: { marginTop: SPACING.sm },
-  footer: { flexDirection: 'row', justifyContent: 'center', marginTop: SPACING.xl },
-  footerText: { color: COLORS.textSecondary },
-  link: { color: COLORS.primary, ...FONTS.semiBold },
-  divider: { flexDirection: 'row', alignItems: 'center', marginVertical: SPACING.lg },
-  line: { flex: 1, height: 1, backgroundColor: COLORS.border },
-  dividerText: { color: COLORS.textMuted, marginHorizontal: SPACING.md, fontSize: 12 },
+  inputError:        { borderColor: COLORS.danger },
+  passWrap:          { position: 'relative' },
+  passInput:         { paddingRight: 50 },
+  eyeBtn:            { position: 'absolute', right: SPACING.md, top: '50%', transform: [{ translateY: -12 }] },
+  errText:           { color: COLORS.danger, fontSize: 12, marginTop: 4 },
+  btn:               { marginTop: SPACING.sm },
+  footer:            { flexDirection: 'row', justifyContent: 'center', marginTop: SPACING.xl },
+  footerText:        { color: COLORS.textSecondary },
+  link:              { color: COLORS.primary, ...FONTS.semiBold },
+  divider:           { flexDirection: 'row', alignItems: 'center', marginVertical: SPACING.lg },
+  line:              { flex: 1, height: 1, backgroundColor: COLORS.border },
+  dividerText:       { color: COLORS.textMuted, marginHorizontal: SPACING.md, fontSize: 12 },
   googleBtn: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -271,8 +345,9 @@ const styles = StyleSheet.create({
     borderColor: '#ddd',
     ...SHADOW.sm,
   },
-  googleIcon: { color: '#4285F4', fontSize: 20, fontWeight: 'bold', marginRight: 10 },
-  googleBtnText: { color: '#757575', fontSize: 16, fontWeight: '600' },
+  googleBtnDisabled: { opacity: 0.5 },
+  googleIcon:        { color: '#4285F4', fontSize: 20, fontWeight: 'bold', marginRight: 10 },
+  googleBtnText:     { color: '#757575', fontSize: 16, fontWeight: '600' },
 });
 
 export default RegisterScreen;

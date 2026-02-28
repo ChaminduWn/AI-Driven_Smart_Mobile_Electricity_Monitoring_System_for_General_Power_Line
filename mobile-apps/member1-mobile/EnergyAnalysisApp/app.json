@@ -3,11 +3,13 @@
     "name": "EnergyAnalysisApp",
     "slug": "energy-analysis-app",
     "version": "1.0.0",
+    "scheme": "energyanalysis",
     "orientation": "portrait",
     "userInterfaceStyle": "dark",
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
+      "bundleIdentifier": "com.chamindu.energyanalysis",
       "infoPlist": {
         "NSCameraUsageDescription": "Used to scan appliances for automatic recognition",
         "NSPhotoLibraryUsageDescription": "Used to upload electricity bills from your photo library",

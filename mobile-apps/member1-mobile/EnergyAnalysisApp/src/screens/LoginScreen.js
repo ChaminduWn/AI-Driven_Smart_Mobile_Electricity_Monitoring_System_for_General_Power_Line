@@ -9,40 +9,113 @@ import { COLORS, SPACING, RADIUS, FONTS, SHADOW } from '../utils/theme';
 import { PrimaryButton } from '../components/SharedComponents';
 import * as Google from 'expo-auth-session/providers/google';
 import * as WebBrowser from 'expo-web-browser';
+import * as AuthSession from 'expo-auth-session';
 
 WebBrowser.maybeCompleteAuthSession();
 
 const LoginScreen = ({ navigation }) => {
   const { login } = useAuth();
-  const [email, setEmail] = useState('');
+  const [email, setEmail]       = useState('');
   const [password, setPassword] = useState('');
   const [showPass, setShowPass] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [errors, setErrors] = useState({});
+  const [loading, setLoading]   = useState(false);
+  const [errors, setErrors]     = useState({});
 
-  const [request, response, promptAsync] = Google.useAuthRequest({
-    androidClientId: process.env.EXPO_PUBLIC_ANDROID_CLIENT_ID,
-    iosClientId: process.env.EXPO_PUBLIC_IOS_CLIENT_ID,
-    webClientId: process.env.EXPO_PUBLIC_WEB_CLIENT_ID,
+  // ── Google Auth Setup ───────────────────────────────────────────────────────
+  // Using useProxy: false because you are not logged into Expo
+  // This uses your app's own scheme directly instead of auth.expo.io
+  const redirectUri = AuthSession.makeRedirectUri({
+    scheme: 'energyanalysis',
+    useProxy: false,
   });
 
+  const [request, response, promptAsync] = Google.useAuthRequest({
+    webClientId:     process.env.EXPO_PUBLIC_WEB_CLIENT_ID,
+    androidClientId: process.env.EXPO_PUBLIC_ANDROID_CLIENT_ID,
+    iosClientId:     process.env.EXPO_PUBLIC_IOS_CLIENT_ID,
+    redirectUri,
+  });
+
+  // ── Handle Google response ──────────────────────────────────────────────────
   React.useEffect(() => {
-    if (response?.type === 'success') {
-      const { id_token } = response.params;
-      handleGoogleLogin(id_token);
+    if (!response) return;
+
+    if (response.type === 'success') {
+      const idToken = response.params?.id_token;
+
+      if (!idToken) {
+        // Some flows return access_token instead of id_token
+        // Exchange access_token for user info
+        const accessToken = response.params?.access_token;
+        if (accessToken) {
+          fetchGoogleUserInfo(accessToken);
+        } else {
+          Alert.alert('Google Error', 'No token received from Google. Try again.');
+        }
+        return;
+      }
+
+      handleGoogleLogin(idToken);
+
+    } else if (response.type === 'error') {
+      Alert.alert('Google Sign-In Failed', response.error?.message || 'Please try again.');
+
+    } else if (response.type === 'cancel') {
+      // User cancelled — do nothing
     }
   }, [response]);
 
+  // ── If id_token not returned, fetch user info via access_token ──────────────
+  const fetchGoogleUserInfo = async (accessToken) => {
+    try {
+      setLoading(true);
+      const res = await fetch(
+        `https://www.googleapis.com/oauth2/v3/userinfo`,
+        { headers: { Authorization: `Bearer ${accessToken}` } }
+      );
+      const userInfo = await res.json();
+
+      if (!userInfo.email) {
+        Alert.alert('Google Error', 'Could not get email from Google account.');
+        return;
+      }
+
+      // Send to backend — backend handles user creation
+      const backendRes = await authAPI.googleLogin(accessToken, userInfo);
+      const data = backendRes.data;
+
+      const appAccessToken  = data.access_token || data.accessToken || data.token;
+      const appRefreshToken = data.refresh_token || data.refreshToken || appAccessToken;
+      const userData        = data.user || data.profile;
+
+      await login(appAccessToken, appRefreshToken, userData);
+
+    } catch (err) {
+      console.error('Google user info error:', err);
+      Alert.alert('Google Auth Failed', 'Could not complete Google sign-in.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // ── Standard Google login with id_token ────────────────────────────────────
   const handleGoogleLogin = async (idToken) => {
     setLoading(true);
     try {
       const res = await authAPI.googleLogin(idToken);
       const data = res.data;
-      const accessToken = data.access_token || data.accessToken || data.token;
-      const refreshToken = data.refresh_token || data.refreshToken || data.access_token || data.token;
-      const userData = data.user || data.profile;
+
+      const accessToken  = data.access_token || data.accessToken || data.token;
+      const refreshToken = data.refresh_token || data.refreshToken || accessToken;
+      const userData     = data.user || data.profile;
+
+      if (!accessToken) {
+        Alert.alert('Error', 'No token received from server.');
+        return;
+      }
 
       await login(accessToken, refreshToken, userData);
+
     } catch (err) {
       console.error('Google Login Error:', err.response?.data || err.message);
       Alert.alert('Google Auth Failed', err.response?.data?.detail || 'Could not authenticate with Google.');
@@ -51,6 +124,7 @@ const LoginScreen = ({ navigation }) => {
     }
   };
 
+  // ── Email/Password validation ───────────────────────────────────────────────
   const validate = () => {
     const e = {};
     if (!email.trim()) e.email = 'Email is required';
@@ -61,65 +135,43 @@ const LoginScreen = ({ navigation }) => {
     return Object.keys(e).length === 0;
   };
 
+  // ── Email/Password login ────────────────────────────────────────────────────
   const handleLogin = async () => {
     if (!validate()) return;
     setLoading(true);
     try {
-      console.log('🔐 Attempting login with email:', email);
-      const res = await authAPI.login(email.trim().toLowerCase(), password);
+      const res  = await authAPI.login(email.trim().toLowerCase(), password);
       const data = res.data;
 
-      console.log('✓ Login response received:', JSON.stringify(data, null, 2));
-
-      // ── Flexible token extraction (handles different backend shapes) ──
-      // Shape A: { access_token, refresh_token, user }
-      // Shape B: { accessToken, refreshToken, user }
-      // Shape C: { token, user }
-      // Shape D: { access_token, user: { ... } }
-      const accessToken =
-        data.access_token ||
-        data.accessToken ||
-        data.token;
-
-      const refreshToken =
-        data.refresh_token ||
-        data.refreshToken ||
-        data.access_token || // fallback if no separate refresh
-        data.token;
-
-      const userData =
-        data.user ||
-        data.profile ||
-        { email: email.trim().toLowerCase() }; // minimal fallback
-
-      console.log('Token extracted:', {
-        hasAccessToken: !!accessToken,
-        hasRefreshToken: !!refreshToken,
-        hasUserData: !!userData,
-      });
+      const accessToken  = data.access_token || data.accessToken || data.token;
+      const refreshToken = data.refresh_token || data.refreshToken || accessToken;
+      const userData     = data.user || data.profile || { email: email.trim().toLowerCase() };
 
       if (!accessToken) {
-        console.error('❌ Login response structure:', JSON.stringify(data));
-        Alert.alert('Login Error', 'Server response missing token. Check console for details.');
+        Alert.alert('Login Error', 'Server response missing token.');
         return;
       }
 
-      console.log('💾 Storing tokens and user data...');
       await login(accessToken, refreshToken, userData);
-      console.log('✓ Login successful!');
+
     } catch (err) {
-      console.error('❌ Login error:', err.response?.data || err.message);
-      const msg = err.response?.data?.detail || err.response?.data?.message || 'Login failed. Check your credentials.';
+      const msg = err.response?.data?.detail || err.response?.data?.message || 'Login failed.';
       Alert.alert('Login Failed', msg);
     } finally {
       setLoading(false);
     }
   };
 
+  // ── UI ──────────────────────────────────────────────────────────────────────
   return (
-    <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.flex}>
-      <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
-
+    <KeyboardAvoidingView
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      style={styles.flex}
+    >
+      <ScrollView
+        contentContainerStyle={styles.container}
+        keyboardShouldPersistTaps="handled"
+      >
         {/* Header */}
         <View style={styles.header}>
           <View style={styles.logoWrap}>
@@ -187,7 +239,7 @@ const LoginScreen = ({ navigation }) => {
           </View>
 
           <TouchableOpacity
-            style={styles.googleBtn}
+            style={[styles.googleBtn, (!request || loading) && styles.googleBtnDisabled]}
             onPress={() => promptAsync()}
             disabled={!request || loading}
           >
@@ -208,9 +260,9 @@ const LoginScreen = ({ navigation }) => {
 };
 
 const styles = StyleSheet.create({
-  flex: { flex: 1, backgroundColor: COLORS.bg1 },
-  container: { flexGrow: 1, padding: SPACING.xl, justifyContent: 'center' },
-  header: { alignItems: 'center', marginBottom: SPACING.xxxl },
+  flex:       { flex: 1, backgroundColor: COLORS.bg1 },
+  container:  { flexGrow: 1, padding: SPACING.xl, justifyContent: 'center' },
+  header:     { alignItems: 'center', marginBottom: SPACING.xxxl },
   logoWrap: {
     width: 80, height: 80,
     backgroundColor: COLORS.primary,
@@ -219,18 +271,18 @@ const styles = StyleSheet.create({
     marginBottom: SPACING.lg,
     ...SHADOW.md,
   },
-  logoIcon: { fontSize: 40 },
-  title: { color: COLORS.textPrimary, fontSize: 32, ...FONTS.extraBold, letterSpacing: -0.5 },
-  subtitle: { color: COLORS.textSecondary, fontSize: 14, marginTop: 4, letterSpacing: 1 },
+  logoIcon:   { fontSize: 40 },
+  title:      { color: COLORS.textPrimary, fontSize: 32, ...FONTS.extraBold, letterSpacing: -0.5 },
+  subtitle:   { color: COLORS.textSecondary, fontSize: 14, marginTop: 4, letterSpacing: 1 },
   form: {
     backgroundColor: COLORS.bg2,
     borderRadius: RADIUS.xl,
     padding: SPACING.xl,
     ...SHADOW.md,
   },
-  formTitle: { color: COLORS.textPrimary, fontSize: 22, ...FONTS.bold, marginBottom: 4 },
-  formSub: { color: COLORS.textSecondary, fontSize: 14, marginBottom: SPACING.xl },
-  fieldWrap: { marginBottom: SPACING.lg },
+  formTitle:  { color: COLORS.textPrimary, fontSize: 22, ...FONTS.bold, marginBottom: 4 },
+  formSub:    { color: COLORS.textSecondary, fontSize: 14, marginBottom: SPACING.xl },
+  fieldWrap:  { marginBottom: SPACING.lg },
   fieldLabel: { color: COLORS.textSecondary, fontSize: 13, ...FONTS.medium, marginBottom: 6 },
   input: {
     backgroundColor: COLORS.bg3,
@@ -242,19 +294,19 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: COLORS.border,
   },
-  inputError: { borderColor: COLORS.danger },
-  passWrap: { position: 'relative' },
-  passInput: { paddingRight: 50 },
-  eyeBtn: { position: 'absolute', right: SPACING.md, top: '50%', transform: [{ translateY: -12 }] },
-  eye: { fontSize: 20 },
-  errText: { color: COLORS.danger, fontSize: 12, marginTop: 4 },
-  loginBtn: { marginTop: SPACING.sm },
-  footer: { flexDirection: 'row', justifyContent: 'center', marginTop: SPACING.xl },
-  footerText: { color: COLORS.textSecondary, fontSize: 14 },
-  link: { color: COLORS.primary, fontSize: 14, ...FONTS.semiBold },
-  divider: { flexDirection: 'row', alignItems: 'center', marginVertical: SPACING.lg },
-  line: { flex: 1, height: 1, backgroundColor: COLORS.border },
-  dividerText: { color: COLORS.textMuted, marginHorizontal: SPACING.md, fontSize: 12 },
+  inputError:         { borderColor: COLORS.danger },
+  passWrap:           { position: 'relative' },
+  passInput:          { paddingRight: 50 },
+  eyeBtn:             { position: 'absolute', right: SPACING.md, top: '50%', transform: [{ translateY: -12 }] },
+  eye:                { fontSize: 20 },
+  errText:            { color: COLORS.danger, fontSize: 12, marginTop: 4 },
+  loginBtn:           { marginTop: SPACING.sm },
+  footer:             { flexDirection: 'row', justifyContent: 'center', marginTop: SPACING.xl },
+  footerText:         { color: COLORS.textSecondary, fontSize: 14 },
+  link:               { color: COLORS.primary, fontSize: 14, ...FONTS.semiBold },
+  divider:            { flexDirection: 'row', alignItems: 'center', marginVertical: SPACING.lg },
+  line:               { flex: 1, height: 1, backgroundColor: COLORS.border },
+  dividerText:        { color: COLORS.textMuted, marginHorizontal: SPACING.md, fontSize: 12 },
   googleBtn: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -266,8 +318,9 @@ const styles = StyleSheet.create({
     borderColor: '#ddd',
     ...SHADOW.sm,
   },
-  googleIcon: { color: '#4285F4', fontSize: 20, fontWeight: 'bold', marginRight: 10 },
-  googleBtnText: { color: '#757575', fontSize: 16, fontWeight: '600' },
+  googleBtnDisabled:  { opacity: 0.5 },
+  googleIcon:         { color: '#4285F4', fontSize: 20, fontWeight: 'bold', marginRight: 10 },
+  googleBtnText:      { color: '#757575', fontSize: 16, fontWeight: '600' },
 });
 
 export default LoginScreen;
