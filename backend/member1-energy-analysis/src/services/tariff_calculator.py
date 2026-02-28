@@ -1,443 +1,157 @@
-
-# """
-# CEB Domestic Tariff Calculator - OFFICIAL October 2025 Rates
-# Based on actual CEB tariff document
-# """
-# from typing import Dict, List
-# from datetime import datetime
-
-
-# class CEBTariffCalculator:
-#     """
-#     Calculate electricity costs based on CEB domestic tariff rates
-#     Official rates from October 15, 2025 tariff revision
-#     """
-    
-#     # CORRECT DOMESTIC TARIFF RATES (from official PDF)
-#     # For consumption 0-60 kWh
-#     LOW_CONSUMPTION_SLABS = [
-#         {'min': 0, 'max': 30, 'rate': 4.50, 'fixed': 80.00},
-#         {'min': 31, 'max': 60, 'rate': 8.00, 'fixed': 210.00}
-#     ]
-    
-#     # For consumption ABOVE 60 kWh
-#     HIGH_CONSUMPTION_SLABS = [
-#         {'min': 0, 'max': 60, 'rate': 12.75, 'fixed': 0},      # No separate fixed for this block
-#         {'min': 61, 'max': 90, 'rate': 18.50, 'fixed': 400.00},
-#         {'min': 91, 'max': 120, 'rate': 24.00, 'fixed': 1000.00},
-#         {'min': 121, 'max': 180, 'rate': 41.00, 'fixed': 1500.00},
-#         {'min': 181, 'max': float('inf'), 'rate': 61.00, 'fixed': 2100.00}
-#     ]
-    
-#     SSCL_RATE = 0.02565  # 2.565% Social Security Contribution Levy
-    
-#     def calculate_bill(self, units: int, days: int = 30) -> Dict:
-#         """
-#         Calculate electricity bill based on consumption
-        
-#         Args:
-#             units: Total units consumed (kWh)
-#             days: Number of days in billing period
-            
-#         Returns:
-#             Dictionary with detailed bill breakdown
-#         """
-        
-#         # Normalize to 30-day period for tariff calculation
-#         normalized_units = (units / days) * 30
-        
-#         # Determine which tariff structure to use
-#         if normalized_units <= 60:
-#             # Use low consumption tariff
-#             result = self._calculate_low_consumption(normalized_units)
-#         else:
-#             # Use high consumption tariff
-#             result = self._calculate_high_consumption(normalized_units)
-        
-#         # Add metadata
-#         result['original_units'] = units
-#         result['original_days'] = days
-#         result['normalized_units'] = round(normalized_units, 2)
-        
-#         return result
-    
-#     def _calculate_low_consumption(self, units: float) -> Dict:
-#         """Calculate for consumption <= 60 kWh"""
-#         energy_charge = 0.0
-#         fixed_charge = 0.0
-#         breakdown = []
-        
-#         for slab in self.LOW_CONSUMPTION_SLABS:
-#             if units <= 0:
-#                 break
-            
-#             # Calculate units in this slab
-#             units_in_slab = 0
-#             if units <= slab['max']:
-#                 # All remaining units fit in this slab
-#                 units_in_slab = units - slab['min'] + 1 if units > slab['min'] else units
-#             else:
-#                 # Fill this slab completely
-#                 units_in_slab = slab['max'] - slab['min'] + 1
-            
-#             # Calculate charge for this slab
-#             slab_charge = units_in_slab * slab['rate']
-#             energy_charge += slab_charge
-            
-#             # Fixed charge is for the highest slab reached
-#             if units >= slab['min']:
-#                 fixed_charge = slab['fixed']
-            
-#             breakdown.append({
-#                 'slab': f"Block: {slab['min']}-{slab['max']} kWh",
-#                 'units': round(units_in_slab, 2),
-#                 'rate': slab['rate'],
-#                 'amount': round(slab_charge, 2)
-#             })
-            
-#             units -= units_in_slab
-        
-#         subtotal = energy_charge + fixed_charge
-#         sscl = subtotal * self.SSCL_RATE
-#         total = subtotal + sscl
-        
-#         return {
-#             'category': '0-60 kWh (Low Consumption)',
-#             'energy_charge': round(energy_charge, 2),
-#             'fixed_charge': round(fixed_charge, 2),
-#             'subtotal': round(subtotal, 2),
-#             'sscl': round(sscl, 2),
-#             'total': round(total, 2),
-#             'breakdown': breakdown
-#         }
-    
-#     def _calculate_high_consumption(self, units: float) -> Dict:
-#         """Calculate for consumption > 60 kWh"""
-#         energy_charge = 0.0
-#         fixed_charge = 0.0
-#         breakdown = []
-#         remaining_units = units
-        
-#         for slab in self.HIGH_CONSUMPTION_SLABS:
-#             if remaining_units <= 0:
-#                 break
-            
-#             # Calculate units in this slab
-#             units_in_slab = 0
-            
-#             if slab['max'] == float('inf'):
-#                 # Last slab - all remaining units
-#                 units_in_slab = remaining_units
-#             else:
-#                 # Calculate units that fit in this slab
-#                 slab_size = slab['max'] - slab['min'] + 1
-#                 units_in_slab = min(remaining_units, slab_size)
-            
-#             # Only process if there are units in this slab
-#             if units_in_slab > 0:
-#                 slab_charge = units_in_slab * slab['rate']
-#                 energy_charge += slab_charge
-                
-#                 # Fixed charge for the applicable slab
-#                 if units >= slab['min'] and slab['fixed'] > 0:
-#                     fixed_charge = slab['fixed']
-                
-#                 breakdown.append({
-#                     'slab': f"Block: {slab['min']}-{int(slab['max']) if slab['max'] != float('inf') else '∞'} kWh",
-#                     'units': round(units_in_slab, 2),
-#                     'rate': slab['rate'],
-#                     'amount': round(slab_charge, 2)
-#                 })
-                
-#                 remaining_units -= units_in_slab
-        
-#         subtotal = energy_charge + fixed_charge
-#         sscl = subtotal * self.SSCL_RATE
-#         total = subtotal + sscl
-        
-#         return {
-#             'category': 'Above 60 kWh (High Consumption)',
-#             'energy_charge': round(energy_charge, 2),
-#             'fixed_charge': round(fixed_charge, 2),
-#             'subtotal': round(subtotal, 2),
-#             'sscl': round(sscl, 2),
-#             'total': round(total, 2),
-#             'breakdown': breakdown
-#         }
-    
-#     def verify_bill(self, units: int, days: int, actual_bill_amount: float) -> Dict:
-#         """
-#         Verify if calculated bill matches actual bill
-#         Used for testing and validation
-#         """
-#         calculated = self.calculate_bill(units, days)
-#         difference = abs(calculated['total'] - actual_bill_amount)
-#         percentage_diff = (difference / actual_bill_amount * 100) if actual_bill_amount > 0 else 0
-        
-#         return {
-#             'units': units,
-#             'days': days,
-#             'calculated_total': calculated['total'],
-#             'actual_bill': actual_bill_amount,
-#             'difference': round(difference, 2),
-#             'percentage_difference': round(percentage_diff, 2),
-#             'match': difference < 5.0,  # Within Rs. 5 tolerance
-#             'details': calculated
-#         }
-
-
-# # Test with your actual bill
-# if __name__ == "__main__":
-#     calculator = CEBTariffCalculator()
-    
-#     # Your actual bill: 84 units over 34 days = Rs. 1,603.08
-#     print("="*70)
-#     print("TESTING WITH YOUR ACTUAL BILL")
-#     print("="*70)
-    
-#     result = calculator.calculate_bill(units=84, days=34)
-    
-#     print(f"\nUnits: {result['original_units']} kWh over {result['original_days']} days")
-#     print(f"Normalized (30 days): {result['normalized_units']} kWh")
-#     print(f"Category: {result['category']}")
-#     print(f"\nBreakdown:")
-#     for item in result['breakdown']:
-#         print(f"  {item['slab']}: {item['units']} units × Rs.{item['rate']} = Rs.{item['amount']}")
-#     print(f"\nEnergy Charge: Rs.{result['energy_charge']}")
-#     print(f"Fixed Charge: Rs.{result['fixed_charge']}")
-#     print(f"Subtotal: Rs.{result['subtotal']}")
-#     print(f"SSCL (2.565%): Rs.{result['sscl']}")
-#     print(f"="*70)
-#     print(f"TOTAL: Rs.{result['total']}")
-#     print(f"="*70)
-    
-#     # Verify against actual bill
-#     print("\nVerification:")
-#     verification = calculator.verify_bill(84, 34, 1603.08)
-#     print(f"Calculated: Rs.{verification['calculated_total']}")
-#     print(f"Actual Bill: Rs.{verification['actual_bill']}")
-#     print(f"Difference: Rs.{verification['difference']} ({verification['percentage_difference']}%)")
-#     print(f"Match: {'✅ YES' if verification['match'] else '❌ NO'}")
-
-
-
 """
 services/tariff_calculator.py
-✅ COMPLETE FIX: Fixed charge changes based on consumption blocks
-Based on CEB Domestic Tariff - Effective October 15, 2025
+✅ FIXED: Correct CEB slab scaling for non-30-day billing periods
+Verified against real CEB bills:
+  - Bill 1: 31 units, 29 days → Rs. 356.50 (pre-SSCL) → Rs. 365.64 total
+  - Bill 2: 62 units, 29 days → Rs. 1,213.50 (pre-SSCL) → Rs. 1,244.62 total
+
+HOW CEB CALCULATES:
+1. Normalize units to 30-day equivalent to determine CATEGORY (0-60 vs above 60)
+2. Scale each slab's 30-day limit by (billing_days / 30) to get actual-period limits
+3. Apply energy rate to units falling in each scaled slab
+4. Fixed charge = based on the highest slab reached (using normalized units)
+5. SSCL = 2.565% on (energy_charge + fixed_charge)
 """
 from typing import Dict, List
 
 
 class CEBTariffCalculator:
-    """CEB Domestic Tariff Calculator - October 2025 (Complete & Accurate)"""
-    
-    # Energy charge rates for 0-60 kWh consumption
-    TARIFF_SLABS_0_TO_60 = [
-        {'min': 0, 'max': 30, 'rate': 4.50, 'fixed_charge': 80.00},
-        {'min': 31, 'max': 60, 'rate': 8.00, 'fixed_charge': 210.00}
+    """CEB Domestic Tariff Calculator - October 2025"""
+
+    # 30-day slab definitions
+    SLABS_LOW = [
+        {'limit_30d': 30,  'rate': 4.50,  'fixed': 80.00},
+        {'limit_30d': 60,  'rate': 8.00,  'fixed': 210.00},
     ]
-    
-    # Energy charge rates for above 60 kWh consumption
-    TARIFF_SLABS_ABOVE_60 = [
-        {'min': 0, 'max': 60, 'rate': 12.75, 'fixed_charge': None},  # First block
-        {'min': 61, 'max': 90, 'rate': 18.50, 'fixed_charge': 400.00},
-        {'min': 91, 'max': 120, 'rate': 24.00, 'fixed_charge': 1000.00},
-        {'min': 121, 'max': 180, 'rate': 41.00, 'fixed_charge': 1500.00},
-        {'min': 181, 'max': float('inf'), 'rate': 61.00, 'fixed_charge': 2100.00}
+
+    SLABS_HIGH = [
+        {'limit_30d': 60,  'rate': 12.75, 'fixed': None},
+        {'limit_30d': 90,  'rate': 18.50, 'fixed': 400.00},
+        {'limit_30d': 120, 'rate': 24.00, 'fixed': 1000.00},
+        {'limit_30d': 180, 'rate': 41.00, 'fixed': 1500.00},
+        {'limit_30d': None,'rate': 61.00, 'fixed': 2100.00},  # None = unlimited
     ]
-    
-    SSCL_RATE = 0.02565  # 2.565% Social Security Contribution Levy
-    
+
+    SSCL_RATE = 0.02565
+
     def calculate_bill(self, units: int, billing_days: int = 30) -> Dict:
         """
-        Calculate electricity bill with detailed breakdown
-        
+        Calculate CEB electricity bill.
+
         Args:
-            units: Total units consumed
-            billing_days: Billing period days (default 30)
-            
+            units: Actual units consumed in billing period
+            billing_days: Actual number of days in billing period
+
         Returns:
-            Dictionary with detailed bill breakdown including correct fixed charge
+            Dict with full bill breakdown
         """
-        
-        # Determine which tariff structure and fixed charge to use
-        if units <= 60:
-            slabs = self.TARIFF_SLABS_0_TO_60
-            # For 0-60 range, fixed charge depends on actual consumption
-            if units <= 30:
-                fixed_charge = 80.00
-            else:  # 31-60
-                fixed_charge = 210.00
-        else:
-            slabs = self.TARIFF_SLABS_ABOVE_60
-            # For above 60, fixed charge depends on highest consumption block
-            if units <= 90:
-                fixed_charge = 400.00
-            elif units <= 120:
-                fixed_charge = 1000.00
-            elif units <= 180:
-                fixed_charge = 1500.00
-            else:  # Above 180
-                fixed_charge = 2100.00
-        
-        # Calculate energy charge with breakdown
-        energy_charge = 0.0
-        breakdown = []
-        remaining_units = units
-        
-        for slab in slabs:
-            if remaining_units <= 0:
-                break
-            
-            slab_min = slab['min']
-            slab_max = slab['max']
-            rate = slab['rate']
-            
-            # Skip if consumption hasn't reached this block
-            if units < slab_min:
-                continue
-            
-            # Calculate units in this slab
-            if slab_max == float('inf'):
-                # Last slab - all remaining units
-                units_in_slab = units - slab_min + 1
-            else:
-                # Calculate units within this slab range
-                if units <= slab_max:
-                    # Consumption ends within this slab
-                    units_in_slab = units - slab_min + 1
-                else:
-                    # Full slab
-                    units_in_slab = slab_max - slab_min + 1
-            
-            # Make sure we don't exceed remaining units
-            units_in_slab = min(units_in_slab, remaining_units)
-            
-            if units_in_slab > 0:
-                amount = units_in_slab * rate
-                energy_charge += amount
-                
-                breakdown.append({
-                    'block': f"{slab_min}-{int(slab_max) if slab_max != float('inf') else '∞'} kWh",
-                    'rate': rate,
-                    'units': int(units_in_slab),
-                    'amount': round(amount, 2),
-                    'calculation': f"{rate:.2f} × {int(units_in_slab)} = {round(amount, 2):.2f}"
-                })
-                
-                remaining_units -= units_in_slab
-        
-        # Calculate totals
-        subtotal = energy_charge + fixed_charge
-        sscl_tax = subtotal * self.SSCL_RATE
-        total = subtotal + sscl_tax
-        
-        # Determine category
-        if units <= 60:
+        # Step 1: Normalize to 30 days to determine CATEGORY only
+        normalized_units = (units / billing_days) * 30
+
+        if normalized_units <= 60:
+            slabs = self.SLABS_LOW
+            # Fixed charge = highest slab reached (by normalized consumption)
+            fixed_charge = 80.00 if normalized_units <= 30 else 210.00
             category = 1
             category_name = '0-60 kWh (Low Consumption)'
         else:
+            slabs = self.SLABS_HIGH
+            if normalized_units <= 90:
+                fixed_charge = 400.00
+            elif normalized_units <= 120:
+                fixed_charge = 1000.00
+            elif normalized_units <= 180:
+                fixed_charge = 1500.00
+            else:
+                fixed_charge = 2100.00
             category = 2
             category_name = 'Above 60 kWh (High Consumption)'
-        
+
+        # Step 2: Scale slab limits to actual billing period and calculate energy charge
+        energy_charge = 0.0
+        breakdown = []
+        remaining = units
+        prev_scaled_limit = 0
+
+        for slab in slabs:
+            if remaining <= 0:
+                break
+
+            if slab['limit_30d'] is None:
+                # Final unlimited slab
+                units_in_slab = remaining
+                range_label = f"{prev_scaled_limit + 1}+ kWh"
+            else:
+                # Scale the 30-day slab limit to current billing period
+                scaled_limit = int(slab['limit_30d'] * billing_days / 30)
+                units_in_slab = max(0, min(remaining, scaled_limit - prev_scaled_limit))
+                range_label = f"{prev_scaled_limit + 1}-{scaled_limit} kWh"
+                if prev_scaled_limit == 0:
+                    range_label = f"0-{scaled_limit} kWh"
+                prev_scaled_limit = scaled_limit
+
+            if units_in_slab <= 0:
+                continue
+
+            amount = units_in_slab * slab['rate']
+            energy_charge += amount
+            breakdown.append({
+                'block': range_label,
+                'rate': slab['rate'],
+                'units': round(units_in_slab, 2),
+                'amount': round(amount, 2),
+                'calculation': f"{slab['rate']:.2f} × {units_in_slab} = {amount:.2f}",
+            })
+            remaining -= units_in_slab
+
+        # Step 3: Totals
+        subtotal = energy_charge + fixed_charge
+        sscl = subtotal * self.SSCL_RATE
+        total = subtotal + sscl
+
         return {
             'category': category,
             'category_name': category_name,
             'energy_charge': round(energy_charge, 2),
             'fixed_charge': round(fixed_charge, 2),
             'subtotal': round(subtotal, 2),
-            'sscl': round(sscl_tax, 2),
+            'sscl': round(sscl, 2),
             'total': round(total, 2),
             'breakdown': breakdown,
             'billing_days': billing_days,
-            'units_consumed': units
+            'units_consumed': units,
+            'normalized_units': round(normalized_units, 2),
         }
 
 
-# ========== TESTING ==========
+# ========== TESTS ==========
 if __name__ == "__main__":
-    calculator = CEBTariffCalculator()
-    
-    print("\n" + "="*70)
-    print("CEB TARIFF CALCULATOR TEST")
-    print("="*70)
-    
-    # Test Case 1: Your actual bill - 246 kWh
-    print("\n📋 TEST CASE 1: Your Actual Bill (246 kWh)")
-    print("-" * 70)
-    result = calculator.calculate_bill(246, 30)
-    
-    print("\n🔢 ENERGY CHARGE BREAKDOWN:")
-    for item in result['breakdown']:
-        print(f"   {item['calculation']}")
-    
-    print(f"\n💰 BILL SUMMARY:")
-    print(f"   Energy Charge:    Rs. {result['energy_charge']:>10,.2f}")
-    print(f"   Fixed Charge:     Rs. {result['fixed_charge']:>10,.2f}")
-    print(f"   ────────────────────────────────────")
-    print(f"   Subtotal:         Rs. {result['subtotal']:>10,.2f}")
-    print(f"   SSCL Tax (2.565%):  Rs. {result['sscl']:>10,.2f}")
-    print(f"   ════════════════════════════════════")
-    print(f"   TOTAL:            Rs. {result['total']:>10,.2f}")
-    
-    print(f"\n✅ Expected (from bill):  Rs. 10,898.46")
-    print(f"✅ Calculated:            Rs. {result['total']:,.2f}")
-    difference = abs(result['total'] - 10898.46)
-    print(f"✅ Difference:            Rs. {difference:.2f}")
-    print(f"✅ Match: {'YES! 🎉' if difference < 1 else 'NO ❌'}")
-    
-    # Test Case 2: Low consumption - 50 kWh
-    print("\n" + "="*70)
-    print("\n📋 TEST CASE 2: Low Consumption (50 kWh)")
-    print("-" * 70)
-    result2 = calculator.calculate_bill(50, 30)
-    
-    print("\n🔢 ENERGY CHARGE BREAKDOWN:")
-    for item in result2['breakdown']:
-        print(f"   {item['calculation']}")
-    
-    print(f"\n💰 BILL SUMMARY:")
-    print(f"   Energy Charge:    Rs. {result2['energy_charge']:>10,.2f}")
-    print(f"   Fixed Charge:     Rs. {result2['fixed_charge']:>10,.2f} (31-60 kWh range)")
-    print(f"   Subtotal:         Rs. {result2['subtotal']:>10,.2f}")
-    print(f"   SSCL Tax (2.565%):  Rs. {result2['sscl']:>10,.2f}")
-    print(f"   TOTAL:            Rs. {result2['total']:>10,.2f}")
-    
-    # Test Case 3: Just above threshold - 70 kWh
-    print("\n" + "="*70)
-    print("\n📋 TEST CASE 3: Just Above Threshold (70 kWh)")
-    print("-" * 70)
-    result3 = calculator.calculate_bill(70, 30)
-    
-    print("\n🔢 ENERGY CHARGE BREAKDOWN:")
-    for item in result3['breakdown']:
-        print(f"   {item['calculation']}")
-    
-    print(f"\n💰 BILL SUMMARY:")
-    print(f"   Energy Charge:    Rs. {result3['energy_charge']:>10,.2f}")
-    print(f"   Fixed Charge:     Rs. {result3['fixed_charge']:>10,.2f} (61-90 kWh range)")
-    print(f"   Subtotal:         Rs. {result3['subtotal']:>10,.2f}")
-    print(f"   SSCL Tax (2.565%):  Rs. {result3['sscl']:>10,.2f}")
-    print(f"   TOTAL:            Rs. {result3['total']:>10,.2f}")
-    
-    # Test Case 4: Very low consumption - 25 kWh
-    print("\n" + "="*70)
-    print("\n📋 TEST CASE 4: Very Low Consumption (25 kWh)")
-    print("-" * 70)
-    result4 = calculator.calculate_bill(25, 30)
-    
-    print("\n🔢 ENERGY CHARGE BREAKDOWN:")
-    for item in result4['breakdown']:
-        print(f"   {item['calculation']}")
-    
-    print(f"\n💰 BILL SUMMARY:")
-    print(f"   Energy Charge:    Rs. {result4['energy_charge']:>10,.2f}")
-    print(f"   Fixed Charge:     Rs. {result4['fixed_charge']:>10,.2f} (0-30 kWh range)")
-    print(f"   Subtotal:         Rs. {result4['subtotal']:>10,.2f}")
-    print(f"   SSCL Tax (2.565%):  Rs. {result4['sscl']:>10,.2f}")
-    print(f"   TOTAL:            Rs. {result4['total']:>10,.2f}")
-    
-    print("\n" + "="*70)
-    print("✅ ALL TESTS COMPLETE!")
-    print("="*70 + "\n")
+    calc = CEBTariffCalculator()
+
+    print("=" * 60)
+    print("CEB TARIFF CALCULATOR - VERIFICATION TESTS")
+    print("=" * 60)
+
+    # --- Bill 1: W.D. NIROSHAN, 31 units, 29 days ---
+    # Expected: energy=146.50, fixed=210.00, subtotal=356.50, SSCL=9.14, total=365.64
+    r1 = calc.calculate_bill(31, 29)
+    print("\n📋 Bill 1: W.D. NIROSHAN (31 units, 29 days)")
+    for b in r1['breakdown']:
+        print(f"   {b['calculation']}")
+    print(f"   Energy: Rs.{r1['energy_charge']}  Fixed: Rs.{r1['fixed_charge']}")
+    print(f"   SSCL: Rs.{r1['sscl']}  TOTAL: Rs.{r1['total']}")
+    print(f"   Expected: Rs.365.64  Match: {'✅' if abs(r1['total'] - 365.64) < 0.05 else '❌'}")
+
+    # --- Bill 2: D C R DASANAYAKE, 62 units, 29 days ---
+    # Expected: energy=813.50, fixed=400.00, subtotal=1213.50, SSCL=31.12, total=1244.62
+    r2 = calc.calculate_bill(62, 29)
+    print("\n📋 Bill 2: D C R DASANAYAKE (62 units, 29 days)")
+    for b in r2['breakdown']:
+        print(f"   {b['calculation']}")
+    print(f"   Energy: Rs.{r2['energy_charge']}  Fixed: Rs.{r2['fixed_charge']}")
+    print(f"   SSCL: Rs.{r2['sscl']}  TOTAL: Rs.{r2['total']}")
+    print(f"   Expected: Rs.1,244.62  Match: {'✅' if abs(r2['total'] - 1244.62) < 0.05 else '❌'}")
+
+    print("\n" + "=" * 60)
+    print("✅ DONE")
+    print("=" * 60)
