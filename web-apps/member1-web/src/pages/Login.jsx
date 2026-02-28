@@ -11,54 +11,91 @@ import {
   CircularProgress,
   Stack,
   Divider,
+  Alert,
 } from '@mui/material';
 import LockOutlinedIcon from '@mui/icons-material/LockOutlined';
-
-const API_BASE = 'http://localhost:8000/api/v1';
+import apiClient from '../services/final-apiClient';
+import { useAuth } from '../contexts/AuthContext';
 
 export default function Login() {
   const navigate = useNavigate();
+  const { login } = useAuth();
   const [credentials, setCredentials] = useState({ email: '', password: '' });
   const [loading, setLoading] = useState(false);
-  const [errors, setErrors] = useState({ email: false, password: false });
+  const [errors, setErrors] = useState({ email: '', password: '' });
   const [apiError, setApiError] = useState('');
+
+  const validateEmail = (email) => {
+    const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return re.test(email);
+  };
 
   const handleLogin = async (e) => {
     e.preventDefault();
-
-    // Basic client-side validation
-    const newErrors = {
-      email: !credentials.email.trim(),
-      password: !credentials.password,
-    };
-    setErrors(newErrors);
-
-    if (newErrors.email || newErrors.password) return;
-
-    setLoading(true);
     setApiError('');
 
+    // Client-side validation
+    const newErrors = { email: '', password: '' };
+    
+    if (!credentials.email.trim()) {
+      newErrors.email = 'Email is required';
+    } else if (!validateEmail(credentials.email)) {
+      newErrors.email = 'Please enter a valid email';
+    }
+
+    if (!credentials.password) {
+      newErrors.password = 'Password is required';
+    } else if (credentials.password.length < 8) {
+      newErrors.password = 'Password must be at least 8 characters';
+    }
+
+    setErrors(newErrors);
+
+    if (newErrors.email || newErrors.password) {
+      return;
+    }
+
+    setLoading(true);
+
     try {
-      const res = await fetch(`${API_BASE}/auth/login`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(credentials),
+      const response = await apiClient.post('/api/v1/auth/login', {
+        email: credentials.email.trim(),
+        password: credentials.password,
       });
 
-      const data = await res.json();
-      if (!res.ok || !data.access_token) {
-        throw new Error(data.detail || 'Invalid email or password');
+      const { access_token, user } = response.data;
+
+      if (!access_token) {
+        throw new Error('Authentication failed. No token received.');
       }
 
-      // Store token for later API calls
-      localStorage.setItem('access_token', data.access_token);
-      // Optionally store basic user info
-      localStorage.setItem('user', JSON.stringify(data.user));
+      // Use auth context to store auth data
+      await login(access_token, user);
 
+      // Navigate to dashboard
       navigate('/member1');
     } catch (err) {
-      console.error(err);
-      setApiError(err.message || 'Login failed. Please try again.');
+      console.error('Login error:', err);
+      
+      // Handle Axios error responses
+      if (err.response) {
+        const status = err.response.status;
+        const detail = err.response.data?.detail || err.response.data?.message;
+        
+        if (status === 401) {
+          setApiError('Invalid email or password');
+        } else if (status === 403) {
+          setApiError('Account is inactive. Please contact support.');
+        } else if (status === 422) {
+          setApiError('Invalid input. Please check your credentials.');
+        } else {
+          setApiError(detail || 'Login failed. Please try again.');
+        }
+      } else if (err.request) {
+        setApiError('Cannot connect to server. Please check your connection.');
+      } else {
+        setApiError(err.message || 'Login failed. Please try again.');
+      }
     } finally {
       setLoading(false);
     }
@@ -66,8 +103,12 @@ export default function Login() {
 
   const handleChange = (field) => (e) => {
     setCredentials({ ...credentials, [field]: e.target.value });
+    // Clear errors when user starts typing
     if (errors[field]) {
-      setErrors({ ...errors, [field]: false });
+      setErrors({ ...errors, [field]: '' });
+    }
+    if (apiError) {
+      setApiError('');
     }
   };
 
@@ -93,7 +134,6 @@ export default function Login() {
         }}
       >
         <Stack spacing={3} alignItems="center">
-          {/* Logo/Avatar */}
           <Avatar
             sx={{
               bgcolor: 'primary.main',
@@ -116,6 +156,12 @@ export default function Login() {
 
         <Box component="form" onSubmit={handleLogin} sx={{ mt: 3 }}>
           <Stack spacing={2.5}>
+            {apiError && (
+              <Alert severity="error" onClose={() => setApiError('')}>
+                {apiError}
+              </Alert>
+            )}
+
             <TextField
               required
               fullWidth
@@ -125,8 +171,8 @@ export default function Login() {
               autoFocus
               value={credentials.email}
               onChange={handleChange('email')}
-              error={errors.email}
-              helperText={errors.email && 'Email is required'}
+              error={Boolean(errors.email)}
+              helperText={errors.email}
               variant="outlined"
               sx={{
                 '& .MuiOutlinedInput-root': {
@@ -143,8 +189,8 @@ export default function Login() {
               autoComplete="current-password"
               value={credentials.password}
               onChange={handleChange('password')}
-              error={errors.password}
-              helperText={errors.password && 'Password is required'}
+              error={Boolean(errors.password)}
+              helperText={errors.password}
               variant="outlined"
               sx={{
                 '& .MuiOutlinedInput-root': {
@@ -152,12 +198,6 @@ export default function Login() {
                 },
               }}
             />
-
-            {apiError && (
-              <Typography variant="body2" color="error">
-                {apiError}
-              </Typography>
-            )}
 
             <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
               <Link href="#" variant="body2" underline="hover" color="primary">
