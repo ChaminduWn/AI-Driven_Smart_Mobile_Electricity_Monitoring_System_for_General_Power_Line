@@ -22,19 +22,20 @@ import NILMScreen from '../screens/NILMScreen';
 import SmartInsightsScreen from '../screens/SmartInsightsScreen';
 import LiveMeterScreen from '../screens/LiveMeterScreen';
 
+// ── ✅ NEW: Tariff Calculator Screen ──────────────────────────────────────────
+import TariffScreen from '../screens/TariffScreen';
+
 const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator();
 const AuthStack = createStackNavigator();
 
-// ─── Tab config (5 tabs — SmartInsights replaces Analysis as its own tab) ────
-// Analysis is still reachable via the Dashboard quick actions
+// ─── Tab config ───────────────────────────────────────────────────────────────
 const TAB_CONFIG = [
-  { name: 'Dashboard',     label: 'Home',     icon: '🏠' },
-  { name: 'Bills',         label: 'Bills',    icon: '📄' },
-  { name: 'Appliances',    label: 'Devices',  icon: '⚡' },
-  { name: 'Tracking',      label: 'Track',    icon: '🎯' },
-  { name: 'SmartInsights', label: 'AI',       icon: '🤖' },
-
+  { name: 'Dashboard',     label: 'Home',    icon: '🏠' },
+  { name: 'Bills',         label: 'Bills',   icon: '📄' },
+  { name: 'Appliances',    label: 'Devices', icon: '⚡' },
+  { name: 'Tracking',      label: 'Track',   icon: '🎯' },
+  { name: 'SmartInsights', label: 'AI',      icon: '🤖' },
 ];
 
 // ─── Loading Screen ───────────────────────────────────────────────────────────
@@ -62,6 +63,7 @@ const sharedHeaderOptions = {
 };
 
 // ─── Dashboard Stack ──────────────────────────────────────────────────────────
+// AnalysisScreen is reachable here → its Tariff tab → TariffScreen
 const DashboardStack = () => (
   <Stack.Navigator screenOptions={sharedHeaderOptions}>
     <Stack.Screen
@@ -78,6 +80,12 @@ const DashboardStack = () => (
       name="Analysis"
       component={AnalysisScreen}
       options={{ title: 'Analysis' }}
+    />
+    {/* ✅ TariffScreen — navigated to from AnalysisScreen's Tariff tab */}
+    <Stack.Screen
+      name="Tariff"
+      component={TariffScreen}
+      options={{ headerShown: false }}  // TariffScreen has its own dark header
     />
     <Stack.Screen
       name="NILM"
@@ -120,6 +128,7 @@ const TrackingStack = () => (
 );
 
 // ─── Smart Insights Stack ─────────────────────────────────────────────────────
+// Also includes Analysis → Tariff path in case user reaches it from here
 const SmartInsightsStack = () => (
   <Stack.Navigator screenOptions={sharedHeaderOptions}>
     <Stack.Screen
@@ -136,6 +145,12 @@ const SmartInsightsStack = () => (
       name="Analysis"
       component={AnalysisScreen}
       options={{ title: 'Analysis' }}
+    />
+    {/* ✅ TariffScreen — also reachable from SmartInsights → Analysis → Tariff tab */}
+    <Stack.Screen
+      name="Tariff"
+      component={TariffScreen}
+      options={{ headerShown: false }}
     />
     <Stack.Screen
       name="NILM"
