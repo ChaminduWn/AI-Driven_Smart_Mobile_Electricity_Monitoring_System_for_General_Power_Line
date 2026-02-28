@@ -7,6 +7,10 @@ import { useAuth } from '../contexts/AuthContext';
 import { authAPI } from '../api/authAPI';
 import { COLORS, SPACING, RADIUS, FONTS, SHADOW } from '../utils/theme';
 import { PrimaryButton } from '../components/SharedComponents';
+import * as Google from 'expo-auth-session/providers/google';
+import * as WebBrowser from 'expo-web-browser';
+
+WebBrowser.maybeCompleteAuthSession();
 
 const LoginScreen = ({ navigation }) => {
   const { login } = useAuth();
@@ -15,6 +19,37 @@ const LoginScreen = ({ navigation }) => {
   const [showPass, setShowPass] = useState(false);
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState({});
+
+  const [request, response, promptAsync] = Google.useAuthRequest({
+    androidClientId: process.env.EXPO_PUBLIC_ANDROID_CLIENT_ID,
+    iosClientId: process.env.EXPO_PUBLIC_IOS_CLIENT_ID,
+    webClientId: process.env.EXPO_PUBLIC_WEB_CLIENT_ID,
+  });
+
+  React.useEffect(() => {
+    if (response?.type === 'success') {
+      const { id_token } = response.params;
+      handleGoogleLogin(id_token);
+    }
+  }, [response]);
+
+  const handleGoogleLogin = async (idToken) => {
+    setLoading(true);
+    try {
+      const res = await authAPI.googleLogin(idToken);
+      const data = res.data;
+      const accessToken = data.access_token || data.accessToken || data.token;
+      const refreshToken = data.refresh_token || data.refreshToken || data.access_token || data.token;
+      const userData = data.user || data.profile;
+
+      await login(accessToken, refreshToken, userData);
+    } catch (err) {
+      console.error('Google Login Error:', err.response?.data || err.message);
+      Alert.alert('Google Auth Failed', err.response?.data?.detail || 'Could not authenticate with Google.');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const validate = () => {
     const e = {};
@@ -145,6 +180,21 @@ const LoginScreen = ({ navigation }) => {
             style={styles.loginBtn}
           />
 
+          <View style={styles.divider}>
+            <View style={styles.line} />
+            <Text style={styles.dividerText}>OR</Text>
+            <View style={styles.line} />
+          </View>
+
+          <TouchableOpacity
+            style={styles.googleBtn}
+            onPress={() => promptAsync()}
+            disabled={!request || loading}
+          >
+            <Text style={styles.googleIcon}>G</Text>
+            <Text style={styles.googleBtnText}>Continue with Google</Text>
+          </TouchableOpacity>
+
           <View style={styles.footer}>
             <Text style={styles.footerText}>Don't have an account? </Text>
             <TouchableOpacity onPress={() => navigation.navigate('Register')}>
@@ -202,6 +252,22 @@ const styles = StyleSheet.create({
   footer: { flexDirection: 'row', justifyContent: 'center', marginTop: SPACING.xl },
   footerText: { color: COLORS.textSecondary, fontSize: 14 },
   link: { color: COLORS.primary, fontSize: 14, ...FONTS.semiBold },
+  divider: { flexDirection: 'row', alignItems: 'center', marginVertical: SPACING.lg },
+  line: { flex: 1, height: 1, backgroundColor: COLORS.border },
+  dividerText: { color: COLORS.textMuted, marginHorizontal: SPACING.md, fontSize: 12 },
+  googleBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#fff',
+    borderRadius: RADIUS.md,
+    paddingVertical: SPACING.md,
+    borderWidth: 1,
+    borderColor: '#ddd',
+    ...SHADOW.sm,
+  },
+  googleIcon: { color: '#4285F4', fontSize: 20, fontWeight: 'bold', marginRight: 10 },
+  googleBtnText: { color: '#757575', fontSize: 16, fontWeight: '600' },
 });
 
 export default LoginScreen;

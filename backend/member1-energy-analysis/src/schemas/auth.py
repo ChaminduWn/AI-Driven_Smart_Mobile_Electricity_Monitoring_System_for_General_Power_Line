@@ -39,9 +39,7 @@ class UserLoginRequest(BaseModel):
 
 class GoogleLoginRequest(BaseModel):
     """Schema for Google OAuth login request."""
-    email: EmailStr
-    google_id: str = Field(..., description="Google subject / user ID")
-    full_name: Optional[str] = Field(None, max_length=255)
+    id_token: str = Field(..., description="Google ID token from frontend")
 
 
 class RefreshTokenRequest(BaseModel):

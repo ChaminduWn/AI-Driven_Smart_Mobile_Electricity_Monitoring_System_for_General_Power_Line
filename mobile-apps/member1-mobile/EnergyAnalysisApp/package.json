@@ -17,10 +17,13 @@
     "@react-navigation/stack": "^7.1.1",
     "axios": "^1.7.9",
     "expo": "~52.0.25",
+    "expo-auth-session": "~6.0.3",
     "expo-camera": "~16.0.12",
+    "expo-crypto": "~14.0.2",
     "expo-document-picker": "~13.0.3",
     "expo-image-picker": "~16.0.3",
     "expo-status-bar": "~2.0.1",
+    "expo-web-browser": "~14.0.2",
     "lucide-react-native": "^0.475.0",
     "react": "18.3.1",
     "react-dom": "18.3.1",
@@ -31,7 +34,7 @@
     "react-native-screens": "~4.4.0",
     "react-native-svg": "15.8.0",
     "react-native-web": "~0.19.13",
-    "victory-native": "^41.13.0"
+    "victory-native": "^36.6.8"
   },
   "devDependencies": {
     "@babel/core": "^7.25.2"

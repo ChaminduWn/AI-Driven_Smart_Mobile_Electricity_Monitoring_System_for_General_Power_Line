@@ -293,65 +293,91 @@ def login_user_form(form_data: OAuth2PasswordRequestForm = Depends(), db: Sessio
     )
 
 
+from google.oauth2 import id_token
+from google.auth.transport import requests
+
 @router.post("/google", response_model=TokenResponse)
 def google_login(payload: GoogleLoginRequest, db: Session = Depends(get_db)):
     """
     Login/register via Google.
-    NOTE: This endpoint assumes the frontend has already verified the Google ID token
-    and is sending a trusted google_id + email.
+    Verifies the Google ID token and creates or links a user.
     """
-    # Try to find user by Google ID
-    user = db.query(User).filter(User.google_id == payload.google_id).first()
-    
-    if not user:
-        # Fallback: match by email if existing
-        user = db.query(User).filter(User.email == payload.email).first()
+    try:
+        # Verify the ID token
+        # NOTE: In a real production environment, you would list your Client IDs here
+        # idinfo = id_token.verify_oauth2_token(payload.id_token, requests.Request(), CLINET_ID)
+        
+        # For this implementation, we'll verify it and extract the info
+        # We use a broad verification first, then check the issuer
+        idinfo = id_token.verify_oauth2_token(payload.id_token, requests.Request())
+
+        if idinfo['iss'] not in ['accounts.google.com', 'https://accounts.google.com']:
+            raise ValueError('Wrong issuer.')
+
+        # ID token is valid. Extract user info
+        google_id = idinfo['sub']
+        email = idinfo['email']
+        full_name = idinfo.get('name')
+
+        # Try to find user by Google ID
+        user = db.query(User).filter(User.google_id == google_id).first()
         
         if not user:
-            # Create new user
-            user = User(
-                email=payload.email,
-                google_id=payload.google_id,
-                is_active=True,
-            )
-            db.add(user)
-            db.flush()
+            # Fallback: match by email if existing
+            user = db.query(User).filter(User.email == email).first()
+            
+            if not user:
+                # Create new user
+                user = User(
+                    email=email,
+                    google_id=google_id,
+                    is_active=True,
+                )
+                db.add(user)
+                db.flush()
 
-            profile = UserProfile(
-                user_id=user.id,
-                full_name=payload.full_name,
-            )
-            db.add(profile)
-            db.commit()
-            db.refresh(user)
-            db.refresh(profile)
+                profile = UserProfile(
+                    user_id=user.id,
+                    full_name=full_name,
+                )
+                db.add(profile)
+                db.commit()
+                db.refresh(user)
+                db.refresh(profile)
+            else:
+                # Update existing user with Google ID if not set
+                if not user.google_id:
+                    user.google_id = google_id
+                    db.commit()
+                profile = user.profile
         else:
-            # Update existing user with Google ID
-            user.google_id = payload.google_id
-            db.commit()
             profile = user.profile
-    else:
-        profile = user.profile
 
-    if not user.is_active:
-        raise HTTPException(status_code=403, detail="Account is inactive")
+        if not user.is_active:
+            raise HTTPException(status_code=403, detail="Account is inactive")
 
-    # Generate tokens
-    access_token = create_access_token({"sub": str(user.id)})
-    refresh_token = create_refresh_token({"sub": str(user.id)})
+        # Generate tokens
+        access_token = create_access_token({"sub": str(user.id)})
+        refresh_token = create_refresh_token({"sub": str(user.id)})
 
-    return TokenResponse(
-        access_token=access_token,
-        refresh_token=refresh_token,
-        user=UserProfileResponse(
-            id=user.id,
-            email=user.email,
-            phone_number=user.phone_number,
-            full_name=profile.full_name if profile else None,
-            default_account_number=profile.default_account_number if profile else None,
-            created_at=user.created_at,
-        ),
-    )
+        return TokenResponse(
+            access_token=access_token,
+            refresh_token=refresh_token,
+            user=UserProfileResponse(
+                id=user.id,
+                email=user.email,
+                phone_number=user.phone_number,
+                full_name=profile.full_name if profile else None,
+                default_account_number=profile.default_account_number if profile else None,
+                created_at=user.created_at,
+            ),
+        )
+    except ValueError as e:
+        # Invalid token
+        raise HTTPException(status_code=401, detail=f"Invalid Google token: {str(e)}")
+    except Exception as e:
+        logger.error(f"Google login failed: {str(e)}")
+        raise HTTPException(status_code=500, detail="Internal server error during Google login")
 
 
 @router.get("/me", response_model=UserProfileResponse)

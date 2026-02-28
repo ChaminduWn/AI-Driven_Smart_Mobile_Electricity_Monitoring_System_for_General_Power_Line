@@ -15,4 +15,7 @@ export const authAPI = {
 
   logout: () =>
     apiClient.post('/auth/logout'),
+
+  googleLogin: (id_token) =>
+    apiClient.post('/auth/google', { id_token }),
 };
