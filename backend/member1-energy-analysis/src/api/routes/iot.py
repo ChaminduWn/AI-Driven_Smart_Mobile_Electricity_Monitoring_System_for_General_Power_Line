@@ -1,316 +1,439 @@
 """
 src/api/routes/iot.py
-======================
-Place this file at: src/api/routes/iot.py
+=====================
+IoT appliance-testing API routes.
 
 Endpoints:
-  WS   /api/v1/iot/ws/{account_number}              ← mobile app connects here
-  GET  /api/v1/iot/latest/{account_number}         ← get latest reading (live)
-  GET  /api/v1/iot/history/{account_number}        ← get reading history (live)
-  GET  /api/v1/iot/stored-history/{account_number} ← get readings from database
-  GET  /api/v1/iot/status/{account_number}         ← check device online
-  POST /api/v1/iot/store/{account_number}          ← store reading in DB
-  POST /api/v1/iot/simulate/{account_number}       ← test without ESP32
+  POST   /iot/sessions                                 — start a test session
+  POST   /iot/sessions/{account}/{session_id}/end      — end a session early
+  GET    /iot/sessions/{account}/{session_id}          — session detail + health report
+  GET    /iot/sessions/{account}                       — list sessions for account
+  GET    /iot/sessions/{account}/{session_id}/readings — paginated raw readings
+  GET    /iot/sessions/{account}/{session_id}/export   — download dataset (JSON / CSV)
+  GET    /iot/latest/{device_id}                       — latest reading (in-memory)
+  GET    /iot/history/{device_id}                      — recent history (in-memory)
+  GET    /iot/status/{device_id}                       — is device online?
+  GET    /iot/devices                                  — all known devices
+  POST   /iot/simulate/{device_id}                     — inject test data (no hardware)
+  WS     /iot/ws/{account}?device_id={MAC}             — live WebSocket
 """
 
-from fastapi import APIRouter, WebSocket, WebSocketDisconnect, HTTPException, Query, Depends
-from sqlalchemy.orm import Session
-from src.services.iot_service import iot_service
-from src.database import get_db
-from src.models.iot_reading import LiveMeterReading, ApplianceEvent
-from datetime import datetime, timedelta
-import logging
+import csv
+import io
 import json
+import logging
 import random
-import time
+from datetime import datetime, timezone
+from typing import Optional
+
+from fastapi import APIRouter, Depends, HTTPException, Query, WebSocket, WebSocketDisconnect
+from fastapi.responses import StreamingResponse
+from pydantic import BaseModel
+from sqlalchemy.orm import Session
+
+from src.database import get_db
+from src.models.device_session import DeviceApplianceEvent, DeviceReading, DeviceSession
+from src.services.iot_service import iot_service
 
 logger = logging.getLogger(__name__)
-
-router = APIRouter(prefix="/iot", tags=["IoT Live Meter"])
-
-
-# ── WebSocket — mobile app connects here ─────────────────────────────────────
-@router.websocket("/ws/{account_number}")
-async def meter_websocket(websocket: WebSocket, account_number: str):
-    """
-    Mobile app connects to this WebSocket for live data.
-    URL: ws://YOUR_PC_IP:8000/api/v1/iot/ws/ACC001
-
-    Messages received by app:
-      { "type": "snapshot",       "data": { latest, history, appliance_events } }
-      { "type": "live_reading",   "data": { voltage, current, power, ... } }
-      { "type": "appliance_event","data": { from, to, watts, ... } }
-    """
-    await websocket.accept()
-    iot_service.register_websocket(account_number, websocket)
-    logger.info(f"WebSocket opened: {account_number}")
-
-    # Send existing data immediately when app connects
-    latest  = iot_service.get_latest(account_number)
-    history = iot_service.get_history(account_number, minutes=5)
-    events  = iot_service.get_appliance_events(account_number)
-
-    await websocket.send_json({
-        "type": "snapshot",
-        "data": {
-            "latest":           latest,
-            "history":          history,
-            "appliance_events": events,
-        }
-    })
-
-    try:
-        while True:
-            try:
-                msg = await websocket.receive_text()
-                if msg == "ping":
-                    # Reply with JSON so clients expecting JSON won't error when parsing
-                    await websocket.send_json({"type": "pong"})
-            except Exception:
-                break
-    except WebSocketDisconnect:
-        pass
-    finally:
-        iot_service.unregister_websocket(account_number, websocket)
-        logger.info(f"WebSocket closed: {account_number}")
+router = APIRouter(prefix="/iot", tags=["IoT"])
 
 
-# ── Store reading in database ────────────────────────────────────────────────
-@router.post("/store/{account_number}")
-async def store_reading(
-    account_number: str,
-    data: dict,
-    db: Session = Depends(get_db)
+# ─────────────────────────────────────────────────────────────────────────────
+# Pydantic schemas
+# ─────────────────────────────────────────────────────────────────────────────
+
+class StartSessionRequest(BaseModel):
+    device_id:             str
+    account_number:        str
+    appliance_name:        str
+    appliance_brand:       Optional[str] = None
+    appliance_description: Optional[str] = None
+    test_duration_min:     Optional[int] = 15
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Session management
+# ─────────────────────────────────────────────────────────────────────────────
+
+@router.post("/sessions")
+def start_session(req: StartSessionRequest, db: Session = Depends(get_db)):
+    """Create a new test session and link the device to it."""
+    # End any existing active session for this device first
+    existing_id = iot_service.get_active_session(req.device_id)
+    if existing_id:
+        old = db.query(DeviceSession).filter(DeviceSession.id == existing_id).first()
+        if old and old.status == "active":
+            old.status   = "abandoned"
+            old.ended_at = datetime.now(timezone.utc)
+            db.commit()
+
+    session = DeviceSession(
+        device_id             = req.device_id,
+        account_number        = req.account_number,
+        appliance_name        = req.appliance_name,
+        appliance_brand       = req.appliance_brand,
+        appliance_description = req.appliance_description,
+        test_duration_min     = req.test_duration_min,
+        status                = "active",
+        started_at            = datetime.now(timezone.utc),
+    )
+    db.add(session)
+    db.commit()
+    db.refresh(session)
+
+    iot_service.set_active_session(req.device_id, session.id, req.account_number)
+
+    logger.info(f"Session {session.id} started — device={req.device_id} appliance={req.appliance_name}")
+    return {
+        "session_id":     session.id,
+        "device_id":      req.device_id,
+        "appliance_name": req.appliance_name,
+        "status":         "active",
+        "started_at":     session.started_at.isoformat(),
+        "message":        "Session started. Plug the appliance into the tester now.",
+    }
+
+
+@router.post("/sessions/{account}/{session_id}/end")
+async def end_session(account: str, session_id: int, db: Session = Depends(get_db)):
+    """Manually end a session (user taps Stop)."""
+    session = db.query(DeviceSession).filter(
+        DeviceSession.id == session_id,
+        DeviceSession.account_number == account,
+    ).first()
+
+    if not session:
+        raise HTTPException(404, "Session not found")
+    if session.status != "active":
+        raise HTTPException(400, f"Session already {session.status}")
+
+    # Trigger the service end-session logic (runs health check + AI)
+    await iot_service._end_session(session.device_id)
+
+    db.refresh(session)
+    return {"message": "Session ended", "session_id": session_id, "status": session.status}
+
+
+@router.get("/sessions/{account}/{session_id}")
+def get_session(
+    account:        str,
+    session_id:     int,
+    include_dataset: bool = Query(False, description="Include full reading array"),
+    db:             Session = Depends(get_db),
 ):
-    """
-    Store a live meter reading in the database.
-    Called from MQTT wrapper or IoT service.
-    
-    Expected fields:
-    - voltage, current, power, energy, frequency, power_factor
-    - session_kwh, session_cost_rs
-    - detected_appliance, anomaly
-    - read_count, uptime_ms, wifi_rssi
-    """
-    try:
-        reading = LiveMeterReading(
-            account_number=account_number,
-            voltage=float(data.get('voltage', 0)),
-            current=float(data.get('current', 0)),
-            power=float(data.get('power', 0)),
-            energy=float(data.get('energy', 0)),
-            frequency=float(data.get('frequency', 50)),
-            power_factor=float(data.get('power_factor', 1)),
-            session_kwh=float(data.get('session_kwh', 0)),
-            session_cost_rs=float(data.get('session_cost_rs', 0)),
-            detected_appliance=data.get('detected_appliance'),
-            anomaly=data.get('anomaly'),
-            read_count=int(data.get('read_count', 0)),
-            uptime_ms=int(data.get('uptime_ms', 0)),
-            wifi_rssi=int(data.get('wifi_rssi', -100)),
-            raw_data=data,
-        )
-        db.add(reading)
-        db.commit()
-        db.refresh(reading)
-        logger.info(f"Stored reading for {account_number}: {reading.power}W")
-        return {"status": "stored", "id": reading.id}
-    except Exception as e:
-        logger.error(f"Failed to store reading: {e}")
-        db.rollback()
-        raise HTTPException(status_code=500, detail=str(e))
+    """Return session detail with health report and AI analysis."""
+    session = db.query(DeviceSession).filter(
+        DeviceSession.id == session_id,
+        DeviceSession.account_number == account,
+    ).first()
 
+    if not session:
+        raise HTTPException(404, "Session not found")
 
-# ── Store appliance event ────────────────────────────────────────────────────
-@router.post("/store-event/{account_number}")
-async def store_event(
-    account_number: str,
-    from_appliance: str,
-    to_appliance: str,
-    watts: float,
-    db: Session = Depends(get_db)
-):
-    """Store an appliance change event in the database."""
-    try:
-        event = ApplianceEvent(
-            account_number=account_number,
-            from_appliance=from_appliance,
-            to_appliance=to_appliance,
-            watts=watts,
-        )
-        db.add(event)
-        db.commit()
-        db.refresh(event)
-        logger.info(f"Stored event for {account_number}: {from_appliance} -> {to_appliance}")
-        return {"status": "stored", "id": event.id}
-    except Exception as e:
-        logger.error(f"Failed to store event: {e}")
-        db.rollback()
-        raise HTTPException(status_code=500, detail=str(e))
+    data = session.to_dict(include_dataset=include_dataset)
 
+    # Attach recent appliance events
+    events = db.query(DeviceApplianceEvent).filter(
+        DeviceApplianceEvent.session_id == session_id
+    ).order_by(DeviceApplianceEvent.event_time).all()
+    data["appliance_events"] = [e.to_dict() for e in events]
 
-# ── Get latest reading (from memory) ──────────────────────────────────────────
-@router.get("/latest/{account_number}")
-async def get_latest(account_number: str):
-    """Get the latest live reading from memory cache"""
-    data = iot_service.get_latest(account_number)
-    if not data:
-        raise HTTPException(
-            status_code=404,
-            detail=f"No live data for {account_number}. Is ESP32 powered on?"
-        )
     return data
 
 
-# ── Get reading history (from memory) ────────────────────────────────────────
-@router.get("/history/{account_number}")
-async def get_history(
-    account_number: str,
-    minutes: int = Query(default=5, ge=1, le=60)
+@router.get("/sessions/{account}")
+def list_sessions(
+    account:        str,
+    limit:          int = Query(20, le=100),
+    offset:         int = Query(0),
+    appliance_name: Optional[str] = None,
+    db:             Session = Depends(get_db),
 ):
-    """Get reading history from memory cache (last N minutes)"""
-    history = iot_service.get_history(account_number, minutes)
-    return {
-        "account_number": account_number,
-        "minutes":        minutes,
-        "count":          len(history),
-        "readings":       history,
-    }
-
-
-# ── Get stored history from database ─────────────────────────────────────────
-@router.get("/stored-history/{account_number}")
-async def get_stored_history(
-    account_number: str,
-    hours: int = Query(default=24, ge=1, le=365*24),
-    limit: int = Query(default=1000, ge=1, le=10000),
-    db: Session = Depends(get_db)
-):
-    """
-    Get stored readings from database for analysis.
-    Useful for historical analysis over days/weeks.
-    """
-    try:
-        since = datetime.utcnow() - timedelta(hours=hours)
-        readings = db.query(LiveMeterReading).filter(
-            LiveMeterReading.account_number == account_number,
-            LiveMeterReading.recorded_at >= since
-        ).order_by(LiveMeterReading.recorded_at.desc()).limit(limit).all()
-        
-        return {
-            "account_number": account_number,
-            "hours": hours,
-            "count": len(readings),
-            "readings": [r.to_dict() for r in readings]
-        }
-    except Exception as e:
-        logger.error(f"Failed to get stored history: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
-
-
-# ── Get appliance event history ──────────────────────────────────────────────
-@router.get("/events/{account_number}")
-async def get_events(
-    account_number: str,
-    hours: int = Query(default=24, ge=1, le=365*24),
-    limit: int = Query(default=100, ge=1, le=1000),
-    db: Session = Depends(get_db)
-):
-    """Get appliance change events from database"""
-    try:
-        since = datetime.utcnow() - timedelta(hours=hours)
-        events = db.query(ApplianceEvent).filter(
-            ApplianceEvent.account_number == account_number,
-            ApplianceEvent.event_time >= since
-        ).order_by(ApplianceEvent.event_time.desc()).limit(limit).all()
-        
-        return {
-            "account_number": account_number,
-            "hours": hours,
-            "count": len(events),
-            "events": [e.to_dict() for e in events]
-        }
-    except Exception as e:
-        logger.error(f"Failed to get events: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
-
-
-# ── Device status ─────────────────────────────────────────────────────────────
-@router.get("/status/{account_number}")
-async def device_status(account_number: str):
-    latest = iot_service.get_latest(account_number)
-
-    if not latest:
-        return {
-            "account_number": account_number,
-            "device_online":  False,
-            "message":        "No data received yet. Power on your ESP32.",
-        }
-
-    try:
-        last_seen    = datetime.fromisoformat(latest.get("server_time", ""))
-        seconds_ago  = (datetime.utcnow() - last_seen).total_seconds()
-        online       = seconds_ago < 30
-    except Exception:
-        seconds_ago  = 9999
-        online       = False
+    """List test sessions for an account, newest first."""
+    q = db.query(DeviceSession).filter(DeviceSession.account_number == account)
+    if appliance_name:
+        q = q.filter(DeviceSession.appliance_name.ilike(f"%{appliance_name}%"))
+    total    = q.count()
+    sessions = q.order_by(DeviceSession.started_at.desc()).offset(offset).limit(limit).all()
 
     return {
-        "account_number":       account_number,
-        "device_online":        online,
-        "last_seen_seconds_ago": round(seconds_ago),
-        "latest_voltage":       latest.get("voltage"),
-        "latest_power":         latest.get("power"),
-        "detected_appliance":   latest.get("detected_appliance"),
-        "anomalies":            latest.get("anomalies", []),
+        "total":    total,
+        "sessions": [s.to_dict() for s in sessions],
     }
 
 
-# ── Simulate — test without ESP32 ────────────────────────────────────────────
-@router.post("/simulate/{account_number}")
-async def simulate(
-    account_number: str,
-    scenario: str = Query(default="idle")
+# ─────────────────────────────────────────────────────────────────────────────
+# Raw readings (for charts / export)
+# ─────────────────────────────────────────────────────────────────────────────
+
+@router.get("/sessions/{account}/{session_id}/readings")
+def get_readings(
+    account:    str,
+    session_id: int,
+    limit:      int = Query(500, le=2000),
+    offset:     int = Query(0),
+    db:         Session = Depends(get_db),
+):
+    """Paginated raw readings for charts."""
+    session = db.query(DeviceSession).filter(
+        DeviceSession.id == session_id,
+        DeviceSession.account_number == account,
+    ).first()
+    if not session:
+        raise HTTPException(404, "Session not found")
+
+    total    = db.query(DeviceReading).filter(DeviceReading.session_id == session_id).count()
+    readings = (
+        db.query(DeviceReading)
+        .filter(DeviceReading.session_id == session_id)
+        .order_by(DeviceReading.recorded_at)
+        .offset(offset).limit(limit).all()
+    )
+    return {
+        "session_id": session_id,
+        "total":      total,
+        "readings":   [r.to_dict() for r in readings],
+    }
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Dataset export (JSON or CSV)
+# ─────────────────────────────────────────────────────────────────────────────
+
+CSV_FIELDS = [
+    "recorded_at", "voltage", "current_a", "power_w", "energy_kwh",
+    "frequency_hz", "power_factor", "apparent_power_va", "reactive_power_var",
+    "resistance_ohm", "voltage_dev_pct", "power_quality_score", "efficiency_class",
+    "session_kwh", "session_cost_rs", "session_minutes",
+    "avg_power_w", "peak_power_w", "avg_power_factor",
+    "detected_appliance", "anomaly",
+    "temperature_c", "humidity_pct", "heat_index_c",
+    "wifi_rssi", "read_count",
+]
+
+
+@router.get("/sessions/{account}/{session_id}/export")
+def export_dataset(
+    account:    str,
+    session_id: int,
+    format:     str = Query("json", regex="^(json|csv)$"),
+    db:         Session = Depends(get_db),
 ):
     """
-    Inject fake data to test the app without real ESP32 hardware.
-    Call this from browser or Postman.
-
-    Scenarios: idle | fan | rice_cooker | ac | tv | washing_machine | spike
+    Download the full reading dataset for a completed session.
+    format=json  → JSON array
+    format=csv   → CSV file (ML-ready)
     """
-    scenarios = {
-        "idle":             {"voltage": 231.2, "current": 0.08,  "power": 12.5,   "energy": 5.234, "frequency": 50.0, "power_factor": 0.68, "detected_appliance": "Standby / Off"},
-        "fan":              {"voltage": 230.8, "current": 0.35,  "power": 72.0,   "energy": 5.290, "frequency": 50.0, "power_factor": 0.89, "detected_appliance": "Fan (High)"},
-        "rice_cooker":      {"voltage": 229.5, "current": 3.95,  "power": 876.0,  "energy": 5.456, "frequency": 49.9, "power_factor": 0.97, "detected_appliance": "Rice Cooker (Cooking)"},
-        "ac":               {"voltage": 228.0, "current": 6.12,  "power": 1380.0, "energy": 6.120, "frequency": 50.0, "power_factor": 0.98, "detected_appliance": "AC (High)"},
-        "tv":               {"voltage": 231.0, "current": 0.68,  "power": 145.0,  "energy": 5.310, "frequency": 50.0, "power_factor": 0.92, "detected_appliance": "Television"},
-        "washing_machine":  {"voltage": 230.1, "current": 4.20,  "power": 850.0,  "energy": 5.780, "frequency": 50.1, "power_factor": 0.88, "detected_appliance": "Washing Machine"},
-        "spike":            {"voltage": 229.8, "current": 8.50,  "power": 1950.0, "energy": 5.890, "frequency": 50.0, "power_factor": 0.99, "detected_appliance": "Heavy Load"},
-    }
+    session = db.query(DeviceSession).filter(
+        DeviceSession.id == session_id,
+        DeviceSession.account_number == account,
+    ).first()
+    if not session:
+        raise HTTPException(404, "Session not found")
 
-    if scenario not in scenarios:
-        raise HTTPException(
-            status_code=400,
-            detail=f"Unknown scenario. Choose: {list(scenarios.keys())}"
+    readings = (
+        db.query(DeviceReading)
+        .filter(DeviceReading.session_id == session_id)
+        .order_by(DeviceReading.recorded_at)
+        .all()
+    )
+    rows = [r.to_dict() for r in readings]
+
+    filename_base = f"energyiq_{session.appliance_name or 'session'}_{session_id}".replace(" ", "_").lower()
+
+    if format == "csv":
+        output = io.StringIO()
+        writer = csv.DictWriter(output, fieldnames=["session_id", "appliance_name"] + CSV_FIELDS, extrasaction="ignore")
+        writer.writeheader()
+        for row in rows:
+            row["session_id"]     = session_id
+            row["appliance_name"] = session.appliance_name
+            writer.writerow(row)
+        output.seek(0)
+        return StreamingResponse(
+            io.BytesIO(output.getvalue().encode()),
+            media_type="text/csv",
+            headers={"Content-Disposition": f'attachment; filename="{filename_base}.csv"'},
         )
 
-    data = scenarios[scenario].copy()
-
-    # Add small noise to make it look realistic
-    data["voltage"]      += random.uniform(-1.5, 1.5)
-    data["current"]      += random.uniform(-0.01, 0.01)
-    data["power"]        += random.uniform(-5, 5)
-    data["energy"]       += 0.001
-    data["account_number"] = account_number
-    data["session_kwh"]  = round(data["energy"] * 0.05, 3)
-    data["session_cost_rs"] = round(data["session_kwh"] * 15, 1)
-    data["anomaly"]      = ""
-    data["timestamp_ms"] = int(time.time() * 1000)
-
-    iot_service.inject_simulated_reading(account_number, data)
-
-    return {
-        "status":   "injected",
-        "scenario": scenario,
-        "data":     data,
+    # JSON
+    payload = {
+        "session_id":     session_id,
+        "appliance_name": session.appliance_name,
+        "appliance_brand": session.appliance_brand,
+        "started_at":     session.started_at.isoformat() if session.started_at else None,
+        "ended_at":       session.ended_at.isoformat()   if session.ended_at   else None,
+        "count":          len(rows),
+        "readings":       rows,
     }
+    return StreamingResponse(
+        io.BytesIO(json.dumps(payload, indent=2).encode()),
+        media_type="application/json",
+        headers={"Content-Disposition": f'attachment; filename="{filename_base}.json"'},
+    )
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Device state (in-memory)
+# ─────────────────────────────────────────────────────────────────────────────
+
+@router.get("/latest/{device_id}")
+def get_latest(device_id: str):
+    data = iot_service.get_latest(device_id)
+    if not data:
+        raise HTTPException(404, "No data for this device")
+    return data
+
+
+@router.get("/history/{device_id}")
+def get_history(device_id: str, minutes: int = Query(5, ge=1, le=10)):
+    return {"device_id": device_id, "readings": iot_service.get_history(device_id, minutes)}
+
+
+@router.get("/status/{device_id}")
+def get_status(device_id: str):
+    from src.services.iot_service import last_seen
+    last = last_seen.get(device_id)
+    if not last:
+        return {"device_id": device_id, "online": False}
+    elapsed = (datetime.now(timezone.utc) - last).total_seconds()
+    return {
+        "device_id":     device_id,
+        "online":        elapsed < 30,
+        "last_seen":     last.isoformat(),
+        "last_seen_ago": f"{int(elapsed)}s ago",
+        "active_session": iot_service.get_active_session(device_id),
+    }
+
+
+@router.get("/devices")
+def get_devices():
+    from src.services.iot_service import last_seen, latest_readings
+    now = datetime.now(timezone.utc)
+    devices = []
+    for device_id, last in last_seen.items():
+        elapsed = (now - last).total_seconds()
+        latest  = latest_readings.get(device_id, {})
+        devices.append({
+            "device_id":      device_id,
+            "online":         elapsed < 30,
+            "last_seen":      last.isoformat(),
+            "last_seen_ago":  f"{int(elapsed)}s ago",
+            "active_session": iot_service.get_active_session(device_id),
+            "power_w":        latest.get("power_w") or latest.get("power"),
+            "voltage":        latest.get("voltage"),
+        })
+    devices.sort(key=lambda d: d["online"], reverse=True)
+    return {"devices": devices, "count": len(devices)}
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# WebSocket — live data
+# ─────────────────────────────────────────────────────────────────────────────
+
+@router.websocket("/ws/{account}")
+async def websocket_endpoint(websocket: WebSocket, account: str, device_id: Optional[str] = None):
+    await websocket.accept()
+    iot_service.register_websocket(account, websocket, device_id)
+
+    try:
+        # Send initial snapshot
+        latest   = iot_service.get_latest(device_id) if device_id else None
+        history  = iot_service.get_history(device_id) if device_id else []
+        events   = iot_service.get_appliance_events(device_id) if device_id else []
+        sess_id  = iot_service.get_active_session(device_id) if device_id else None
+
+        await websocket.send_json({
+            "type": "snapshot",
+            "data": {
+                "latest":         latest,
+                "history":        history,
+                "events":         events,
+                "active_session": sess_id,
+            },
+        })
+
+        # Keep alive — backend pushes via broadcast; just wait for disconnect
+        while True:
+            await websocket.receive_text()
+
+    except WebSocketDisconnect:
+        pass
+    except Exception as e:
+        logger.error(f"WebSocket error account={account}: {e}")
+    finally:
+        iot_service.unregister_websocket(account, websocket)
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Simulation — inject fake readings (for testing without hardware)
+# ─────────────────────────────────────────────────────────────────────────────
+
+SCENARIOS = {
+    "idle":            {"power": 3,    "voltage": 230, "current": 0.015, "pf": 0.65, "freq": 50.0, "temp": 28,  "hum": 70},
+    "fan":             {"power": 72,   "voltage": 232, "current": 0.35,  "pf": 0.88, "freq": 50.0, "temp": 29,  "hum": 68},
+    "led_bulb":        {"power": 9,    "voltage": 229, "current": 0.08,  "pf": 0.50, "freq": 50.0, "temp": 28,  "hum": 69},
+    "rice_cooker":     {"power": 876,  "voltage": 228, "current": 3.9,   "pf": 0.99, "freq": 50.0, "temp": 30,  "hum": 65},
+    "refrigerator":    {"power": 145,  "voltage": 231, "current": 0.68,  "pf": 0.92, "freq": 50.0, "temp": 27,  "hum": 72},
+    "ac":              {"power": 1380, "voltage": 226, "current": 6.3,   "pf": 0.96, "freq": 49.9, "temp": 32,  "hum": 75},
+    "tv":              {"power": 82,   "voltage": 230, "current": 0.40,  "pf": 0.89, "freq": 50.0, "temp": 28,  "hum": 69},
+    "laptop":          {"power": 48,   "voltage": 231, "current": 0.23,  "pf": 0.91, "freq": 50.0, "temp": 29,  "hum": 67},
+    "washing_machine": {"power": 495,  "voltage": 227, "current": 2.4,   "pf": 0.90, "freq": 50.1, "temp": 28,  "hum": 71},
+    "water_heater":    {"power": 2000, "voltage": 229, "current": 8.7,   "pf": 1.00, "freq": 50.0, "temp": 29,  "hum": 66},
+    "spike":           {"power": 1950, "voltage": 218, "current": 9.1,   "pf": 0.74, "freq": 49.5, "temp": 31,  "hum": 74},
+}
+
+_sim_counters: dict = {}
+
+
+@router.post("/simulate/{device_id}")
+def simulate_reading(
+    device_id: str,
+    scenario:  str = Query("fan", description=f"One of: {', '.join(SCENARIOS)}"),
+):
+    """Inject a simulated reading into the IoT service (no hardware needed)."""
+    if scenario not in SCENARIOS:
+        raise HTTPException(400, f"Unknown scenario. Choose from: {', '.join(SCENARIOS)}")
+
+    base = SCENARIOS[scenario]
+    _sim_counters[device_id] = _sim_counters.get(device_id, 0) + 1
+    n = _sim_counters[device_id]
+
+    # Add realistic noise
+    def jitter(v, pct=0.02):
+        return round(v * (1 + random.uniform(-pct, pct)), 4)
+
+    reading = {
+        "voltage":             jitter(base["voltage"],  0.01),
+        "current":             jitter(base["current"],  0.03),
+        "power":               jitter(base["power"],    0.03),
+        "power_w":             jitter(base["power"],    0.03),
+        "energy":              round(base["power"] / 1000 * n * (5 / 3600), 4),
+        "frequency":           jitter(base["freq"],     0.002),
+        "frequency_hz":        jitter(base["freq"],     0.002),
+        "power_factor":        round(min(1.0, jitter(base["pf"], 0.02)), 3),
+        "apparent_power":      round(jitter(base["voltage"]) * jitter(base["current"]), 2),
+        "reactive_power":      round(abs(base["power"] * (1 - base["pf"])), 2),
+        "session_kwh":         round(base["power"] / 1000 * n * (5 / 3600), 4),
+        "session_cost_rs":     round(base["power"] / 1000 * n * (5 / 3600) * 15, 4),
+        "session_minutes":     round(n * 5 / 60, 2),
+        "avg_power_w":         jitter(base["power"],    0.01),
+        "peak_power_w":        jitter(base["power"] * 1.05, 0.01),
+        "avg_power_factor":    round(min(1.0, jitter(base["pf"], 0.01)), 3),
+        "power_quality_score": round(min(100, 70 + base["pf"] * 30 + random.uniform(-3, 3)), 1),
+        "voltage_deviation":   round(jitter(base["voltage"]) - 230, 2),
+        "voltage_dev_pct":     round((jitter(base["voltage"]) - 230) / 230 * 100, 2),
+        "resistance_ohm":      round(jitter(base["voltage"]) / max(jitter(base["current"]), 0.001), 1),
+        "temperature_c":       jitter(base["temp"],     0.02),
+        "humidity_pct":        jitter(base["hum"],      0.02),
+        "heat_index_c":        jitter(base["temp"] + 2, 0.02),
+        "wifi_rssi":           random.randint(-75, -50),
+        "read_count":          n,
+        "uptime_ms":           n * 5000,
+        "detected_appliance":  scenario.replace("_", " ").title(),
+        "anomaly":             "POWER_SPIKE:1950W" if scenario == "spike" else "",
+    }
+
+    iot_service.inject_simulated_reading(device_id, reading)
+    return {"injected": True, "device_id": device_id, "scenario": scenario, "reading_number": n}
