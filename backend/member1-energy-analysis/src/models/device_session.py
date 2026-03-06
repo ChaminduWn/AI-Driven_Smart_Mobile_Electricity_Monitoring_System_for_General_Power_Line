@@ -2,11 +2,6 @@
 src/models/device_session.py
 ============================
 SQLAlchemy models for EnergyIQ IoT appliance testing.
-
-Tables:
-  device_sessions         — one test run per appliance
-  device_readings         — every 5-second PZEM + DHT22 reading
-  device_appliance_events — power-threshold crossing events
 """
 
 import json
@@ -17,7 +12,7 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import relationship
 
-from src.database import Base   # adjust import to your project
+from src.database import Base
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -26,54 +21,46 @@ class DeviceSession(Base):
     __tablename__ = "device_sessions"
 
     id             = Column(Integer,  primary_key=True, index=True)
+    user_id        = Column(Integer,  ForeignKey("users.id", ondelete="CASCADE"), nullable=True, index=True)
     device_id      = Column(String(64), nullable=False, index=True)
-    account_number = Column(String(64), nullable=False, index=True)
+    account_number = Column(String(64), nullable=True, index=True)
 
-    # ── Appliance info (entered by user) ────────────────────────────────────
     appliance_name        = Column(String(256))
     appliance_brand       = Column(String(256))
     appliance_description = Column(Text)
 
-    # ── Session lifecycle ────────────────────────────────────────────────────
-    status              = Column(String(32),  default="active")   # active | completed | abandoned
-    test_duration_min   = Column(Float)                            # planned duration
-    actual_duration_min = Column(Float)                            # measured on end
+    status              = Column(String(32),  default="active")
+    test_duration_min   = Column(Float)
+    actual_duration_min = Column(Float)
     started_at          = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
     ended_at            = Column(DateTime(timezone=True))
 
-    # ── Running electrical summary ────────────────────────────────────────────
-    total_readings   = Column(Integer, default=0)
-    avg_power_w      = Column(Float,   default=0)
-    peak_power_w     = Column(Float,   default=0)
-    min_voltage_v    = Column(Float)
-    max_voltage_v    = Column(Float)
-    avg_power_factor = Column(Float)
-    avg_pq_score     = Column(Float)
+    total_readings    = Column(Integer, default=0)
+    avg_power_w       = Column(Float,   default=0)
+    peak_power_w      = Column(Float,   default=0)
+    min_voltage_v     = Column(Float)
+    max_voltage_v     = Column(Float)
+    avg_power_factor  = Column(Float)
+    avg_pq_score      = Column(Float)
     total_session_kwh = Column(Float,  default=0)
-    total_cost_rs    = Column(Float,   default=0)
+    total_cost_rs     = Column(Float,   default=0)
 
-    # ── Environmental averages (DHT22) ────────────────────────────────────────
     avg_temperature = Column(Float)
     avg_humidity    = Column(Float)
 
-    # ── Full dataset (every reading serialised as JSON) ───────────────────────
-    dataset_json  = Column(Text)       # JSON array — large, only read on export
+    dataset_json  = Column(Text)
     dataset_count = Column(Integer, default=0)
 
-    # ── Health assessment (from assess_appliance_health()) ───────────────────
-    health_assessment = Column(Text)    # JSON: {status, health_score, issues, verdict, ...}
+    health_assessment = Column(Text)
     fault_detected    = Column(Boolean, default=False)
 
-    # ── AI analysis output ────────────────────────────────────────────────────
     ai_summary         = Column(Text)
-    ai_recommendations = Column(Text)   # JSON array of strings
+    ai_recommendations = Column(Text)
     comparison_note    = Column(Text)
 
-    # ── Relationships ─────────────────────────────────────────────────────────
-    readings = relationship("DeviceReading",         back_populates="session", cascade="all, delete-orphan")
-    events   = relationship("DeviceApplianceEvent",  back_populates="session", cascade="all, delete-orphan")
+    readings = relationship("DeviceReading",        back_populates="session", cascade="all, delete-orphan")
+    events   = relationship("DeviceApplianceEvent", back_populates="session", cascade="all, delete-orphan")
 
-    # ─────────────────────────────────────────────────────────────────────────
     def to_dict(self, include_dataset: bool = False) -> dict:
         health  = {}
         ai_recs = []
@@ -89,36 +76,31 @@ class DeviceSession(Base):
             pass
 
         d = {
-            "id":                   self.id,
-            "device_id":            self.device_id,
-            "account_number":       self.account_number,
-            "appliance_name":       self.appliance_name,
-            "appliance_brand":      self.appliance_brand,
+            "id":                    self.id,
+            "device_id":             self.device_id,
+            "account_number":        self.account_number,
+            "appliance_name":        self.appliance_name,
+            "appliance_brand":       self.appliance_brand,
             "appliance_description": self.appliance_description,
-            "status":               self.status,
-            "test_duration_min":    self.test_duration_min,
-            "actual_duration_min":  self.actual_duration_min,
-            "started_at":           self.started_at.isoformat() if self.started_at else None,
-            "ended_at":             self.ended_at.isoformat()   if self.ended_at   else None,
-            # electrical
-            "total_readings":       self.total_readings,
-            "avg_power_w":          self.avg_power_w,
-            "peak_power_w":         self.peak_power_w,
-            "min_voltage_v":        self.min_voltage_v,
-            "max_voltage_v":        self.max_voltage_v,
-            "avg_power_factor":     self.avg_power_factor,
-            "avg_pq_score":         self.avg_pq_score,
-            "total_session_kwh":    self.total_session_kwh,
-            "total_cost_rs":        self.total_cost_rs,
-            # environmental
-            "avg_temperature":      self.avg_temperature,
-            "avg_humidity":         self.avg_humidity,
-            # dataset meta
-            "dataset_count":        self.dataset_count,
-            # health
-            "health_assessment":    health,
-            "fault_detected":       self.fault_detected,
-            # AI
+            "status":                self.status,
+            "test_duration_min":     self.test_duration_min,
+            "actual_duration_min":   self.actual_duration_min,
+            "started_at":            self.started_at.isoformat() if self.started_at else None,
+            "ended_at":              self.ended_at.isoformat()   if self.ended_at   else None,
+            "total_readings":        self.total_readings,
+            "avg_power_w":           self.avg_power_w,
+            "peak_power_w":          self.peak_power_w,
+            "min_voltage_v":         self.min_voltage_v,
+            "max_voltage_v":         self.max_voltage_v,
+            "avg_power_factor":      self.avg_power_factor,
+            "avg_pq_score":          self.avg_pq_score,
+            "total_session_kwh":     self.total_session_kwh,
+            "total_cost_rs":         self.total_cost_rs,
+            "avg_temperature":       self.avg_temperature,
+            "avg_humidity":          self.avg_humidity,
+            "dataset_count":         self.dataset_count,
+            "health_assessment":     health,
+            "fault_detected":        self.fault_detected,
             "ai_analysis": {
                 "summary":         self.ai_summary,
                 "recommendations": ai_recs,
@@ -146,7 +128,6 @@ class DeviceReading(Base):
     account_number = Column(String(64))
     recorded_at    = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), index=True)
 
-    # ── PZEM-004T core ────────────────────────────────────────────────────────
     voltage      = Column(Float)
     current_a    = Column(Float)
     power_w      = Column(Float)
@@ -154,18 +135,15 @@ class DeviceReading(Base):
     frequency_hz = Column(Float)
     power_factor = Column(Float)
 
-    # ── Derived from PZEM ─────────────────────────────────────────────────────
     apparent_power_va  = Column(Float)
     reactive_power_var = Column(Float)
     resistance_ohm     = Column(Float)
     voltage_deviation  = Column(Float)
     voltage_dev_pct    = Column(Float)
 
-    # ── Power quality ─────────────────────────────────────────────────────────
     power_quality_score = Column(Float)
     efficiency_class    = Column(String(16))
 
-    # ── Session running totals (mirrored from firmware) ───────────────────────
     session_kwh      = Column(Float)
     session_cost_rs  = Column(Float)
     session_minutes  = Column(Float)
@@ -173,68 +151,55 @@ class DeviceReading(Base):
     peak_power_w     = Column(Float)
     avg_power_factor = Column(Float)
 
-    # ── Appliance detection ───────────────────────────────────────────────────
     detected_appliance = Column(String(128))
-    anomaly            = Column(Text)           # comma-separated anomaly codes
+    anomaly            = Column(Text)
 
-    # ── DHT22 environmental ───────────────────────────────────────────────────
     temperature_c = Column(Float)
     humidity_pct  = Column(Float)
     heat_index_c  = Column(Float)
 
-    # ── Device diagnostics ────────────────────────────────────────────────────
     wifi_rssi  = Column(Integer)
     read_count = Column(Integer)
     uptime_ms  = Column(BigInteger)
 
-    # ── Relationship ──────────────────────────────────────────────────────────
     session = relationship("DeviceSession", back_populates="readings")
 
-    # ─────────────────────────────────────────────────────────────────────────
     def to_dict(self) -> dict:
         return {
-            "id":                   self.id,
-            "session_id":           self.session_id,
-            "device_id":            self.device_id,
-            "recorded_at":          self.recorded_at.isoformat() if self.recorded_at else None,
-            # electrical
-            "voltage":              self.voltage,
-            "current_a":            self.current_a,
-            "power_w":              self.power_w,
-            "energy_kwh":           self.energy_kwh,
-            "frequency_hz":         self.frequency_hz,
-            "power_factor":         self.power_factor,
-            # derived
-            "apparent_power_va":    self.apparent_power_va,
-            "reactive_power_var":   self.reactive_power_var,
-            "resistance_ohm":       self.resistance_ohm,
-            "voltage_dev_pct":      self.voltage_dev_pct,
-            # quality
-            "power_quality_score":  self.power_quality_score,
-            "efficiency_class":     self.efficiency_class,
-            # session totals
-            "session_kwh":          self.session_kwh,
-            "session_cost_rs":      self.session_cost_rs,
-            "session_minutes":      self.session_minutes,
-            "avg_power_w":          self.avg_power_w,
-            "peak_power_w":         self.peak_power_w,
-            # detection
-            "detected_appliance":   self.detected_appliance,
-            "anomaly":              self.anomaly,
-            # environmental
-            "temperature_c":        self.temperature_c,
-            "humidity_pct":         self.humidity_pct,
-            "heat_index_c":         self.heat_index_c,
-            # device
-            "wifi_rssi":            self.wifi_rssi,
-            "read_count":           self.read_count,
-            "uptime_ms":            self.uptime_ms,
+            "id":                  self.id,
+            "session_id":          self.session_id,
+            "device_id":           self.device_id,
+            "recorded_at":         self.recorded_at.isoformat() if self.recorded_at else None,
+            "voltage":             self.voltage,
+            "current_a":           self.current_a,
+            "power_w":             self.power_w,
+            "energy_kwh":          self.energy_kwh,
+            "frequency_hz":        self.frequency_hz,
+            "power_factor":        self.power_factor,
+            "apparent_power_va":   self.apparent_power_va,
+            "reactive_power_var":  self.reactive_power_var,
+            "resistance_ohm":      self.resistance_ohm,
+            "voltage_dev_pct":     self.voltage_dev_pct,
+            "power_quality_score": self.power_quality_score,
+            "efficiency_class":    self.efficiency_class,
+            "session_kwh":         self.session_kwh,
+            "session_cost_rs":     self.session_cost_rs,
+            "session_minutes":     self.session_minutes,
+            "avg_power_w":         self.avg_power_w,
+            "peak_power_w":        self.peak_power_w,
+            "detected_appliance":  self.detected_appliance,
+            "anomaly":             self.anomaly,
+            "temperature_c":       self.temperature_c,
+            "humidity_pct":        self.humidity_pct,
+            "heat_index_c":        self.heat_index_c,
+            "wifi_rssi":           self.wifi_rssi,
+            "read_count":          self.read_count,
+            "uptime_ms":           self.uptime_ms,
         }
 
 
 # ─────────────────────────────────────────────────────────────────────────────
 class DeviceApplianceEvent(Base):
-    """Recorded when the firmware detects a power-threshold crossing."""
     __tablename__ = "device_appliance_events"
 
     id             = Column(Integer, primary_key=True, index=True)
@@ -246,7 +211,6 @@ class DeviceApplianceEvent(Base):
     watts          = Column(Float)
     event_time     = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
 
-    # ── Relationship ──────────────────────────────────────────────────────────
     session = relationship("DeviceSession", back_populates="events")
 
     def to_dict(self) -> dict:
@@ -261,7 +225,6 @@ class DeviceApplianceEvent(Base):
         }
 
 
-# ── Indexes (also declared in migration SQL) ──────────────────────────────────
 Index("idx_device_readings_session",  DeviceReading.session_id)
 Index("idx_device_readings_device",   DeviceReading.device_id)
 Index("idx_device_readings_recorded", DeviceReading.recorded_at)
