@@ -20,24 +20,66 @@ class ApplianceRecognitionService:
     Recognizes appliances from images and extracts power consumption data
     """
     
-    # Common appliance types with typical wattage ranges
     APPLIANCE_DATABASE = {
+        # Cooling
         'refrigerator': {'min': 100, 'max': 800, 'typical': 150, 'category': 'Cooling'},
         'air conditioner': {'min': 800, 'max': 3500, 'typical': 1500, 'category': 'Cooling'},
-        'washing machine': {'min': 300, 'max': 2000, 'typical': 500, 'category': 'Cleaning'},
-        'television': {'min': 30, 'max': 400, 'typical': 80, 'category': 'Entertainment'},
-        'microwave': {'min': 600, 'max': 1800, 'typical': 1200, 'category': 'Cooking'},
         'fan': {'min': 50, 'max': 150, 'typical': 75, 'category': 'Cooling'},
+        'freezer': {'min': 100, 'max': 1000, 'typical': 200, 'category': 'Cooling'},
+        
+        # Heating
+        'electric heater': {'min': 800, 'max': 2500, 'typical': 1500, 'category': 'Heating'},
+        'water heater': {'min': 1500, 'max': 4500, 'typical': 2000, 'category': 'Heating'},
+        
+        # Cooking
+        'microwave': {'min': 600, 'max': 1800, 'typical': 1200, 'category': 'Cooking'},
         'electric kettle': {'min': 1000, 'max': 3000, 'typical': 1500, 'category': 'Cooking'},
         'rice cooker': {'min': 400, 'max': 1000, 'typical': 700, 'category': 'Cooking'},
-        'iron': {'min': 800, 'max': 2000, 'typical': 1000, 'category': 'Heating'},
-        'water heater': {'min': 1500, 'max': 4500, 'typical': 2000, 'category': 'Heating'},
-        'laptop': {'min': 30, 'max': 100, 'typical': 50, 'category': 'Entertainment'},
-        'desktop computer': {'min': 100, 'max': 500, 'typical': 200, 'category': 'Entertainment'},
-        'vacuum cleaner': {'min': 500, 'max': 2000, 'typical': 1000, 'category': 'Cleaning'},
-        'hair dryer': {'min': 1000, 'max': 2000, 'typical': 1500, 'category': 'Heating'},
         'toaster': {'min': 800, 'max': 1500, 'typical': 1000, 'category': 'Cooking'},
         'blender': {'min': 300, 'max': 1000, 'typical': 500, 'category': 'Cooking'},
+        'electric stove': {'min': 1000, 'max': 5000, 'typical': 2000, 'category': 'Cooking'},
+        'air fryer': {'min': 1000, 'max': 2000, 'typical': 1500, 'category': 'Cooking'},
+        
+        # Laundry
+        'washing machine': {'min': 300, 'max': 2000, 'typical': 500, 'category': 'Laundry'},
+        'clothes dryer': {'min': 2000, 'max': 5000, 'typical': 3000, 'category': 'Laundry'},
+        'iron': {'min': 800, 'max': 2000, 'typical': 1000, 'category': 'Laundry'},
+        
+        # Cleaning
+        'vacuum cleaner': {'min': 500, 'max': 2000, 'typical': 1000, 'category': 'Cleaning'},
+        'dishwasher': {'min': 1000, 'max': 2500, 'typical': 1500, 'category': 'Cleaning'},
+        
+        # Entertainment
+        'television': {'min': 30, 'max': 400, 'typical': 80, 'category': 'Entertainment'},
+        'gaming console': {'min': 100, 'max': 300, 'typical': 200, 'category': 'Entertainment'},
+        'sound system': {'min': 50, 'max': 500, 'typical': 150, 'category': 'Entertainment'},
+        
+        # Lighting
+        'lamp': {'min': 5, 'max': 60, 'typical': 15, 'category': 'Lighting'},
+        'led bulb': {'min': 3, 'max': 20, 'typical': 9, 'category': 'Lighting'},
+
+        # Office
+        'laptop': {'min': 30, 'max': 100, 'typical': 50, 'category': 'Office'},
+        'desktop computer': {'min': 100, 'max': 500, 'typical': 200, 'category': 'Office'},
+        'printer': {'min': 10, 'max': 500, 'typical': 50, 'category': 'Office'},
+        'monitor': {'min': 20, 'max': 100, 'typical': 40, 'category': 'Office'},
+        
+        # Water
+        'water pump': {'min': 250, 'max': 1500, 'typical': 750, 'category': 'Water'},
+        'water purifier': {'min': 20, 'max': 100, 'typical': 50, 'category': 'Water'},
+        
+        # Safety
+        'security camera': {'min': 5, 'max': 50, 'typical': 15, 'category': 'Safety'},
+        'alarm system': {'min': 5, 'max': 50, 'typical': 20, 'category': 'Safety'},
+        
+        # Health/Beauty
+        'hair dryer': {'min': 1000, 'max': 2000, 'typical': 1500, 'category': 'Health/Beauty'},
+        'hair straightener': {'min': 30, 'max': 200, 'typical': 100, 'category': 'Health/Beauty'},
+        'electric shaver': {'min': 5, 'max': 30, 'typical': 15, 'category': 'Health/Beauty'},
+
+        # Outdoor/Garden
+        'lawn mower': {'min': 1000, 'max': 3000, 'typical': 1500, 'category': 'Outdoor/Garden'},
+        'pool pump': {'min': 500, 'max': 2500, 'typical': 1500, 'category': 'Outdoor/Garden'},
     }
     
     def __init__(self):

@@ -10,7 +10,7 @@ import {
   StatCard, ProgressBar,
 } from '../components/SharedComponents';
 import { COLORS, SPACING, RADIUS, FONTS } from '../utils/theme';
-import { formatCurrency, formatKwh, formatDate } from '../utils/helpers';
+import { formatCurrency, formatKwh, formatDate, calcCEB } from '../utils/helpers';
 
 const BillDetailScreen = ({ route, navigation }) => {
   const { bill: initBill, billId } = route.params || {};
@@ -31,9 +31,11 @@ const BillDetailScreen = ({ route, navigation }) => {
     (async () => {
       try {
         // Fetch bill if not provided
-        if (!bill && id) {
+        let currentBill = bill;
+        if (!currentBill && id) {
           const r = await billsAPI.getById(id);
-          setBill(r.data.data);
+          currentBill = r.data.data;
+          setBill(currentBill);
         }
 
         // Fetch analysis
@@ -43,8 +45,31 @@ const BillDetailScreen = ({ route, navigation }) => {
             analysisAPI.getBudgetRecommendations(id),
           ]);
           if (aRes.status === 'fulfilled' && aRes.value.data?.success) {
-            setAnalysis(aRes.value.data.analysis);
-            setTariffDetails(aRes.value.data.analysis?.tariff_details);
+            const an = aRes.value.data.analysis;
+            setAnalysis(an);
+
+            // Recalculate tariff details locally to ensure day-normalization accuracy
+            if (currentBill?.units_consumed && currentBill?.billing_period_days) {
+              const calc = calcCEB(currentBill.units_consumed, currentBill.billing_period_days);
+              if (calc) {
+                setTariffDetails({
+                  category_name: calc.category === 1 ? 'Category 1 (0-60 kWh/mo)' : 'Category 2 (Above 60 kWh/mo)',
+                  energy_charge: calc.energy,
+                  fixed_charge: calc.fixed,
+                  sscl: calc.sscl,
+                  total: calc.total,
+                  breakdown: calc.breakdown.map(b => ({
+                    block: b.range + ' kWh',
+                    rate: b.rate,
+                    amount: b.amt
+                  }))
+                });
+              } else {
+                setTariffDetails(an?.tariff_details);
+              }
+            } else {
+              setTariffDetails(an?.tariff_details);
+            }
           }
           if (bRes.status === 'fulfilled' && bRes.value.data?.success) {
             setBudgetRecs(bRes.value.data);
@@ -59,7 +84,7 @@ const BillDetailScreen = ({ route, navigation }) => {
           try {
             const appRes = await appliancesAPI.getByAccount(acct);
             setApplianceCount(appRes.data?.count || 0);
-          } catch (_) {}
+          } catch (_) { }
         }
       } catch (err) {
         console.error('Bill detail error:', err);

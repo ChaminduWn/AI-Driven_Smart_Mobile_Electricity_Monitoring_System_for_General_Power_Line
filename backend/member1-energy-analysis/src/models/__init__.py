@@ -17,6 +17,7 @@ from src.models.budget_plan import (
     TariffStructure
 )
 from src.models.iot_reading import LiveMeterReading, ApplianceEvent
+from src.models.device_session import DeviceSession, DeviceReading, DeviceApplianceEvent  # ← ADDED
 
 # Export all models
 __all__ = [
@@ -31,4 +32,7 @@ __all__ = [
     'TariffStructure',
     'LiveMeterReading',
     'ApplianceEvent',
+    'DeviceSession',            # ← ADDED
+    'DeviceReading',            # ← ADDED
+    'DeviceApplianceEvent',     # ← ADDED
 ]

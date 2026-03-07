@@ -4,61 +4,7 @@ import {
   TextInput, Animated, Easing, Dimensions, StatusBar,
 } from 'react-native';
 import { COLORS, SPACING, RADIUS, FONTS } from '../utils/theme';
-import { formatCurrency } from '../utils/helpers';
-
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
-
-// ─── CEB TARIFF CALCULATION (verified against real bills) ──────────────────
-// Bill 1: 31 units / 29 days → Rs.365.64 ✅
-// Bill 2: 62 units / 29 days → Rs.1,244.62 ✅
-function calcCEB(units, days) {
-  if (!units || !days || units <= 0 || days <= 0) return null;
-  const norm = (units / days) * 30;
-  let fixed, slabs, category, label;
-
-  if (norm <= 60) {
-    fixed = norm <= 30 ? 80 : 210;
-    slabs = [{ lim: 30, rate: 4.50 }, { lim: 60, rate: 8.00 }];
-    category = 1;
-    label = '0 – 60 kWh';
-  } else {
-    fixed = norm <= 90 ? 400 : norm <= 120 ? 1000 : norm <= 180 ? 1500 : 2100;
-    slabs = [
-      { lim: 60,   rate: 12.75 }, { lim: 90,   rate: 18.50 },
-      { lim: 120,  rate: 24.00 }, { lim: 180,  rate: 41.00 },
-      { lim: null, rate: 61.00 },
-    ];
-    category = 2;
-    label = 'Above 60 kWh';
-  }
-
-  const breakdown = [];
-  let energy = 0, remaining = units, prev = 0;
-  for (const { lim, rate } of slabs) {
-    if (remaining <= 0) break;
-    let inSlab, rangeLabel;
-    if (lim === null) {
-      inSlab = remaining;
-      rangeLabel = `${prev + 1}+`;
-    } else {
-      const scaled = Math.floor(lim * days / 30);
-      inSlab = Math.max(0, Math.min(remaining, scaled - prev));
-      rangeLabel = prev === 0 ? `0 – ${scaled}` : `${prev + 1} – ${scaled}`;
-      prev = scaled;
-    }
-    if (inSlab <= 0) continue;
-    const amt = +(inSlab * rate).toFixed(2);
-    energy += amt;
-    breakdown.push({ range: rangeLabel, units: inSlab, rate, amt });
-    remaining -= inSlab;
-  }
-
-  energy = +energy.toFixed(2);
-  const subtotal = energy + fixed;
-  const sscl = +(subtotal * 0.02565).toFixed(2);
-  const total = +(subtotal + sscl).toFixed(2);
-  return { category, label, energy, fixed, subtotal, sscl, total, breakdown, norm: +norm.toFixed(1) };
-}
+import { formatCurrency, calcCEB } from '../utils/helpers';
 
 // ─── QUICK PRESETS ──────────────────────────────────────────────────────────
 const PRESETS = [
@@ -68,8 +14,8 @@ const PRESETS = [
 ];
 
 // ─── RATE TABLE DATA ────────────────────────────────────────────────────────
-const LOW_SLABS  = [['0 – 30','4.50','80'],['31 – 60','8.00','210']];
-const HIGH_SLABS = [['0 – 60','12.75','—'],['61 – 90','18.50','400'],['91 – 120','24.00','1,000'],['121 – 180','41.00','1,500'],['181+','61.00','2,100']];
+const LOW_SLABS = [['0 – 30', '4.50', '80'], ['31 – 60', '8.00', '210']];
+const HIGH_SLABS = [['0 – 60', '12.75', '—'], ['61 – 90', '18.50', '400'], ['91 – 120', '24.00', '1,000'], ['121 – 180', '41.00', '1,500'], ['181+', '61.00', '2,100']];
 
 // ─── ANIMATED ROLLING NUMBER ─────────────────────────────────────────────────
 function AnimatedNumber({ value, style, prefix = 'Rs. ' }) {
@@ -117,28 +63,28 @@ function UsageGauge({ norm }) {
         <View style={[gu.marker, { left: '90%' }]} />
       </View>
       <View style={gu.ticks}>
-        {['0','30','60','90','120','180','200+'].map(t => <Text key={t} style={gu.tick}>{t}</Text>)}
+        {['0', '30', '60', '90', '120', '180', '200+'].map(t => <Text key={t} style={gu.tick}>{t}</Text>)}
       </View>
       <Text style={[gu.big, { color }]}>{norm} <Text style={gu.bigUnit}>kWh / 30 days</Text></Text>
     </View>
   );
 }
 const gu = StyleSheet.create({
-  row: { flexDirection:'row', justifyContent:'space-between', alignItems:'center', marginBottom:12 },
-  metaLabel: { color:'#475569', fontSize:11, fontWeight:'700', letterSpacing:1, textTransform:'uppercase' },
-  badge: { paddingHorizontal:10, paddingVertical:3, borderRadius:20 },
-  badgeText: { fontSize:11, fontWeight:'800' },
-  track: { height:12, backgroundColor:'#1E293B', borderRadius:6, overflow:'hidden', position:'relative' },
-  fill: { height:'100%', borderRadius:6 },
-  marker: { position:'absolute', top:0, width:1.5, height:'100%', backgroundColor:'#070B14' },
-  ticks: { flexDirection:'row', justifyContent:'space-between', marginTop:5 },
-  tick: { color:'#334155', fontSize:9, fontWeight:'600' },
-  big: { textAlign:'center', fontSize:26, fontWeight:'900', marginTop:14, letterSpacing:-1 },
-  bigUnit: { fontSize:14, fontWeight:'500', color:'#64748B' },
+  row: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
+  metaLabel: { color: '#475569', fontSize: 11, fontWeight: '700', letterSpacing: 1, textTransform: 'uppercase' },
+  badge: { paddingHorizontal: 10, paddingVertical: 3, borderRadius: 20 },
+  badgeText: { fontSize: 11, fontWeight: '800' },
+  track: { height: 12, backgroundColor: '#1E293B', borderRadius: 6, overflow: 'hidden', position: 'relative' },
+  fill: { height: '100%', borderRadius: 6 },
+  marker: { position: 'absolute', top: 0, width: 1.5, height: '100%', backgroundColor: '#070B14' },
+  ticks: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 5 },
+  tick: { color: '#334155', fontSize: 9, fontWeight: '600' },
+  big: { textAlign: 'center', fontSize: 26, fontWeight: '900', marginTop: 14, letterSpacing: -1 },
+  bigUnit: { fontSize: 14, fontWeight: '500', color: '#64748B' },
 });
 
 // ─── SLAB BAR ─────────────────────────────────────────────────────────────────
-const SLAB_COLORS = ['#38BDF8','#818CF8','#FB923C','#F472B6','#A3E635'];
+const SLAB_COLORS = ['#38BDF8', '#818CF8', '#FB923C', '#F472B6', '#A3E635'];
 function SlabBar({ item, total, index, delay }) {
   const anim = useRef(new Animated.Value(0)).current;
   const fade = useRef(new Animated.Value(0)).current;
@@ -176,15 +122,15 @@ function SlabBar({ item, total, index, delay }) {
   );
 }
 const sb = StyleSheet.create({
-  row: { marginVertical:9 },
-  meta: { flexDirection:'row', alignItems:'center', gap:10, marginBottom:8 },
-  dot: { width:8, height:8, borderRadius:4 },
-  range: { color:'#E2E8F0', fontSize:13, fontWeight:'700' },
-  detail: { color:'#475569', fontSize:11, marginTop:2 },
-  right: { flexDirection:'row', alignItems:'center', gap:12 },
-  track: { flex:1, height:8, backgroundColor:'#1E293B', borderRadius:4, overflow:'hidden' },
-  fill: { height:'100%', borderRadius:4 },
-  amt: { width:86, textAlign:'right', fontSize:13, fontWeight:'800' },
+  row: { marginVertical: 9 },
+  meta: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 8 },
+  dot: { width: 8, height: 8, borderRadius: 4 },
+  range: { color: '#E2E8F0', fontSize: 13, fontWeight: '700' },
+  detail: { color: '#475569', fontSize: 11, marginTop: 2 },
+  right: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  track: { flex: 1, height: 8, backgroundColor: '#1E293B', borderRadius: 4, overflow: 'hidden' },
+  fill: { height: '100%', borderRadius: 4 },
+  amt: { width: 86, textAlign: 'right', fontSize: 13, fontWeight: '800' },
 });
 
 // ─── CHARGE PILL ─────────────────────────────────────────────────────────────
@@ -194,24 +140,24 @@ function ChargePill({ label, value, accent, delay }) {
   useEffect(() => {
     setTimeout(() => {
       Animated.parallel([
-        Animated.spring(scale, { toValue:1, friction:6, useNativeDriver:true }),
-        Animated.timing(opacity, { toValue:1, duration:300, useNativeDriver:true }),
+        Animated.spring(scale, { toValue: 1, friction: 6, useNativeDriver: true }),
+        Animated.timing(opacity, { toValue: 1, duration: 300, useNativeDriver: true }),
       ]).start();
     }, delay);
   }, [value]);
   return (
-    <Animated.View style={[pill.wrap, { transform:[{scale}], opacity, borderColor: accent+'44' }]}>
+    <Animated.View style={[pill.wrap, { transform: [{ scale }], opacity, borderColor: accent + '44' }]}>
       <Text style={pill.label}>{label}</Text>
       <Text style={[pill.value, { color: accent }]}>
-        Rs.{(+value).toLocaleString('en-LK',{minimumFractionDigits:2})}
+        Rs.{(+value).toLocaleString('en-LK', { minimumFractionDigits: 2 })}
       </Text>
     </Animated.View>
   );
 }
 const pill = StyleSheet.create({
-  wrap: { flex:1, backgroundColor:'#070B14', borderRadius:14, padding:14, borderWidth:1, alignItems:'center' },
-  label: { color:'#475569', fontSize:9, fontWeight:'800', letterSpacing:1.5, textTransform:'uppercase', marginBottom:7 },
-  value: { fontSize:12, fontWeight:'900', textAlign:'center' },
+  wrap: { flex: 1, backgroundColor: '#070B14', borderRadius: 14, padding: 14, borderWidth: 1, alignItems: 'center' },
+  label: { color: '#475569', fontSize: 9, fontWeight: '800', letterSpacing: 1.5, textTransform: 'uppercase', marginBottom: 7 },
+  value: { fontSize: 12, fontWeight: '900', textAlign: 'center' },
 });
 
 // ─── MAIN SCREEN ─────────────────────────────────────────────────────────────
@@ -221,13 +167,13 @@ export default function TariffScreen() {
   const [result, setResult] = useState(null);
   const [activeTab, setActiveTab] = useState('calculator');
 
-  const resultAnim  = useRef(new Animated.Value(0)).current;
-  const pulseAnim   = useRef(new Animated.Value(1)).current;
+  const resultAnim = useRef(new Animated.Value(0)).current;
+  const pulseAnim = useRef(new Animated.Value(1)).current;
 
   const triggerPulse = () => {
     Animated.sequence([
-      Animated.timing(pulseAnim, { toValue:0.96, duration:80, useNativeDriver:true }),
-      Animated.spring(pulseAnim, { toValue:1, friction:5, useNativeDriver:true }),
+      Animated.timing(pulseAnim, { toValue: 0.96, duration: 80, useNativeDriver: true }),
+      Animated.spring(pulseAnim, { toValue: 1, friction: 5, useNativeDriver: true }),
     ]).start();
   };
 
@@ -237,7 +183,7 @@ export default function TariffScreen() {
     setResult(r);
     triggerPulse();
     resultAnim.setValue(0);
-    Animated.spring(resultAnim, { toValue:1, friction:7, tension:50, useNativeDriver:true }).start();
+    Animated.spring(resultAnim, { toValue: 1, friction: 7, tension: 50, useNativeDriver: true }).start();
   };
 
   const applyPreset = (p) => {
@@ -246,14 +192,14 @@ export default function TariffScreen() {
     calculate(String(p.units), String(p.days));
   };
 
-  const resultSlide = resultAnim.interpolate({ inputRange:[0,1], outputRange:[50,0] });
+  const resultSlide = resultAnim.interpolate({ inputRange: [0, 1], outputRange: [50, 0] });
 
   return (
     <View style={s.root}>
       <StatusBar barStyle="light-content" backgroundColor="#070B14" />
 
       {/* HEADER */}
-      <Animated.View style={[s.header, { transform:[{scale:pulseAnim}] }]}>
+      <Animated.View style={[s.header, { transform: [{ scale: pulseAnim }] }]}>
         <View style={s.glow} />
         <Text style={s.eyebrow}>⚡ CEYLON ELECTRICITY BOARD</Text>
         <Text style={s.title}>Tariff Calculator</Text>
@@ -264,10 +210,10 @@ export default function TariffScreen() {
 
       {/* TABS */}
       <View style={s.tabBar}>
-        {[['calculator','🧮  Calculator'],['table','📊  Rate Table']].map(([key,lbl]) => (
-          <TouchableOpacity key={key} style={[s.tab, activeTab===key && s.tabOn]} onPress={() => setActiveTab(key)} activeOpacity={0.8}>
-            <Text style={[s.tabTxt, activeTab===key && s.tabTxtOn]}>{lbl}</Text>
-            {activeTab===key && <View style={s.tabUnderline} />}
+        {[['calculator', '🧮  Calculator'], ['table', '📊  Rate Table']].map(([key, lbl]) => (
+          <TouchableOpacity key={key} style={[s.tab, activeTab === key && s.tabOn]} onPress={() => setActiveTab(key)} activeOpacity={0.8}>
+            <Text style={[s.tabTxt, activeTab === key && s.tabTxtOn]}>{lbl}</Text>
+            {activeTab === key && <View style={s.tabUnderline} />}
           </TouchableOpacity>
         ))}
       </View>
@@ -293,7 +239,7 @@ export default function TariffScreen() {
                   <Text style={s.inputLabel}>BILLING DAYS</Text>
                   <TextInput
                     style={s.input} value={days}
-                    onChangeText={(v) => { const d=parseInt(v); if(!v||(d>=1&&d<=100)) setDays(v); }}
+                    onChangeText={(v) => { const d = parseInt(v); if (!v || (d >= 1 && d <= 100)) setDays(v); }}
                     placeholder="30" placeholderTextColor="#1E293B"
                     keyboardType="numeric" returnKeyType="done"
                   />
@@ -304,7 +250,7 @@ export default function TariffScreen() {
               <Text style={s.inputLabel}>QUICK PRESETS</Text>
               <View style={s.presetRow}>
                 {PRESETS.map((p) => (
-                  <TouchableOpacity key={p.label} style={[s.preset, { borderColor: p.color+'44' }]} onPress={() => applyPreset(p)} activeOpacity={0.75}>
+                  <TouchableOpacity key={p.label} style={[s.preset, { borderColor: p.color + '44' }]} onPress={() => applyPreset(p)} activeOpacity={0.75}>
                     <Text style={s.presetIcon}>{p.icon}</Text>
                     <Text style={[s.presetLabel, { color: p.color }]}>{p.label}</Text>
                     <Text style={s.presetKwh}>{p.units} kWh</Text>
@@ -313,8 +259,8 @@ export default function TariffScreen() {
               </View>
 
               <TouchableOpacity
-                style={[s.calcBtn, (!units||!days) && { opacity:0.3 }]}
-                onPress={() => calculate()} disabled={!units||!days} activeOpacity={0.85}
+                style={[s.calcBtn, (!units || !days) && { opacity: 0.3 }]}
+                onPress={() => calculate()} disabled={!units || !days} activeOpacity={0.85}
               >
                 <Text style={s.calcBtnText}>Calculate Bill</Text>
                 <Text style={s.calcArrow}>→</Text>
@@ -323,15 +269,15 @@ export default function TariffScreen() {
 
             {/* RESULT */}
             {result && (
-              <Animated.View style={{ opacity: resultAnim, transform:[{translateY: resultSlide}] }}>
+              <Animated.View style={{ opacity: resultAnim, transform: [{ translateY: resultSlide }] }}>
 
                 {/* Gauge card */}
                 <View style={s.card}>
                   <Text style={s.sectionLabel}>USAGE ANALYSIS</Text>
                   <UsageGauge norm={result.norm} />
-                  <View style={[s.catChip, { backgroundColor: result.category===1 ? '#064E3B' : '#431407' }]}>
-                    <Text style={[s.catChipText, { color: result.category===1 ? '#34D399' : '#FB923C' }]}>
-                      {result.category===1 ? '● Category 1' : '● Category 2'}
+                  <View style={[s.catChip, { backgroundColor: result.category === 1 ? '#064E3B' : '#431407' }]}>
+                    <Text style={[s.catChipText, { color: result.category === 1 ? '#34D399' : '#FB923C' }]}>
+                      {result.category === 1 ? '● Category 1' : '● Category 2'}
                       {'  ·  '}{result.label}{'  ·  '}{result.norm} kWh/mo
                     </Text>
                   </View>
@@ -344,7 +290,7 @@ export default function TariffScreen() {
                     Slab limits scaled for {days}-day billing period
                   </Text>
                   {result.breakdown.map((item, i) => (
-                    <SlabBar key={i} item={item} total={result.energy} index={i} delay={i*130} />
+                    <SlabBar key={i} item={item} total={result.energy} index={i} delay={i * 130} />
                   ))}
                   <View style={s.energyTotal}>
                     <Text style={s.energyTotalLabel}>Total Energy Charge</Text>
@@ -371,12 +317,12 @@ export default function TariffScreen() {
 
                   <View style={s.statsRow}>
                     {[
-                      { label:'Per Day', value:`Rs.${(result.total/(parseInt(days)||30)).toFixed(2)}` },
-                      { label:'Per kWh', value:`Rs.${(result.total/parseInt(units)).toFixed(2)}` },
-                      { label:'Subtotal', value:`Rs.${result.subtotal.toLocaleString()}` },
-                    ].map(({ label,value },i) => (
+                      { label: 'Per Day', value: `Rs.${(result.total / (parseInt(days) || 30)).toFixed(2)}` },
+                      { label: 'Per kWh', value: `Rs.${(result.total / parseInt(units)).toFixed(2)}` },
+                      { label: 'Subtotal', value: `Rs.${result.subtotal.toLocaleString()}` },
+                    ].map(({ label, value }, i) => (
                       <React.Fragment key={label}>
-                        {i>0 && <View style={s.statDivider} />}
+                        {i > 0 && <View style={s.statDivider} />}
                         <View style={s.stat}>
                           <Text style={s.statLabel}>{label}</Text>
                           <Text style={s.statValue}>{value}</Text>
@@ -397,45 +343,45 @@ export default function TariffScreen() {
             <Text style={s.tableNote}>Effective 15 Oct 2025 · Defined per 30-day billing period</Text>
 
             {/* Category 1 */}
-            <View style={[s.catBlock, { borderColor:'#34D39933' }]}>
-              <View style={[s.catHead, { backgroundColor:'#052E16' }]}>
-                <View style={[s.catDot, { backgroundColor:'#34D399' }]} />
-                <Text style={[s.catHeadText, { color:'#34D399' }]}>Category 1 — 0 to 60 kWh / month</Text>
+            <View style={[s.catBlock, { borderColor: '#34D39933' }]}>
+              <View style={[s.catHead, { backgroundColor: '#052E16' }]}>
+                <View style={[s.catDot, { backgroundColor: '#34D399' }]} />
+                <Text style={[s.catHeadText, { color: '#34D399' }]}>Category 1 — 0 to 60 kWh / month</Text>
               </View>
               <View style={s.tHead}>
-                {['Block','Rate / kWh','Fixed Charge'].map(h => <Text key={h} style={s.th}>{h}</Text>)}
+                {['Block', 'Rate / kWh', 'Fixed Charge'].map(h => <Text key={h} style={s.th}>{h}</Text>)}
               </View>
-              {LOW_SLABS.map(([range,rate,fixed],i) => (
-                <View key={i} style={[s.tRow, i%2===0 && s.tRowAlt]}>
+              {LOW_SLABS.map(([range, rate, fixed], i) => (
+                <View key={i} style={[s.tRow, i % 2 === 0 && s.tRowAlt]}>
                   <Text style={s.tdRange}>{range} kWh</Text>
-                  <Text style={[s.td, { color:'#38BDF8' }]}>Rs. {rate}</Text>
-                  <Text style={[s.td, { color:'#818CF8' }]}>Rs. {fixed}</Text>
+                  <Text style={[s.td, { color: '#38BDF8' }]}>Rs. {rate}</Text>
+                  <Text style={[s.td, { color: '#818CF8' }]}>Rs. {fixed}</Text>
                 </View>
               ))}
             </View>
 
             {/* Category 2 */}
-            <View style={[s.catBlock, { borderColor:'#FB923C33', marginTop:18 }]}>
-              <View style={[s.catHead, { backgroundColor:'#431407' }]}>
-                <View style={[s.catDot, { backgroundColor:'#FB923C' }]} />
-                <Text style={[s.catHeadText, { color:'#FB923C' }]}>Category 2 — Above 60 kWh / month</Text>
+            <View style={[s.catBlock, { borderColor: '#FB923C33', marginTop: 18 }]}>
+              <View style={[s.catHead, { backgroundColor: '#431407' }]}>
+                <View style={[s.catDot, { backgroundColor: '#FB923C' }]} />
+                <Text style={[s.catHeadText, { color: '#FB923C' }]}>Category 2 — Above 60 kWh / month</Text>
               </View>
               <View style={s.tHead}>
-                {['Block','Rate / kWh','Fixed Charge'].map(h => <Text key={h} style={s.th}>{h}</Text>)}
+                {['Block', 'Rate / kWh', 'Fixed Charge'].map(h => <Text key={h} style={s.th}>{h}</Text>)}
               </View>
-              {HIGH_SLABS.map(([range,rate,fixed],i) => (
-                <View key={i} style={[s.tRow, i%2===0 && s.tRowAlt]}>
+              {HIGH_SLABS.map(([range, rate, fixed], i) => (
+                <View key={i} style={[s.tRow, i % 2 === 0 && s.tRowAlt]}>
                   <Text style={s.tdRange}>{range} kWh</Text>
-                  <Text style={[s.td, { color:'#38BDF8' }]}>Rs. {rate}</Text>
-                  <Text style={[s.td, { color: fixed==='—' ? '#334155' : '#818CF8' }]}>
-                    {fixed==='—' ? '—' : `Rs. ${fixed}`}
+                  <Text style={[s.td, { color: '#38BDF8' }]}>Rs. {rate}</Text>
+                  <Text style={[s.td, { color: fixed === '—' ? '#334155' : '#818CF8' }]}>
+                    {fixed === '—' ? '—' : `Rs. ${fixed}`}
                   </Text>
                 </View>
               ))}
             </View>
 
             <View style={s.noteBox}>
-              {['⚡  SSCL of 2.565% applied on all charges','📅  Slab limits scale for non-30-day periods','🔢  Category set by 30-day normalised consumption'].map(n => (
+              {['⚡  SSCL of 2.565% applied on all charges', '📅  Slab limits scale for non-30-day periods', '🔢  Category set by 30-day normalised consumption'].map(n => (
                 <Text key={n} style={s.noteLine}>{n}</Text>
               ))}
             </View>
@@ -450,138 +396,138 @@ export default function TariffScreen() {
 
 // ─── STYLES ─────────────────────────────────────────────────────────────────
 const s = StyleSheet.create({
-  root: { flex:1, backgroundColor:'#070B14' },
+  root: { flex: 1, backgroundColor: '#070B14' },
 
   // Header
   header: {
-    paddingTop:56, paddingBottom:24, paddingHorizontal:24,
-    borderBottomWidth:1, borderBottomColor:'#0F172A', overflow:'hidden',
+    paddingTop: 56, paddingBottom: 24, paddingHorizontal: 24,
+    borderBottomWidth: 1, borderBottomColor: '#0F172A', overflow: 'hidden',
   },
   glow: {
-    position:'absolute', top:-60, right:-30, width:220, height:220,
-    borderRadius:110, backgroundColor:'#0EA5E9', opacity:0.07,
+    position: 'absolute', top: -60, right: -30, width: 220, height: 220,
+    borderRadius: 110, backgroundColor: '#0EA5E9', opacity: 0.07,
   },
-  eyebrow: { color:'#0EA5E9', fontSize:10, fontWeight:'800', letterSpacing:2.5, marginBottom:10 },
-  title: { color:'#F1F5F9', fontSize:40, fontWeight:'700', lineHeight:44, letterSpacing: 1.5 },
+  eyebrow: { color: '#0EA5E9', fontSize: 10, fontWeight: '800', letterSpacing: 2.5, marginBottom: 10 },
+  title: { color: '#F1F5F9', fontSize: 40, fontWeight: '700', lineHeight: 44, letterSpacing: 1.5 },
   headerBadge: {
-    marginTop:12, alignSelf:'flex-start', backgroundColor:'#0F3460',
-    borderRadius:8, paddingHorizontal:10, paddingVertical:4,
-    borderWidth:1, borderColor:'#1E40AF',
+    marginTop: 12, alignSelf: 'flex-start', backgroundColor: '#0F3460',
+    borderRadius: 8, paddingHorizontal: 10, paddingVertical: 4,
+    borderWidth: 1, borderColor: '#1E40AF',
   },
-  headerBadgeText: { color:'#60A5FA', fontSize:10, fontWeight:'800', letterSpacing:2 },
+  headerBadgeText: { color: '#60A5FA', fontSize: 10, fontWeight: '800', letterSpacing: 2 },
 
   // Tabs
   tabBar: {
-    flexDirection:'row', backgroundColor:'#0D1422',
-    marginHorizontal:16, marginTop:14, marginBottom:4,
-    borderRadius:14, padding:4, borderWidth:1, borderColor:'#1E293B',
+    flexDirection: 'row', backgroundColor: '#0D1422',
+    marginHorizontal: 16, marginTop: 14, marginBottom: 4,
+    borderRadius: 14, padding: 4, borderWidth: 1, borderColor: '#1E293B',
   },
-  tab: { flex:1, paddingVertical:11, alignItems:'center', borderRadius:11 },
-  tabOn: { backgroundColor:'#0C2240' },
-  tabTxt: { color:'#334155', fontSize:13, fontWeight:'700' },
-  tabTxtOn: { color:'#38BDF8' },
-  tabUnderline: { position:'absolute', bottom:4, width:20, height:2, backgroundColor:'#38BDF8', borderRadius:1 },
+  tab: { flex: 1, paddingVertical: 11, alignItems: 'center', borderRadius: 11 },
+  tabOn: { backgroundColor: '#0C2240' },
+  tabTxt: { color: '#334155', fontSize: 13, fontWeight: '700' },
+  tabTxtOn: { color: '#38BDF8' },
+  tabUnderline: { position: 'absolute', bottom: 4, width: 20, height: 2, backgroundColor: '#38BDF8', borderRadius: 1 },
 
   // Layout
-  scroll: { flex:1 },
-  scrollContent: { paddingTop:14, paddingHorizontal:16 },
+  scroll: { flex: 1 },
+  scrollContent: { paddingTop: 14, paddingHorizontal: 16 },
 
   // Card
   card: {
-    backgroundColor:'#0D1422', borderRadius:20, marginBottom:14,
-    padding:20, borderWidth:1, borderColor:'#1E293B',
+    backgroundColor: '#0D1422', borderRadius: 20, marginBottom: 14,
+    padding: 20, borderWidth: 1, borderColor: '#1E293B',
   },
   sectionLabel: {
-    color:'#1E40AF', fontSize:10, fontWeight:'800',
-    letterSpacing:2.5, textTransform:'uppercase', marginBottom:16,
+    color: '#1E40AF', fontSize: 10, fontWeight: '800',
+    letterSpacing: 2.5, textTransform: 'uppercase', marginBottom: 16,
   },
 
   // Inputs
-  inputRow: { flexDirection:'row', gap:12, marginBottom:18 },
-  inputWrap: { flex:1 },
-  inputLabel: { color:'#334155', fontSize:9, fontWeight:'800', letterSpacing:2, marginBottom:8 },
+  inputRow: { flexDirection: 'row', gap: 12, marginBottom: 18 },
+  inputWrap: { flex: 1 },
+  inputLabel: { color: '#334155', fontSize: 9, fontWeight: '800', letterSpacing: 2, marginBottom: 8 },
   input: {
-    backgroundColor:'#070B14', color:'#F1F5F9',
-    borderRadius:12, padding:16, fontSize:22, fontWeight:'800',
-    borderWidth:1.5, borderColor:'#1E293B', letterSpacing:-0.5,
+    backgroundColor: '#070B14', color: '#F1F5F9',
+    borderRadius: 12, padding: 16, fontSize: 22, fontWeight: '800',
+    borderWidth: 1.5, borderColor: '#1E293B', letterSpacing: -0.5,
   },
 
   // Presets
-  presetRow: { flexDirection:'row', gap:10, marginTop:8, marginBottom:20 },
+  presetRow: { flexDirection: 'row', gap: 10, marginTop: 8, marginBottom: 20 },
   preset: {
-    flex:1, backgroundColor:'#070B14', borderRadius:12,
-    padding:12, alignItems:'center', borderWidth:1,
+    flex: 1, backgroundColor: '#070B14', borderRadius: 12,
+    padding: 12, alignItems: 'center', borderWidth: 1,
   },
-  presetIcon: { fontSize:22, marginBottom:5 },
-  presetLabel: { fontSize:11, fontWeight:'800', letterSpacing:0.5 },
-  presetKwh: { color:'#334155', fontSize:10, fontWeight:'700', marginTop:3 },
+  presetIcon: { fontSize: 22, marginBottom: 5 },
+  presetLabel: { fontSize: 11, fontWeight: '800', letterSpacing: 0.5 },
+  presetKwh: { color: '#334155', fontSize: 10, fontWeight: '700', marginTop: 3 },
 
   // Calc button
   calcBtn: {
-    backgroundColor:'#0EA5E9', borderRadius:14,
-    flexDirection:'row', justifyContent:'center', alignItems:'center',
-    paddingVertical:17, gap:12,
+    backgroundColor: '#0EA5E9', borderRadius: 14,
+    flexDirection: 'row', justifyContent: 'center', alignItems: 'center',
+    paddingVertical: 17, gap: 12,
   },
-  calcBtnText: { color:'#fff', fontSize:16, fontWeight:'800', letterSpacing:0.3 },
-  calcArrow: { color:'#fff', fontSize:22 },
+  calcBtnText: { color: '#fff', fontSize: 16, fontWeight: '800', letterSpacing: 0.3 },
+  calcArrow: { color: '#fff', fontSize: 22 },
 
   // Category chip
-  catChip: { borderRadius:8, paddingHorizontal:14, paddingVertical:9, marginTop:16 },
-  catChipText: { fontSize:12, fontWeight:'700', letterSpacing:0.3 },
+  catChip: { borderRadius: 8, paddingHorizontal: 14, paddingVertical: 9, marginTop: 16 },
+  catChipText: { fontSize: 12, fontWeight: '700', letterSpacing: 0.3 },
 
   // Breakdown
-  breakdownNote: { color:'#334155', fontSize:11, marginBottom:12, marginTop:-8 },
+  breakdownNote: { color: '#334155', fontSize: 11, marginBottom: 12, marginTop: -8 },
   energyTotal: {
-    flexDirection:'row', justifyContent:'space-between', alignItems:'center',
-    marginTop:14, paddingTop:14, borderTopWidth:1, borderTopColor:'#1E293B',
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+    marginTop: 14, paddingTop: 14, borderTopWidth: 1, borderTopColor: '#1E293B',
   },
-  energyTotalLabel: { color:'#64748B', fontSize:12, fontWeight:'700' },
-  energyTotalValue: { color:'#E2E8F0', fontSize:16, fontWeight:'900' },
+  energyTotalLabel: { color: '#64748B', fontSize: 12, fontWeight: '700' },
+  energyTotalValue: { color: '#E2E8F0', fontSize: 16, fontWeight: '900' },
 
   // Charge pills
-  pillRow: { flexDirection:'row', gap:10, marginBottom:16 },
+  pillRow: { flexDirection: 'row', gap: 10, marginBottom: 16 },
 
   // Total box
   totalBox: {
-    backgroundColor:'#070B14', borderRadius:16, padding:20,
-    flexDirection:'row', justifyContent:'space-between', alignItems:'center',
-    borderWidth:1, borderColor:'#0EA5E933', marginBottom:14,
+    backgroundColor: '#070B14', borderRadius: 16, padding: 20,
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+    borderWidth: 1, borderColor: '#0EA5E933', marginBottom: 14,
   },
-  totalDue: { color:'#475569', fontSize:10, fontWeight:'800', letterSpacing:2 },
-  totalSub: { color:'#1E293B', fontSize:10, marginTop:4 },
-  totalAmt: { color:'#38BDF8', fontSize:24, fontWeight:'900', letterSpacing:-1 },
+  totalDue: { color: '#475569', fontSize: 10, fontWeight: '800', letterSpacing: 2 },
+  totalSub: { color: '#1E293B', fontSize: 10, marginTop: 4 },
+  totalAmt: { color: '#38BDF8', fontSize: 24, fontWeight: '900', letterSpacing: -1 },
 
   // Stats row
   statsRow: {
-    flexDirection:'row', backgroundColor:'#070B14',
-    borderRadius:12, borderWidth:1, borderColor:'#1E293B',
+    flexDirection: 'row', backgroundColor: '#070B14',
+    borderRadius: 12, borderWidth: 1, borderColor: '#1E293B',
   },
-  stat: { flex:1, alignItems:'center', paddingVertical:14 },
-  statLabel: { color:'#334155', fontSize:9, fontWeight:'800', letterSpacing:1.2, marginBottom:5 },
-  statValue: { color:'#94A3B8', fontSize:13, fontWeight:'800' },
-  statDivider: { width:1, backgroundColor:'#1E293B', marginVertical:8 },
+  stat: { flex: 1, alignItems: 'center', paddingVertical: 14 },
+  statLabel: { color: '#334155', fontSize: 9, fontWeight: '800', letterSpacing: 1.2, marginBottom: 5 },
+  statValue: { color: '#94A3B8', fontSize: 13, fontWeight: '800' },
+  statDivider: { width: 1, backgroundColor: '#1E293B', marginVertical: 8 },
 
   // Rate table
-  tableNote: { color:'#334155', fontSize:11, marginBottom:18, lineHeight:16 },
-  catBlock: { borderRadius:14, overflow:'hidden', borderWidth:1 },
-  catHead: { flexDirection:'row', alignItems:'center', paddingHorizontal:14, paddingVertical:11, gap:8 },
-  catDot: { width:7, height:7, borderRadius:4 },
-  catHeadText: { fontSize:12, fontWeight:'800', letterSpacing:0.3, flex:1 },
+  tableNote: { color: '#334155', fontSize: 11, marginBottom: 18, lineHeight: 16 },
+  catBlock: { borderRadius: 14, overflow: 'hidden', borderWidth: 1 },
+  catHead: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, paddingVertical: 11, gap: 8 },
+  catDot: { width: 7, height: 7, borderRadius: 4 },
+  catHeadText: { fontSize: 12, fontWeight: '800', letterSpacing: 0.3, flex: 1 },
   tHead: {
-    flexDirection:'row', backgroundColor:'#0A111E',
-    paddingHorizontal:14, paddingVertical:8,
-    borderBottomWidth:1, borderBottomColor:'#1E293B',
+    flexDirection: 'row', backgroundColor: '#0A111E',
+    paddingHorizontal: 14, paddingVertical: 8,
+    borderBottomWidth: 1, borderBottomColor: '#1E293B',
   },
-  th: { flex:1, color:'#334155', fontSize:9, fontWeight:'800', letterSpacing:1 },
-  tRow: { flexDirection:'row', paddingHorizontal:14, paddingVertical:12 },
-  tRowAlt: { backgroundColor:'#070B1480' },
-  tdRange: { flex:1, color:'#CBD5E1', fontSize:12, fontWeight:'700' },
-  td: { flex:1, fontSize:12, fontWeight:'700' },
+  th: { flex: 1, color: '#334155', fontSize: 9, fontWeight: '800', letterSpacing: 1 },
+  tRow: { flexDirection: 'row', paddingHorizontal: 14, paddingVertical: 12 },
+  tRowAlt: { backgroundColor: '#070B1480' },
+  tdRange: { flex: 1, color: '#CBD5E1', fontSize: 12, fontWeight: '700' },
+  td: { flex: 1, fontSize: 12, fontWeight: '700' },
 
   // Notes
   noteBox: {
-    marginTop:18, backgroundColor:'#070B14', borderRadius:12,
-    padding:16, gap:9, borderWidth:1, borderColor:'#1E293B',
+    marginTop: 18, backgroundColor: '#070B14', borderRadius: 12,
+    padding: 16, gap: 9, borderWidth: 1, borderColor: '#1E293B',
   },
-  noteLine: { color:'#334155', fontSize:11, lineHeight:17 },
+  noteLine: { color: '#334155', fontSize: 11, lineHeight: 17 },
 });

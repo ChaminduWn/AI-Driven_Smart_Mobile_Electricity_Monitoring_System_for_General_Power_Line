@@ -31,6 +31,7 @@ class ApplianceCreate(BaseModel):
     appliance_name: str = Field(..., min_length=1, max_length=255, description="Name of appliance")
     appliance_category: Optional[str] = Field(None, description="Category (cooling, heating, entertainment, etc.)")
     wattage: int = Field(..., gt=0, description="Power consumption in Watts")
+    quantity: int = Field(1, gt=0, description="Number of units")
     usage_duration_minutes: int = Field(60, gt=0, description="Duration per use in minutes")
     usage_times_per_day: int = Field(1, gt=0, description="How many times used per day")
     usage_frequency: str = Field('daily', description="Frequency: daily, weekly, monthly")
@@ -41,6 +42,7 @@ class ApplianceUpdate(BaseModel):
     appliance_name: Optional[str] = None
     appliance_category: Optional[str] = None
     wattage: Optional[int] = None
+    quantity: Optional[int] = None
     usage_duration_minutes: Optional[int] = None
     usage_times_per_day: Optional[int] = None
     usage_frequency: Optional[str] = None
@@ -52,6 +54,7 @@ class ApplianceResponse(BaseModel):
     appliance_name: str
     appliance_category: Optional[str]
     wattage: int
+    quantity: int = 1
     usage_frequency: str
     usage_duration_minutes: int
     usage_times_per_day: int
@@ -88,6 +91,7 @@ def add_appliance(
             appliance_name=appliance.appliance_name,
             appliance_category=appliance.appliance_category,
             wattage=appliance.wattage,
+            quantity=appliance.quantity,
             usage_duration_minutes=appliance.usage_duration_minutes,
             usage_times_per_day=appliance.usage_times_per_day,
             usage_frequency=appliance.usage_frequency
@@ -150,7 +154,8 @@ def get_appliances_by_account(
                 'name': a.appliance_name,
                 'category': a.appliance_category,
                 'wattage': a.wattage,
-                'usage': f"{a.usage_times_per_day}x per day, {a.usage_duration_minutes} min each",
+                'quantity': a.quantity or 1,
+                'usage': f"{a.quantity if a.quantity and a.quantity > 1 else ''} {a.usage_times_per_day}x per day, {a.usage_duration_minutes} min each",
                 'frequency': a.usage_frequency,
                 'daily_kwh': round(a.daily_kwh, 3) if a.daily_kwh else 0,
                 'monthly_kwh': round(a.monthly_kwh, 2) if a.monthly_kwh else 0,
@@ -460,12 +465,18 @@ def get_appliance_categories():
     """Get list of common appliance categories"""
     categories = [
         {'name': 'Cooling', 'examples': ['Refrigerator', 'Freezer', 'Air Conditioner', 'Fan']},
-        {'name': 'Heating', 'examples': ['Electric Heater', 'Water Heater', 'Iron', 'Hair Dryer']},
-        {'name': 'Cooking', 'examples': ['Electric Stove', 'Microwave', 'Rice Cooker', 'Toaster']},
-        {'name': 'Cleaning', 'examples': ['Washing Machine', 'Dryer', 'Vacuum Cleaner', 'Dishwasher']},
-        {'name': 'Entertainment', 'examples': ['TV', 'Sound System', 'Gaming Console', 'Computer']},
+        {'name': 'Heating', 'examples': ['Electric Heater', 'Water Heater', 'Iron']},
+        {'name': 'Cooking', 'examples': ['Electric Stove', 'Microwave', 'Rice Cooker', 'Toaster', 'Air Fryer', 'Oven']},
+        {'name': 'Laundry', 'examples': ['Washing Machine', 'Dryer']},
+        {'name': 'Cleaning', 'examples': ['Vacuum Cleaner', 'Dishwasher', 'Steam Mop']},
+        {'name': 'Entertainment', 'examples': ['TV', 'Sound System', 'Gaming Console']},
         {'name': 'Lighting', 'examples': ['LED Bulbs', 'Tube Lights', 'Decorative Lights']},
-        {'name': 'Other', 'examples': ['Phone Charger', 'Router', 'Security Camera']}
+        {'name': 'Office', 'examples': ['Desktop Computer', 'Laptop', 'Printer', 'Monitor', 'Router']},
+        {'name': 'Water', 'examples': ['Water Pump', 'Water Filter', 'UV Purifier']},
+        {'name': 'Safety', 'examples': ['Security Camera', 'Gate Motor', 'Alarm System']},
+        {'name': 'Health/Beauty', 'examples': ['Hair Dryer', 'Straightener', 'Electric Shaver']},
+        {'name': 'Outdoor/Garden', 'examples': ['Lawn Mower', 'Pool Pump', 'Garden Lighting']},
+        {'name': 'Other', 'examples': ['Phone Charger', 'UPS', 'Electric Toothbrush']}
     ]
     
     return {
@@ -478,49 +489,24 @@ def get_appliance_categories():
 def get_common_appliances():
     """Get list of common appliances with typical wattages"""
     common = [
-        # Cooling
+        # Essential Top 10 Common Appliances
         {'name': 'Refrigerator', 'category': 'Cooling', 'typical_wattage': 150, 'usage': '24 hours'},
-        {'name': 'Air Conditioner (1 Ton)', 'category': 'Cooling', 'typical_wattage': 1000, 'usage': '8-10 hours'},
-        {'name': 'Ceiling Fan', 'category': 'Cooling', 'typical_wattage': 75, 'usage': '8-12 hours'},
-        
-        # Heating
-        {'name': 'Electric Water Heater', 'category': 'Heating', 'typical_wattage': 2000, 'usage': '1-2 hours'},
-        {'name': 'Iron', 'category': 'Heating', 'typical_wattage': 1000, 'usage': '30 min'},
-        {'name': 'Hair Dryer', 'category': 'Heating', 'typical_wattage': 1500, 'usage': '15 min'},
-        
-        # Cooking
-        {'name': 'Rice Cooker', 'category': 'Cooking', 'typical_wattage': 700, 'usage': '30 min, 3x/day'},
-        {'name': 'Microwave', 'category': 'Cooking', 'typical_wattage': 1200, 'usage': '15 min, 2x/day'},
-        {'name': 'Electric Kettle', 'category': 'Cooking', 'typical_wattage': 1500, 'usage': '5 min, 3x/day'},
-        {'name': 'Air Fryer', 'category': 'Cooking', 'typical_wattage': 1500, 'usage': '20 min, 1x/day'},
-        {'name': 'Electric Oven', 'category': 'Cooking', 'typical_wattage': 2000, 'usage': '45 min, 2x/week'},
-        {'name': 'Induction Cooktop', 'category': 'Cooking', 'typical_wattage': 2000, 'usage': '30 min, 2x/day'},
-        
-        # Cleaning
-        {'name': 'Washing Machine', 'category': 'Cleaning', 'typical_wattage': 500, 'usage': '1 hour, 2x/week'},
-        {'name': 'Vacuum Cleaner', 'category': 'Cleaning', 'typical_wattage': 1200, 'usage': '30 min, 1x/week'},
-        {'name': 'Dishwasher', 'category': 'Cleaning', 'typical_wattage': 1500, 'usage': '1 hour, 1x/day'},
-        
-        # Entertainment
-        {'name': 'LED TV (42")', 'category': 'Entertainment', 'typical_wattage': 80, 'usage': '4-6 hours'},
-        {'name': 'Desktop Computer', 'category': 'Entertainment', 'typical_wattage': 200, 'usage': '6-8 hours'},
-        {'name': 'Laptop', 'category': 'Entertainment', 'typical_wattage': 50, 'usage': '6-8 hours'},
-        {'name': 'Gaming Console', 'category': 'Entertainment', 'typical_wattage': 150, 'usage': '2-3 hours'},
-        
-        # Lighting
-        {'name': 'LED Bulb (9W)', 'category': 'Lighting', 'typical_wattage': 9, 'usage': '6-8 hours'},
-        {'name': 'Tube Light (20W)', 'category': 'Lighting', 'typical_wattage': 20, 'usage': '6-8 hours'},
-        
-        # Other
-        {'name': 'WiFi Router', 'category': 'Other', 'typical_wattage': 10, 'usage': '24 hours'},
-        {'name': 'Phone Charger', 'category': 'Other', 'typical_wattage': 5, 'usage': '2 hours'},
+        {'name': 'Ceiling Fan', 'category': 'Cooling', 'typical_wattage': 75, 'usage': '12 hours'},
+        {'name': 'LED Bulb (9W)', 'category': 'Lighting', 'typical_wattage': 9, 'usage': '8 hours'},
+        {'name': 'Smart TV', 'category': 'Entertainment', 'typical_wattage': 100, 'usage': '5 hours'},
+        {'name': 'Washing Machine', 'category': 'Laundry', 'typical_wattage': 500, 'usage': '1 hour'},
+        {'name': 'Electric Iron', 'category': 'Laundry', 'typical_wattage': 1000, 'usage': '20 min'},
+        {'name': 'Rice Cooker', 'category': 'Cooking', 'typical_wattage': 700, 'usage': '45 min'},
+        {'name': 'Air Conditioner', 'category': 'Cooling', 'typical_wattage': 1500, 'usage': '6 hours'},
+        {'name': 'Electric Kettle', 'category': 'Cooking', 'typical_wattage': 2000, 'usage': '10 min'},
+        {'name': 'Laptop', 'category': 'Office', 'typical_wattage': 65, 'usage': '8 hours'},
     ]
     
     return {
         'success': True,
         'count': len(common),
         'appliances': common,
-        'note': 'Typical wattages are estimates. Check your appliance label for exact values.'
+        'note': 'Top 10 most common household appliances.'
     }
 
 

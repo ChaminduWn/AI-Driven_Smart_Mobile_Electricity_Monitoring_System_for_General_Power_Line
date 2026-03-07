@@ -19,7 +19,7 @@ class Settings(BaseSettings):
 
     # File Upload
     MAX_UPLOAD_SIZE: int = 10485760
-    ALLOWED_EXTENSIONS: str = "pdf,jpg,jpeg,png"  # Keep as string
+    ALLOWED_EXTENSIONS: str = "pdf,jpg,jpeg,png"
     UPLOAD_DIR: str = "uploads"
 
     # OCR
@@ -31,7 +31,12 @@ class Settings(BaseSettings):
 
     # API
     API_V1_PREFIX: str = "/api/v1"
-    CORS_ORIGINS: str = "http://localhost:3000,http://localhost:5173"  # admin-panel / member1-web (Vite)
+    CORS_ORIGINS: str = "http://localhost:3000,http://localhost:5173"
+
+    # Google OAuth — add Client IDs here as you get them
+    GOOGLE_CLIENT_ID: Optional[str] = None           # Web Client ID (now)
+    GOOGLE_ANDROID_CLIENT_ID: Optional[str] = None   # Android (later)
+    GOOGLE_IOS_CLIENT_ID: Optional[str] = None       # iOS (later)
 
     class Config:
         env_file = ".env"
@@ -41,7 +46,7 @@ class Settings(BaseSettings):
     @property
     def allowed_extensions_list(self) -> List[str]:
         return [ext.strip() for ext in self.ALLOWED_EXTENSIONS.split(',')]
-    
+
     @property
     def cors_origins_list(self) -> List[str]:
         return [origin.strip() for origin in self.CORS_ORIGINS.split(',')]

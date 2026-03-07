@@ -3,7 +3,7 @@
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from src.config import settings
-from src.database import engine, Base
+from src.database import engine, Base, SessionLocal          # ← ADDED SessionLocal
 from src.api.route import router as main_router
 from src.api.routes import bill_analysis
 from src.api.routes import appliances
@@ -12,8 +12,8 @@ from src.api.routes import household
 from src.api.routes import ml_predictions
 from src.api.routes import auth
 from src.api.routes import smart_predictions
-from src.api.routes import iot                          # ← ADDED
-from src.services.iot_service import iot_service        # ← ADDED
+from src.api.routes import iot
+from src.services.iot_service import iot_service
 
 # Import all models to register them with SQLAlchemy (needed for create_all)
 from src.models import (
@@ -28,6 +28,9 @@ from src.models import (
     TariffStructure,
     LiveMeterReading,
     ApplianceEvent,
+    DeviceSession,          # ← ADDED
+    DeviceReading,          # ← ADDED
+    DeviceApplianceEvent,   # ← ADDED
 )
 
 import logging
@@ -116,7 +119,7 @@ app.include_router(nilm.router,               prefix="/api/v1")
 app.include_router(household.router,          prefix="/api/v1")
 app.include_router(ml_predictions.router,     prefix="/api/v1")
 app.include_router(smart_predictions.router,  prefix="/api/v1")
-app.include_router(iot.router,                prefix="/api/v1")   # ← ADDED
+app.include_router(iot.router,                prefix="/api/v1")
 
 logger.info(f"{settings.APP_NAME} v{settings.APP_VERSION} initialized")
 
@@ -137,7 +140,7 @@ def root():
             "Appliance Management",
             "AI Disaggregation (NILM)", 
             "Image Recognition",
-            "IoT Live Meter",             # ← ADDED
+            "IoT Live Meter",
         ]
     }
 
@@ -156,7 +159,7 @@ def health():
             "appliance_management",
             "nilm_disaggregation", 
             "image_recognition",
-            "iot_live_meter",             # ← ADDED
+            "iot_live_meter",
         ]
     }
 
@@ -174,17 +177,17 @@ async def startup_event():
     logger.info("  - Appliance Management")
     logger.info("  - AI Disaggregation (NILM)") 
     logger.info("  - Image Recognition")
-    logger.info("  - IoT Live Meter (HiveMQ)")   # ADDED
+    logger.info("  - IoT Live Meter (HiveMQ)")
 
-    # Start IoT MQTT service
-    iot_service.start()                           # ADDED
-    logger.info("  - IoT service started - subscribed to HiveMQ energyiq/#")
+    # Start IoT MQTT service — pass db factory so it can save readings
+    iot_service.start(db_factory=SessionLocal)                              # ← CHANGED
+    logger.info("IoT service started — subscribed to energyiq/device/+/live on HiveMQ")
 
 
 @app.on_event("shutdown")
 async def shutdown_event():
     logger.info("Application shutting down...")
-    iot_service.stop()                            # ← ADDED
+    iot_service.stop()
 
 
 if __name__ == "__main__":

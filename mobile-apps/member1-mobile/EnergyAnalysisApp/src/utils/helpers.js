@@ -97,3 +97,56 @@ Why it's useful:
 
 Accuracy improves when you register more appliances.`,
 });
+
+/**
+ * CEB TARIFF CALCULATION (verified against real bills)
+ * Scales slab limits based on billing period days.
+ */
+export function calcCEB(units, days) {
+  if (!units || !days || units <= 0 || days <= 0) return null;
+  const norm = (units / days) * 30;
+  let fixed, slabs, category, label;
+
+  if (norm <= 60) {
+    fixed = norm <= 30 ? 80 : 210;
+    slabs = [{ lim: 30, rate: 4.50 }, { lim: 60, rate: 8.00 }];
+    category = 1;
+    label = '0 – 60 kWh';
+  } else {
+    fixed = norm <= 90 ? 400 : norm <= 120 ? 1000 : norm <= 180 ? 1500 : 2100;
+    slabs = [
+      { lim: 60, rate: 12.75 }, { lim: 90, rate: 18.50 },
+      { lim: 120, rate: 24.00 }, { lim: 180, rate: 41.00 },
+      { lim: null, rate: 61.00 },
+    ];
+    category = 2;
+    label = 'Above 60 kWh';
+  }
+
+  const breakdown = [];
+  let energy = 0, remaining = units, prev = 0;
+  for (const { lim, rate } of slabs) {
+    if (remaining <= 0) break;
+    let inSlab, rangeLabel;
+    if (lim === null) {
+      inSlab = remaining;
+      rangeLabel = `${prev + 1}+`;
+    } else {
+      const scaled = Math.floor(lim * days / 30);
+      inSlab = Math.max(0, Math.min(remaining, scaled - prev));
+      rangeLabel = prev === 0 ? `0 – ${scaled}` : `${prev + 1} – ${scaled}`;
+      prev = scaled;
+    }
+    if (inSlab <= 0) continue;
+    const amt = +(inSlab * rate).toFixed(2);
+    energy += amt;
+    breakdown.push({ range: rangeLabel, units: inSlab, rate, amt });
+    remaining -= inSlab;
+  }
+
+  energy = +energy.toFixed(2);
+  const subtotal = energy + fixed;
+  const sscl = +(subtotal * 0.02565).toFixed(2);
+  const total = +(subtotal + sscl).toFixed(2);
+  return { category, label, energy, fixed, subtotal, sscl, total, breakdown, norm: +norm.toFixed(1) };
+}
