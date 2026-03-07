@@ -14,9 +14,9 @@ import Member1Dashboard from './pages/Member1Dashboard';
 import Member2Dashboard from './pages/Member2Dashboard';
 import Member3Dashboard from './pages/Member3Dashboard';
 import Member4Dashboard from './pages/Member4Dashboard';
-
 import Login from './pages/Login';
-import Register from './pages/Register';
+
+import Home from './pages//Homepage';
 
 const theme = createTheme({
   palette: {
@@ -33,22 +33,27 @@ function App() {
 
       <Router>
         <Routes>
-          <Route path="/" element={<Login />} />
-          <Route path="/register" element={<Register />} />
+          
+          <Route path="/" element={<Home />} />
 
-          <Route path="/member1" element={<Member1Dashboard />} />
+          {/* Direct member route */}
+          <Route path="/Energy Analysis" element={<Member1Dashboard />}/>
+          <Route path="/Outage Tracking" element={<Member2Dashboard />} />
+          <Route path="/Solar Intelligence" element={<Member3Dashboard />} />
+          <Route path="/Safety Assistant" element={<Member4Dashboard />} />
+
+          {/* Dashboard Layout Routes */}
           <Route path="/d" element={<DashboardLayout />}>
-
             <Route index element={<Dashboard />} />
             <Route path="member1" element={<Member1Dashboard />} />
             <Route path="member2" element={<Member2Dashboard />} />
-            <Route path="Solar Recommendations" element={<Member3Dashboard />} />
+            <Route path="solar-recommendations" element={<Member3Dashboard />} />
             <Route path="member4" element={<Member4Dashboard />} />
-
-            {/* Alias route */}
             <Route path="electricity" element={<Member1Dashboard />} />
+            <Route path="homepage" element={<Home/>} />
           </Route>
 
+          {/* Redirect unknown routes */}
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </Router>

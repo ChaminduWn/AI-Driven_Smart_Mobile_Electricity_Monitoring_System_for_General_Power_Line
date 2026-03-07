@@ -55,7 +55,7 @@ export default function Login() {
       // Optionally store basic user info
       localStorage.setItem('user', JSON.stringify(data.user));
 
-      navigate('/member1');
+      navigate('/');
     } catch (err) {
       console.error(err);
       setApiError(err.message || 'Login failed. Please try again.');
