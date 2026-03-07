@@ -590,6 +590,24 @@ if __name__ == '__main__':
     print("  SOLAR RECOMMENDATION SYSTEM — STARTED BACKEND")
     print("=" * 60)
 
-    print("\n Starting Flask server on http://localhost:5000")
+    try:
+        # Initialize database tables
+        print("\n Initializing database...")
+        init_db()
 
-    app.run(host='0.0.0.0', port=5000, debug=False)
+        # Load ML models
+        print("\n Loading machine learning models...")
+        load_models()
+
+        # Load climate data
+        print("\n Loading climate data...")
+        load_climate_data()
+
+        print("\n Flask server starting at http://localhost:5000")
+        print("=" * 60)
+
+        app.run(host='0.0.0.0', port=5000, debug=True)
+
+    except Exception as e:
+        print("\n ERROR STARTING APPLICATION")
+        print(str(e))
