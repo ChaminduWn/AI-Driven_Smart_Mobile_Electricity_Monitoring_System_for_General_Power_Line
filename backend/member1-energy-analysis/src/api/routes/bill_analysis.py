@@ -24,12 +24,12 @@ recommendation_engine = RecommendationEngine()
 class BudgetPlanRequest(BaseModel):
     bill_id: int = Field(description="Past bill ID to base planning on")
     target_budget: float = Field(gt=0, description="Target budget in Rs.")
-    planning_days: int = Field(default=30, ge=28, le=35, description="Days to plan for")
+    planning_days: int = Field(default=30, ge=10, le=60, description="Days to plan for")
 
 
 class BudgetPlanUpdate(BaseModel):
     target_budget: Optional[float] = Field(None, gt=0, description="Target budget in Rs.")
-    planning_days: Optional[int] = Field(None, ge=28, le=35, description="Days to plan for")
+    planning_days: Optional[int] = Field(None, ge=10, le=60, description="Days to plan for")
 
 
 class MeterReadingRequest(BaseModel):
@@ -52,7 +52,7 @@ class ManualBillDataRequest(BaseModel):
     past_bill_date: datetime
     past_bill_amount: float = Field(gt=0)
     past_bill_units: int = Field(gt=0)
-    past_bill_days: int = Field(default=30, ge=28, le=35)
+    past_bill_days: int = Field(default=30, ge=10, le=60)
 
 
 # ========== PHASE 1 ENDPOINTS ==========
@@ -127,7 +127,7 @@ def analyze_manual_data(
 @router.get("/tariff-calculator")
 def calculate_tariff(
     units: int = Query(ge=0, description="Units consumed"),
-    days: int = Query(default=30, ge=28, le=35, description="Billing period days")
+    days: int = Query(default=30, ge=10, le=60, description="Billing period days")
 ):
     """
     Calculate bill using CEB tariff structure

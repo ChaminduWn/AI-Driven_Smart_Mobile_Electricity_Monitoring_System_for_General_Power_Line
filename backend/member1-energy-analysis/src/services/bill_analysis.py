@@ -26,30 +26,37 @@ class CEBTariffCalculator:
     SSCL_RATE = 0.02565  # 2.565% Social Security Contribution Levy
     
     def calculate_bill(self, units: int, billing_days: int = 30) -> Dict:
-        """Calculate electricity bill with correct fixed charge based on consumption"""
+        """
+        Calculate electricity bill with normalized thresholds and fixed charges.
+        Uses pro-rating logic: scales units to 30-day equivalent, calculates, then scales back.
+        """
+        # 1. Scale units to 30-day equivalent
+        # If days=60 and units=120, normalized_units=60 (one month equivalent)
+        factor = billing_days / 30.0
+        normalized_units = units / factor if factor > 0 else units
         
-        # Determine tariff structure
-        if units <= 60:
+        # 2. Determine 30-day tariff structure based on normalized units
+        if normalized_units <= 60:
             slabs = self.TARIFF_SLABS_0_TO_60
-            if units <= 30:
-                fixed_charge = 80.00
+            if normalized_units <= 30:
+                fixed_charge_30 = 80.00
             else:
-                fixed_charge = 210.00
+                fixed_charge_30 = 210.00
         else:
             slabs = self.TARIFF_SLABS_ABOVE_60
-            if units <= 90:
-                fixed_charge = 400.00
-            elif units <= 120:
-                fixed_charge = 1000.00
-            elif units <= 180:
-                fixed_charge = 1500.00
+            if normalized_units <= 90:
+                fixed_charge_30 = 400.00
+            elif normalized_units <= 120:
+                fixed_charge_30 = 1000.00
+            elif normalized_units <= 180:
+                fixed_charge_30 = 1500.00
             else:
-                fixed_charge = 2100.00
+                fixed_charge_30 = 2100.00
         
-        # Calculate energy charge
-        energy_charge = 0.0
-        breakdown = []
-        remaining_units = units
+        # 3. Calculate 30-day energy charge
+        energy_charge_30 = 0.0
+        breakdown_30 = []
+        remaining_units = normalized_units
         
         for slab in slabs:
             if remaining_units <= 0:
@@ -59,14 +66,14 @@ class CEBTariffCalculator:
             slab_max = slab['max']
             rate = slab['rate']
             
-            if units < slab_min:
+            if normalized_units < slab_min:
                 continue
             
             if slab_max == float('inf'):
-                units_in_slab = units - slab_min + 1
+                units_in_slab = normalized_units - slab_min + 1
             else:
-                if units <= slab_max:
-                    units_in_slab = units - slab_min + 1
+                if normalized_units <= slab_max:
+                    units_in_slab = normalized_units - slab_min + 1
                 else:
                     units_in_slab = slab_max - slab_min + 1
             
@@ -74,33 +81,48 @@ class CEBTariffCalculator:
             
             if units_in_slab > 0:
                 amount = units_in_slab * rate
-                energy_charge += amount
+                energy_charge_30 += amount
                 
-                breakdown.append({
-                    'block': f"{slab_min}-{int(slab_max) if slab_max != float('inf') else '∞'} kWh",
+                breakdown_30.append({
+                    'slab_units': int(units_in_slab),
                     'rate': rate,
-                    'units': int(units_in_slab),
-                    'amount': round(amount, 2),
-                    'calculation': f"{rate:.2f} × {int(units_in_slab)} = {round(amount, 2):.2f}"
+                    'amount': amount
                 })
-                
                 remaining_units -= units_in_slab
         
+        # 4. Scale everything back to the actual period
+        energy_charge = energy_charge_30 * factor
+        fixed_charge = fixed_charge_30 * factor
+        
+        # Detailed breakdown for UI (scaling blocks)
+        ui_breakdown = []
+        for b in breakdown_30:
+            scaled_units = b['slab_units'] * factor
+            scaled_amount = b['amount'] * factor
+            ui_breakdown.append({
+                'block': f"Block @ Rs.{b['rate']:.2f}",
+                'rate': b['rate'],
+                'units': round(scaled_units, 1),
+                'amount': round(scaled_amount, 2),
+                'calculation': f"{b['rate']:.2f} × {scaled_units:.1f} = {round(scaled_amount, 2):.2f}"
+            })
+
         subtotal = energy_charge + fixed_charge
         sscl_tax = subtotal * self.SSCL_RATE
         total = subtotal + sscl_tax
         
         return {
-            'category': 1 if units <= 60 else 2,
-            'category_name': '0-60 kWh (Low Consumption)' if units <= 60 else 'Above 60 kWh (High Consumption)',
+            'category': 1 if normalized_units <= 60 else 2,
+            'category_name': '0-60 kWh (Low Consumption)' if normalized_units <= 60 else 'Above 60 kWh (High Consumption)',
             'energy_charge': round(energy_charge, 2),
             'fixed_charge': round(fixed_charge, 2),
             'subtotal': round(subtotal, 2),
             'sscl': round(sscl_tax, 2),
             'total': round(total, 2),
-            'breakdown': breakdown,
+            'breakdown': ui_breakdown,
             'billing_days': billing_days,
-            'units_consumed': units
+            'units_consumed': units,
+            'is_prorated': billing_days != 30
         }
 
 
