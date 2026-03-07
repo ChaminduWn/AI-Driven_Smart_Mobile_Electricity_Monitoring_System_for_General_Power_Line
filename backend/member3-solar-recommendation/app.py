@@ -587,27 +587,15 @@ def locations():
 
 if __name__ == '__main__':
     print("=" * 60)
-    print("  SOLAR RECOMMENDATION SYSTEM — STARTED BACKEND")
+    print("  SOLAR PV RECOMMENDATION — FLASK BACKEND")
     print("=" * 60)
 
-    try:
-        # Initialize database tables
-        print("\n Initializing database...")
-        init_db()
+    init_db()
+    load_models()
+    load_climate_data()
 
-        # Load ML models
-        print("\n Loading machine learning models...")
-        load_models()
+    print("\n Starting Flask server on http://localhost:5000")
+ 
+    print()
 
-        # Load climate data
-        print("\n Loading climate data...")
-        load_climate_data()
-
-        print("\n Flask server starting at http://localhost:5000")
-        print("=" * 60)
-
-        app.run(host='0.0.0.0', port=5000, debug=True)
-
-    except Exception as e:
-        print("\n ERROR STARTING APPLICATION")
-        print(str(e))
+    app.run(host='0.0.0.0', port=5000, debug=False)
