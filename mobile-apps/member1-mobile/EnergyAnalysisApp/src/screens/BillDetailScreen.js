@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import {
-  View, Text, ScrollView, StyleSheet, Alert, ActivityIndicator, TouchableOpacity,
+  View, Text, ScrollView, StyleSheet, Alert, ActivityIndicator, TouchableOpacity, TextInput,
 } from 'react-native';
 import { analysisAPI } from '../api/analysisAPI';
 import { billsAPI } from '../api/billsAPI';
@@ -107,14 +107,35 @@ const BillDetailScreen = ({ route, navigation }) => {
       return;
     }
 
-    if (!targetBudget || isNaN(parseFloat(targetBudget))) {
+    const budgetVal = parseFloat(targetBudget);
+    const daysVal = parseInt(planningDays);
+    const prevCost = budgetRecs?.current_cost || 0;
+
+    if (!targetBudget || isNaN(budgetVal)) {
       Alert.alert('Error', 'Enter a valid target budget.');
+      return;
+    }
+
+    // Dynamic Validation: 50% - 150%
+    const minB = prevCost * 0.5;
+    const maxB = prevCost * 1.5;
+    if (budgetVal < minB || budgetVal > maxB) {
+      Alert.alert(
+        'Invalid Budget',
+        `Budget must be between 50% (Rs. ${Math.round(minB)}) and 150% (Rs. ${Math.round(maxB)}) of your previous bill.`
+      );
+      return;
+    }
+
+    // Days Validation: 10 - 60
+    if (isNaN(daysVal) || daysVal < 10 || daysVal > 60) {
+      Alert.alert('Invalid Period', 'Planning period must be between 10 and 60 days.');
       return;
     }
 
     setCreatingPlan(true);
     try {
-      const res = await analysisAPI.createBudgetPlan(id, parseFloat(targetBudget), parseInt(planningDays));
+      const res = await analysisAPI.createBudgetPlan(id, budgetVal, daysVal);
       if (res.data.success) {
         Alert.alert('✅ Budget Plan Created!', `Plan ID: ${res.data.plan_id}\nTrack your meter readings to monitor progress.`, [
           { text: 'Start Tracking', onPress: () => navigation.navigate('Tracking') },
@@ -244,32 +265,51 @@ const BillDetailScreen = ({ route, navigation }) => {
       ) : (
         <Card>
           <Text style={styles.cardTitle}>Set Your Budget Plan</Text>
-          <Text style={styles.inputLabel}>Target Budget (Rs.)</Text>
-          <View style={styles.inputRow}>
-            <Text style={styles.rsPrefix}>Rs.</Text>
-            <Text
-              style={styles.budgetInput}
-              onPress={() => {
-                Alert.prompt?.('Target Budget', 'Enter your target budget in Rs.', (val) => {
-                  if (val && !isNaN(parseFloat(val))) setTargetBudget(val);
-                }, 'plain-text', targetBudget);
-              }}
-            >
-              {targetBudget || 'Tap to enter'}
+
+          <View style={styles.inputContainer}>
+            <Text style={styles.inputLabel}>Target Budget (Rs.)</Text>
+            <View style={styles.inputRow}>
+              <Text style={styles.rsPrefix}>Rs.</Text>
+              <TextInput
+                style={styles.budgetInput}
+                value={targetBudget}
+                onChangeText={(v) => setTargetBudget(v.replace(/[^0-9]/g, ''))}
+                keyboardType="numeric"
+                placeholder="Enter amount"
+                placeholderTextColor={COLORS.textMuted}
+              />
+            </View>
+            <Text style={styles.inputHint}>
+              Allowed: Rs. {Math.round(budgetRecs?.current_cost * 0.5 || 0)} - Rs. {Math.round(budgetRecs?.current_cost * 1.5 || 0)} (50%-150%)
             </Text>
           </View>
 
-          <Text style={[styles.inputLabel, { marginTop: SPACING.md }]}>Planning Days</Text>
-          <View style={styles.daysRow}>
-            {['28', '30', '31', '35'].map((d) => (
-              <TouchableOpacity
-                key={d}
-                style={[styles.dayBtn, planningDays === d && styles.dayBtnActive]}
-                onPress={() => setPlanningDays(d)}
-              >
-                <Text style={[styles.dayBtnText, planningDays === d && styles.dayBtnTextActive]}>{d}</Text>
-              </TouchableOpacity>
-            ))}
+          <View style={[styles.inputContainer, { marginTop: SPACING.lg }]}>
+            <Text style={styles.inputLabel}>Planning Days</Text>
+            <View style={styles.daysRow}>
+              {['28', '29', '30', '31', '32'].map((d) => (
+                <TouchableOpacity
+                  key={d}
+                  style={[styles.dayBtn, planningDays === d && styles.dayBtnActive]}
+                  onPress={() => setPlanningDays(d)}
+                >
+                  <Text style={[styles.dayBtnText, planningDays === d && styles.dayBtnTextActive]}>{d}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+
+            <View style={[styles.inputRow, { marginTop: SPACING.md }]}>
+              <Text style={styles.rsPrefix}>Custom:</Text>
+              <TextInput
+                style={styles.budgetInput}
+                value={!['28', '29', '30', '31', '32'].includes(planningDays) ? planningDays : ''}
+                onChangeText={(v) => setPlanningDays(v.replace(/[^0-9]/g, ''))}
+                keyboardType="numeric"
+                placeholder="10 - 60 days"
+                placeholderTextColor={COLORS.textMuted}
+              />
+              <Text style={styles.rsSuffix}>days</Text>
+            </View>
           </View>
 
           <View style={styles.planBtns}>
@@ -337,6 +377,9 @@ const styles = StyleSheet.create({
   dayBtnActive: { backgroundColor: COLORS.primary, borderColor: COLORS.primary },
   dayBtnText: { color: COLORS.textSecondary, ...FONTS.medium },
   dayBtnTextActive: { color: '#fff' },
+  inputContainer: { marginBottom: SPACING.sm },
+  inputHint: { color: COLORS.textMuted, fontSize: 11, marginTop: 4, fontStyle: 'italic' },
+  rsSuffix: { color: COLORS.textSecondary, marginLeft: SPACING.sm },
   planBtns: { flexDirection: 'row', marginTop: SPACING.lg },
 });
 
