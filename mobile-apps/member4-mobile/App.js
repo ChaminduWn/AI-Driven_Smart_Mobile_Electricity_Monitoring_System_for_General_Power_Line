@@ -40,7 +40,7 @@ export default function App() {
           <Stack.Screen name="Appliances" component={AppliancesScreen} />
           <Stack.Screen name="Assistant" component={AssistantScreen} />
         </Stack.Navigator>
-        <BottomNav />
+        {/* <BottomNav /> */}
       </NavigationContainer>
     </PaperProvider>
   );

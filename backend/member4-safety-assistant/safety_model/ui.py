@@ -1,7 +1,7 @@
 import streamlit as st
 import requests
 
-API_URL = "http://localhost:8001/ask"
+API_URL = "http://localhost:8000/ask"
 
 st.set_page_config(page_title="⚡ Electricity Safety Assistant", page_icon="⚡", layout="centered")
 st.title("⚡ Electricity Safety Assistant")
@@ -12,7 +12,7 @@ question = st.text_input("🔍 Enter your safety question:", placeholder="e.g. W
 if st.button("Get Safety Advice") and question:
     with st.spinner("Searching safety knowledge base..."):
         try:
-            response = requests.post(API_URL, json={"question": question}, timeout=10)
+            response = requests.post(API_URL, json={"question": question}, timeout=120)
             data = response.json()
         except Exception as e:
             st.error(f"Request failed: {e}")
