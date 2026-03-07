@@ -9,7 +9,7 @@ import WeatherHeader from '../components/WeatherHeader';
 import BigWeatherCard from '../components/BigWeatherCard';
 import ForecastScroller from '../components/ForecastScroller';
 import PriorityActionCard from '../components/PriorityActionCard';
-import BottomNav from '../components/BottomNav';
+import BottomNav from '../components/BottomNavg';
 import SkeletonLoader from '../components/SkeletonLoader';
 import HeroWeatherCard from '../components/HeroWeatherCard';
 import SmartRiskIndicator from '../components/SmartRiskIndicator';

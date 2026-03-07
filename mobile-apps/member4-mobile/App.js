@@ -7,8 +7,8 @@ import WeatherScreen from './screens/WeatherScreen';
 import SafetyTipsScreen from './screens/SafetyTipsScreen';
 import EmergencyScreen from './screens/EmergencyScreen';
 import AppliancesScreen from './screens/AppliancesScreen';
-import AssistantScreen from './screens/AssistantScreen';
-import BottomNav from './components/BottomNav';
+import AssistantScreen from './screens/AssisScreen';
+import BottomNav from './components/BottomNavg';
 import Onboarding1 from './screens/Onboarding1';
 import Onboarding2 from './screens/Onboarding2';
 import Onboarding3 from './screens/Onboarding3';
@@ -40,7 +40,7 @@ export default function App() {
           <Stack.Screen name="Appliances" component={AppliancesScreen} />
           <Stack.Screen name="Assistant" component={AssistantScreen} />
         </Stack.Navigator>
-        {/* <BottomNav /> */}
+        <BottomNav />
       </NavigationContainer>
     </PaperProvider>
   );

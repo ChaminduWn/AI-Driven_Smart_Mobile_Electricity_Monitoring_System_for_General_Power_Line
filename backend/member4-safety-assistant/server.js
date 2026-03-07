@@ -6,7 +6,7 @@ dotenv.config();
 
 const weatherRoutes = require('./routes/weatherRoutes');
 const safetyRoutes = require('./routes/safetyRoutes');
-const assistantRoutes = require('./routes/assistant');
+// const assistantRoutes = require('./routes/assistant');
 
 const app = express();
 
@@ -22,7 +22,7 @@ app.use((req, res, next) => {
 
 app.use('/api/weather', weatherRoutes);
 app.use('/api/safety', safetyRoutes);
-app.use('/api/assistant', assistantRoutes);
+// app.use('/api/assistant', assistantRoutes);
 
 app.get('/api/health', (req, res) => {
   res.json({
