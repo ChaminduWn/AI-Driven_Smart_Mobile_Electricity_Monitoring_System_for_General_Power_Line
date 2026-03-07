@@ -1,4 +1,4 @@
-"""api/routes/auth.py - FIXED VERSION with simplified password hashing"""
+"""api/routes/auth.py - with Google Web Client ID verification"""
 
 from datetime import datetime, timedelta
 from typing import Optional
@@ -7,7 +7,6 @@ from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from jose import jwt, JWTError
 from passlib.context import CryptContext
 from sqlalchemy.orm import Session
-
 import logging
 
 from src.config import settings
@@ -26,109 +25,97 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
 
-# FIXED: Simplified password context - no pre-hashing
+# Password hashing
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login-form")
 
 ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 15  # Short-lived access token
-REFRESH_TOKEN_EXPIRE_DAYS = 7     # Long-lived refresh token
+ACCESS_TOKEN_EXPIRE_MINUTES  = 15
+REFRESH_TOKEN_EXPIRE_DAYS    = 7
 
+# ── Google Client IDs — read from settings (which reads from .env) ────────────
+GOOGLE_CLIENT_ID          = settings.GOOGLE_CLIENT_ID
+GOOGLE_ANDROID_CLIENT_ID  = settings.GOOGLE_ANDROID_CLIENT_ID
+GOOGLE_IOS_CLIENT_ID      = settings.GOOGLE_IOS_CLIENT_ID
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+#  PASSWORD HELPERS
+# ─────────────────────────────────────────────────────────────────────────────
 
 def get_password_hash(password: str) -> str:
-    """
-    Hash a password using bcrypt.
-    FIXED: Removed problematic pre-hashing logic that was causing issues.
-    Bcrypt can handle up to 72 bytes, which is sufficient for most passwords.
-    """
     return pwd_context.hash(password)
 
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
-    """
-    Verify a password against a hashed password.
-    FIXED: No pre-hashing needed.
-    """
     return pwd_context.verify(plain_password, hashed_password)
 
 
+# ─────────────────────────────────────────────────────────────────────────────
+#  JWT HELPERS
+# ─────────────────────────────────────────────────────────────────────────────
+
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:
-    """Create a JWT access token."""
     to_encode = data.copy()
     expire = datetime.utcnow() + (expires_delta or timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES))
     to_encode.update({"exp": expire, "type": "access"})
-    encoded_jwt = jwt.encode(to_encode, settings.SECRET_KEY, algorithm=ALGORITHM)
-    return encoded_jwt
+    return jwt.encode(to_encode, settings.SECRET_KEY, algorithm=ALGORITHM)
 
 
 def create_refresh_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:
-    """Create a JWT refresh token."""
     to_encode = data.copy()
     expire = datetime.utcnow() + (expires_delta or timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS))
     to_encode.update({"exp": expire, "type": "refresh"})
-    encoded_jwt = jwt.encode(to_encode, settings.SECRET_KEY, algorithm=ALGORITHM)
-    return encoded_jwt
+    return jwt.encode(to_encode, settings.SECRET_KEY, algorithm=ALGORITHM)
 
 
-def get_user_from_token(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)) -> User:
-    """Extract and validate user from JWT token."""
+def get_user_from_token(
+    token: str = Depends(oauth2_scheme),
+    db: Session = Depends(get_db)
+) -> User:
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Could not validate credentials",
         headers={"WWW-Authenticate": "Bearer"},
     )
-    # DEBUG LOGGING
+
     if not token:
-        logger.error("❌ DEBUG: No token received in Authorization header")
+        logger.error("No token received")
         raise credentials_exception
-    else:
-        logger.info(f"✓ DEBUG: Found token in header (starts with {token[:20]}...)")
-        
+
     try:
-        # DEBUG LOGGING
-        logger.info(f"🔐 DEBUG: Validating token: {token[:20]}...")
-        
-        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[ALGORITHM])
-        user_id: Optional[int] = payload.get("sub")
-        token_type: Optional[str] = payload.get("type")
-        
-        logger.info(f"✓ DEBUG: Decoded sub={user_id}, type={token_type}")
-        
+        payload    = jwt.decode(token, settings.SECRET_KEY, algorithms=[ALGORITHM])
+        user_id    = payload.get("sub")
+        token_type = payload.get("type")
+
         if user_id is None or token_type != "access":
-            logger.error(f"❌ DEBUG: Invalid payload: user_id={user_id}, type={token_type}")
             raise credentials_exception
+
     except JWTError as e:
-        logger.error(f"❌ DEBUG: JWT Decode Error: {e}")
+        logger.error(f"JWT error: {e}")
         raise credentials_exception
 
     user = db.query(User).filter(User.id == int(user_id)).first()
-    if user is None:
-        logger.error(f"❌ DEBUG: User not found with id={user_id}")
+    if user is None or not user.is_active:
         raise credentials_exception
-    if not user.is_active:
-        logger.error(f"❌ DEBUG: User {user_id} is not active")
-        raise credentials_exception
-    
-    logger.info(f"✓ DEBUG: User {user.email} (id={user_id}) authenticated successfully")
+
     return user
 
 
+# ─────────────────────────────────────────────────────────────────────────────
+#  REGISTER
+# ─────────────────────────────────────────────────────────────────────────────
+
 @router.post("/register", response_model=TokenResponse)
 def register_user(payload: UserRegisterRequest, db: Session = Depends(get_db)):
-    """Register a new user with email/phone and password."""
     try:
-        # Check if email already exists
-        existing = db.query(User).filter(User.email == payload.email).first()
-        if existing:
+        if db.query(User).filter(User.email == payload.email).first():
             raise HTTPException(status_code=400, detail="Email is already registered")
 
-        # Check if phone number already exists (if provided)
         if payload.phone_number:
-            phone_exists = db.query(User).filter(User.phone_number == payload.phone_number).first()
-            if phone_exists:
+            if db.query(User).filter(User.phone_number == payload.phone_number).first():
                 raise HTTPException(status_code=400, detail="Phone number is already registered")
 
-        # Create new user
         user = User(
             email=payload.email,
             phone_number=payload.phone_number,
@@ -138,18 +125,13 @@ def register_user(payload: UserRegisterRequest, db: Session = Depends(get_db)):
         db.add(user)
         db.flush()
 
-        # Create user profile
-        profile = UserProfile(
-            user_id=user.id,
-            full_name=payload.full_name,
-        )
+        profile = UserProfile(user_id=user.id, full_name=payload.full_name)
         db.add(profile)
         db.commit()
         db.refresh(user)
         db.refresh(profile)
 
-        # Generate tokens
-        access_token = create_access_token({"sub": str(user.id)})
+        access_token  = create_access_token({"sub": str(user.id)})
         refresh_token = create_refresh_token({"sub": str(user.id)})
 
         return TokenResponse(
@@ -168,28 +150,26 @@ def register_user(payload: UserRegisterRequest, db: Session = Depends(get_db)):
         raise
     except Exception as e:
         db.rollback()
-        raise HTTPException(
-            status_code=500,
-            detail=f"Registration failed: {str(e)}"
-        )
+        raise HTTPException(status_code=500, detail=f"Registration failed: {str(e)}")
 
+
+# ─────────────────────────────────────────────────────────────────────────────
+#  LOGIN
+# ─────────────────────────────────────────────────────────────────────────────
 
 @router.post("/login", response_model=TokenResponse)
 def login_user(payload: UserLoginRequest, db: Session = Depends(get_db)):
-    """Login with email + password and return JWT."""
     try:
         user = db.query(User).filter(User.email == payload.email).first()
-        
+
         if not user or not user.hashed_password or not verify_password(payload.password, user.hashed_password):
             raise HTTPException(status_code=401, detail="Invalid email or password")
 
         if not user.is_active:
             raise HTTPException(status_code=403, detail="Account is inactive")
 
-        profile = user.profile
-        
-        # Generate tokens
-        access_token = create_access_token({"sub": str(user.id)})
+        profile       = user.profile
+        access_token  = create_access_token({"sub": str(user.id)})
         refresh_token = create_refresh_token({"sub": str(user.id)})
 
         return TokenResponse(
@@ -207,42 +187,37 @@ def login_user(payload: UserLoginRequest, db: Session = Depends(get_db)):
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(
-            status_code=500,
-            detail=f"Login failed: {str(e)}"
-        )
+        raise HTTPException(status_code=500, detail=f"Login failed: {str(e)}")
 
+
+# ─────────────────────────────────────────────────────────────────────────────
+#  REFRESH TOKEN
+# ─────────────────────────────────────────────────────────────────────────────
 
 @router.post("/refresh", response_model=TokenResponse)
 def refresh_token(payload: RefreshTokenRequest, db: Session = Depends(get_db)):
-    """Refresh access token using refresh token."""
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Could not validate refresh token",
         headers={"WWW-Authenticate": "Bearer"},
     )
-    
     try:
-        # Decode refresh token
         token_payload = jwt.decode(payload.refresh_token, settings.SECRET_KEY, algorithms=[ALGORITHM])
-        user_id: Optional[int] = token_payload.get("sub")
-        token_type: Optional[str] = token_payload.get("type")
-        
+        user_id    = token_payload.get("sub")
+        token_type = token_payload.get("type")
+
         if user_id is None or token_type != "refresh":
             raise credentials_exception
-            
+
     except JWTError:
         raise credentials_exception
 
-    # Get user from database
     user = db.query(User).filter(User.id == int(user_id)).first()
     if user is None or not user.is_active:
         raise credentials_exception
 
-    profile = user.profile
-    
-    # Generate new tokens
-    new_access_token = create_access_token({"sub": str(user.id)})
+    profile           = user.profile
+    new_access_token  = create_access_token({"sub": str(user.id)})
     new_refresh_token = create_refresh_token({"sub": str(user.id)})
 
     return TokenResponse(
@@ -259,24 +234,25 @@ def refresh_token(payload: RefreshTokenRequest, db: Session = Depends(get_db)):
     )
 
 
+# ─────────────────────────────────────────────────────────────────────────────
+#  LOGIN FORM (Swagger UI / OAuth2)
+# ─────────────────────────────────────────────────────────────────────────────
+
 @router.post("/login-form", response_model=TokenResponse)
-def login_user_form(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
-    """
-    OAuth2-compatible login endpoint (email as username).
-    Used by Swagger UI and can be used by frontend if preferred.
-    """
+def login_user_form(
+    form_data: OAuth2PasswordRequestForm = Depends(),
+    db: Session = Depends(get_db)
+):
     user = db.query(User).filter(User.email == form_data.username).first()
-    
+
     if not user or not user.hashed_password or not verify_password(form_data.password, user.hashed_password):
         raise HTTPException(status_code=401, detail="Invalid credentials")
 
     if not user.is_active:
         raise HTTPException(status_code=403, detail="Account is inactive")
 
-    profile = user.profile
-    
-    # Generate tokens
-    access_token = create_access_token({"sub": str(user.id)})
+    profile       = user.profile
+    access_token  = create_access_token({"sub": str(user.id)})
     refresh_token = create_refresh_token({"sub": str(user.id)})
 
     return TokenResponse(
@@ -293,62 +269,115 @@ def login_user_form(form_data: OAuth2PasswordRequestForm = Depends(), db: Sessio
     )
 
 
+# ─────────────────────────────────────────────────────────────────────────────
+#  GOOGLE LOGIN — Web Client ID only for now
+#  When you get Android Client ID later, add it to GOOGLE_CLIENT_IDS list below
+# ─────────────────────────────────────────────────────────────────────────────
+
 from google.oauth2 import id_token
-from google.auth.transport import requests
+from google.auth.transport import requests as google_requests
 
 @router.post("/google", response_model=TokenResponse)
 def google_login(payload: GoogleLoginRequest, db: Session = Depends(get_db)):
     """
-    Login/register via Google.
-    Verifies the Google ID token and creates or links a user.
+    Verify Google ID token and login or register user.
+
+    Currently accepts Web Client ID only.
+    When Android/iOS Client IDs are ready, add them to GOOGLE_CLIENT_IDS.
     """
+
+    # ── List of accepted Client IDs ──────────────────────────────────────────
+    # Add Android and iOS Client IDs here later when you get them:
+    #   GOOGLE_CLIENT_IDS = [
+    #       GOOGLE_CLIENT_ID,
+    #       GOOGLE_ANDROID_CLIENT_ID,
+    #       GOOGLE_IOS_CLIENT_ID,
+    #   ]
+    GOOGLE_CLIENT_IDS = [id for id in [
+        GOOGLE_CLIENT_ID,
+        GOOGLE_ANDROID_CLIENT_ID,
+        GOOGLE_IOS_CLIENT_ID,
+    ] if id]  # filters out None values automatically
+
+    if not GOOGLE_CLIENT_ID:
+        raise HTTPException(
+            status_code=500,
+            detail="Google Client ID not configured. Add GOOGLE_CLIENT_ID to backend .env"
+        )
+
+    # ── Verify token ──────────────────────────────────────────────────────────
+    idinfo = None
+    last_error = None
+
+    # Try each client ID — whichever matches is valid
+    for client_id in GOOGLE_CLIENT_IDS:
+        if not client_id:
+            continue
+        try:
+            idinfo = id_token.verify_oauth2_token(
+                payload.id_token,
+                google_requests.Request(),
+                client_id
+            )
+            break  # verification succeeded
+        except ValueError as e:
+            last_error = e
+            continue  # try next client ID
+
+    if idinfo is None:
+        logger.error(f"Google token verification failed: {last_error}")
+        raise HTTPException(
+            status_code=401,
+            detail="Invalid Google token. Make sure you are using the correct Client ID."
+        )
+
+    # ── Check issuer ──────────────────────────────────────────────────────────
+    if idinfo.get("iss") not in ["accounts.google.com", "https://accounts.google.com"]:
+        raise HTTPException(status_code=401, detail="Invalid token issuer")
+
+    # ── Extract user info from token ──────────────────────────────────────────
+    google_id = idinfo.get("sub")       # unique Google user ID
+    email     = idinfo.get("email")
+    full_name = idinfo.get("name")
+
+    if not email:
+        raise HTTPException(status_code=400, detail="Google account has no email address")
+
+    # ── Find or create user ───────────────────────────────────────────────────
     try:
-        # Verify the ID token
-        # NOTE: In a real production environment, you would list your Client IDs here
-        # idinfo = id_token.verify_oauth2_token(payload.id_token, requests.Request(), CLINET_ID)
-        
-        # For this implementation, we'll verify it and extract the info
-        # We use a broad verification first, then check the issuer
-        idinfo = id_token.verify_oauth2_token(payload.id_token, requests.Request())
-
-        if idinfo['iss'] not in ['accounts.google.com', 'https://accounts.google.com']:
-            raise ValueError('Wrong issuer.')
-
-        # ID token is valid. Extract user info
-        google_id = idinfo['sub']
-        email = idinfo['email']
-        full_name = idinfo.get('name')
-
-        # Try to find user by Google ID
+        # 1. Try find by Google ID first
         user = db.query(User).filter(User.google_id == google_id).first()
-        
+
         if not user:
-            # Fallback: match by email if existing
+            # 2. Try find by email (user may have registered with email before)
             user = db.query(User).filter(User.email == email).first()
-            
+
             if not user:
-                # Create new user
+                # 3. Create brand new user
                 user = User(
                     email=email,
                     google_id=google_id,
                     is_active=True,
+                    hashed_password=None,  # Google-only account has no password
                 )
                 db.add(user)
                 db.flush()
 
-                profile = UserProfile(
-                    user_id=user.id,
-                    full_name=full_name,
-                )
+                profile = UserProfile(user_id=user.id, full_name=full_name)
                 db.add(profile)
                 db.commit()
                 db.refresh(user)
                 db.refresh(profile)
+
+                logger.info(f"New user created via Google: {email}")
+
             else:
-                # Update existing user with Google ID if not set
+                # 4. Existing email user — link their Google ID
                 if not user.google_id:
                     user.google_id = google_id
                     db.commit()
+                    logger.info(f"Linked Google ID to existing user: {email}")
+
                 profile = user.profile
         else:
             profile = user.profile
@@ -356,8 +385,8 @@ def google_login(payload: GoogleLoginRequest, db: Session = Depends(get_db)):
         if not user.is_active:
             raise HTTPException(status_code=403, detail="Account is inactive")
 
-        # Generate tokens
-        access_token = create_access_token({"sub": str(user.id)})
+        # ── Generate tokens ───────────────────────────────────────────────────
+        access_token  = create_access_token({"sub": str(user.id)})
         refresh_token = create_refresh_token({"sub": str(user.id)})
 
         return TokenResponse(
@@ -372,19 +401,22 @@ def google_login(payload: GoogleLoginRequest, db: Session = Depends(get_db)):
                 created_at=user.created_at,
             ),
         )
-    except ValueError as e:
-        # Invalid token
-        raise HTTPException(status_code=401, detail=f"Invalid Google token: {str(e)}")
+
+    except HTTPException:
+        raise
     except Exception as e:
-        logger.error(f"Google login failed: {str(e)}")
+        db.rollback()
+        logger.error(f"Google login DB error: {e}")
         raise HTTPException(status_code=500, detail="Internal server error during Google login")
 
 
+# ─────────────────────────────────────────────────────────────────────────────
+#  GET CURRENT USER
+# ─────────────────────────────────────────────────────────────────────────────
+
 @router.get("/me", response_model=UserProfileResponse)
 def get_me(current_user: User = Depends(get_user_from_token)):
-    """Return current authenticated user profile."""
     profile = current_user.profile
-    
     return UserProfileResponse(
         id=current_user.id,
         email=current_user.email,
@@ -395,11 +427,11 @@ def get_me(current_user: User = Depends(get_user_from_token)):
     )
 
 
+# ─────────────────────────────────────────────────────────────────────────────
+#  LOGOUT
+# ─────────────────────────────────────────────────────────────────────────────
+
 @router.post("/logout")
 def logout(current_user: User = Depends(get_user_from_token)):
-    """
-    Logout endpoint. 
-    In a stateless JWT system, logout is primarily handled client-side by deleting tokens.
-    This endpoint can be used for logging/audit purposes.
-    """
+    # JWT is stateless — actual logout happens client-side by deleting tokens
     return {"message": "Successfully logged out"}

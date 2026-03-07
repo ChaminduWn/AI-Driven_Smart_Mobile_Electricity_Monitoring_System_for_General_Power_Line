@@ -141,6 +141,7 @@ class HouseholdAppliance(Base):
     appliance_name = Column(String(255), nullable=False)
     appliance_category = Column(String(100), nullable=True)
     wattage = Column(Integer, nullable=False)
+    quantity = Column(Integer, default=1)
     
     # Usage pattern
     daily_usage_hours = Column(Float, default=0)
@@ -162,18 +163,21 @@ class HouseholdAppliance(Base):
     
     def calculate_consumption(self):
         """Calculate daily and monthly kWh consumption"""
+        # Total wattage for all units
+        total_wattage = self.wattage * (self.quantity or 1)
+        
         if self.usage_frequency == 'daily':
             hours_per_day = (self.usage_duration_minutes * self.usage_times_per_day) / 60
-            self.daily_kwh = (self.wattage * hours_per_day) / 1000
+            self.daily_kwh = (total_wattage * hours_per_day) / 1000
             self.monthly_kwh = self.daily_kwh * 30
         elif self.usage_frequency == 'weekly':
             hours_per_week = (self.usage_duration_minutes * self.usage_times_per_day) / 60
-            kwh_per_week = (self.wattage * hours_per_week) / 1000
+            kwh_per_week = (total_wattage * hours_per_week) / 1000
             self.daily_kwh = kwh_per_week / 7
             self.monthly_kwh = kwh_per_week * 4.3
         else:
             total_minutes = self.usage_duration_minutes * self.usage_times_per_day
-            self.monthly_kwh = (self.wattage * (total_minutes / 60)) / 1000
+            self.monthly_kwh = (total_wattage * (total_minutes / 60)) / 1000
             self.daily_kwh = self.monthly_kwh / 30
     
     def __repr__(self):

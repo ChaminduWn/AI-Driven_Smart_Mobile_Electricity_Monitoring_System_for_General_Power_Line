@@ -1,22 +1,89 @@
+/**
+ * AppliancesScreen.jsx — Redesigned with:
+ * ✅ Fixed AI scan (422 error was wrong FormData field + MIME type handling)
+ * ✅ Professional category UI with icons & colors
+ * ✅ Corrected kWh calculations (daily/weekly/monthly frequency)
+ * ✅ Rich analysis view
+ * ✅ Polished dark-glass aesthetic
+ */
+
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   View, Text, ScrollView, StyleSheet, Alert, TouchableOpacity,
-  Modal, TextInput, RefreshControl, FlatList,
+  Modal, TextInput, RefreshControl, Platform, Animated,
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { appliancesAPI } from '../api/appliancesAPI';
 import { useAccount } from '../contexts/AccountContext';
 import {
-  Card, SectionHeader, EmptyState, LoadingScreen, PrimaryButton, SecondaryButton,
-  Badge, Divider,
+  Card, EmptyState, LoadingScreen, PrimaryButton,
 } from '../components/SharedComponents';
 import { COLORS, SPACING, RADIUS, FONTS, SHADOW } from '../utils/theme';
-import { formatCurrency, formatKwh, getCategoryColor } from '../utils/helpers';
+import { formatCurrency } from '../utils/helpers';
 
-const FREQUENCIES = ['daily', 'weekly', 'monthly'];
-const CATEGORIES = ['Cooling', 'Heating', 'Cooking', 'Cleaning', 'Entertainment', 'Lighting', 'Other'];
+// ─── CONSTANTS ────────────────────────────────────────────────────────────────
 
-const AppliancesScreen = ({ navigation }) => {
+const CATEGORIES = [
+  { key: 'Cooling', icon: '❄️', color: '#38BDF8', bg: '#0EA5E915' },
+  { key: 'Heating', icon: '🔥', color: '#FB923C', bg: '#FB923C15' },
+  { key: 'Cooking', icon: '🍳', color: '#FBBF24', bg: '#FBBF2415' },
+  { key: 'Laundry', icon: '🧺', color: '#F472B6', bg: '#F472B615' },
+  { key: 'Cleaning', icon: '🫧', color: '#34D399', bg: '#34D39915' },
+  { key: 'Entertainment', icon: '📺', color: '#A78BFA', bg: '#A78BFA15' },
+  { key: 'Lighting', icon: '💡', color: '#FDE68A', bg: '#FDE68A15' },
+  { key: 'Office', icon: '💻', color: '#6366F1', bg: '#6366F115' },
+  { key: 'Water', icon: '💧', color: '#22D3EE', bg: '#22D3EE15' },
+  { key: 'Safety', icon: '🔒', color: '#94A3B8', bg: '#94A3B815' },
+  { key: 'Health/Beauty', icon: '✨', color: '#F472B6', bg: '#F472B615' },
+  { key: 'Outdoor/Garden', icon: '🌿', color: '#4ADE80', bg: '#4ADE8015' },
+  { key: 'Other', icon: '🔌', color: '#64748B', bg: '#64748B15' },
+];
+
+const FREQUENCIES = [
+  { key: 'daily', label: 'Daily', multiplier: 30 },
+  { key: 'weekly', label: 'Weekly', multiplier: 4.33 },
+  { key: 'monthly', label: 'Monthly', multiplier: 1 },
+];
+
+const getCatMeta = (key) =>
+  CATEGORIES.find((c) => c.key === key) || CATEGORIES[CATEGORIES.length - 1];
+
+/**
+ * ✅ CORRECT kWh calculation:
+ *   daily_kwh  = (wattage × minutes_per_use × times_per_day) / (1000 × 60)
+ *   monthly_kwh = daily_kwh × frequency_multiplier (30 for daily, 4.33 for weekly, 1 for monthly)
+ */
+const calcKwh = (wattage, minutesPerUse, timesPerDay, frequency, quantity) => {
+  const w = parseFloat(wattage) || 0;
+  const min = parseFloat(minutesPerUse) || 0;
+  const tpd = parseFloat(timesPerDay) || 1;
+  const qty = parseFloat(quantity) || 1;
+
+  // Total wattage for all units
+  const totalW = w * qty;
+
+  // kWh per single day of use
+  const dailyKwh = (totalW * min * tpd) / (1000 * 60);
+
+  const freq = FREQUENCIES.find((f) => f.key === frequency) || FREQUENCIES[0];
+  const monthlyKwh = dailyKwh * freq.multiplier;
+
+  return { dailyKwh: +dailyKwh.toFixed(4), monthlyKwh: +monthlyKwh.toFixed(3) };
+};
+
+const emptyForm = () => ({
+  appliance_name: '',
+  appliance_category: 'Other',
+  wattage: '',
+  quantity: '1',
+  usage_duration_minutes: '60',
+  usage_times_per_day: '1',
+  usage_frequency: 'daily',
+});
+
+// ─── MAIN SCREEN ──────────────────────────────────────────────────────────────
+
+const AppliancesScreen = () => {
   const { selectedAccount } = useAccount();
   const [appliances, setAppliances] = useState([]);
   const [analysis, setAnalysis] = useState(null);
@@ -25,16 +92,24 @@ const AppliancesScreen = ({ navigation }) => {
   const [showModal, setShowModal] = useState(false);
   const [scanning, setScanning] = useState(false);
   const [savingApp, setSavingApp] = useState(false);
-  const [tab, setTab] = useState('list'); // list | analysis
-
-  const emptyForm = {
-    appliance_name: '', appliance_category: 'Other', wattage: '',
-    usage_duration_minutes: '60', usage_times_per_day: '1', usage_frequency: 'daily',
-  };
-  const [form, setForm] = useState(emptyForm);
-  const [commonAppliances, setCommonAppliances] = useState([]);
+  const [tab, setTab] = useState('list');
+  const [form, setForm] = useState(emptyForm());
+  const [commonApps, setCommonApps] = useState([]);
+  const [preview, setPreview] = useState({ daily: 0, monthly: 0 });
 
   const account = selectedAccount;
+
+  // Live preview whenever form changes
+  useEffect(() => {
+    const { dailyKwh, monthlyKwh } = calcKwh(
+      form.wattage,
+      form.usage_duration_minutes,
+      form.usage_times_per_day,
+      form.usage_frequency,
+      form.quantity,
+    );
+    setPreview({ daily: dailyKwh, monthly: monthlyKwh });
+  }, [form.wattage, form.usage_duration_minutes, form.usage_times_per_day, form.usage_frequency, form.quantity]);
 
   const fetchData = useCallback(async () => {
     if (!account) { setLoading(false); return; }
@@ -44,13 +119,10 @@ const AppliancesScreen = ({ navigation }) => {
         appliancesAPI.analyze(account),
       ]);
       if (appRes.status === 'fulfilled') setAppliances(appRes.value.data?.appliances || []);
-      if (anaRes.status === 'fulfilled' && anaRes.value.data?.success) setAnalysis(anaRes.value.data);
-    } catch (err) {
-      console.error('Appliances fetch error:', err);
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
+      if (anaRes.status === 'fulfilled' && anaRes.value.data?.success)
+        setAnalysis(anaRes.value.data);
+    } catch (e) { console.error('fetch:', e); }
+    finally { setLoading(false); setRefreshing(false); }
   }, [account]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
@@ -59,91 +131,128 @@ const AppliancesScreen = ({ navigation }) => {
     (async () => {
       try {
         const res = await appliancesAPI.getCommonAppliances();
-        setCommonAppliances(res.data?.appliances || []);
-      } catch (_) {}
+        setCommonApps(res.data?.appliances || []);
+      } catch (_) { }
     })();
   }, []);
 
+  // ── AI SCAN — FIXED 422 ──────────────────────────────────────────────────
   const scanImage = async () => {
-    const { status } = await ImagePicker.requestCameraPermissionsAsync();
-    if (status !== 'granted') {
-      Alert.alert('Permission required', 'Camera access needed for AI scan.');
-      return;
+    try {
+      const { status } = await ImagePicker.requestCameraPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permission required', 'Camera access is needed for AI scan.');
+        return;
+      }
+
+      const result = await ImagePicker.launchCameraAsync({
+        // ✅ FIX 1: Use MediaType (not deprecated MediaTypeOptions)
+        mediaTypes: ['images'],
+        allowsEditing: true,
+        aspect: [4, 3],
+        quality: 0.75,
+      });
+
+      if (result.canceled || !result.assets?.[0]) return;
+      await recognizeAppliance(result.assets[0]);
+    } catch (err) {
+      console.error('Camera error:', err);
+      Alert.alert('Camera Error', 'Could not open camera. Try again.');
     }
-    const result = await ImagePicker.launchCameraAsync({
-      allowsEditing: true, aspect: [4, 3], quality: 0.7,
-    });
-    if (result.canceled) return;
-    recognizeAppliance(result.assets[0]);
   };
 
   const recognizeAppliance = async (asset) => {
     setScanning(true);
-    const fd = new FormData();
-    fd.append('file', {
-      uri: asset.uri,
-      name: asset.uri.split('/').pop() || 'appliance.jpg',
-      type: 'image/jpeg',
-    });
     try {
+      const uri = asset.uri;
+      // Improved filename handling for web/mobile to avoid 400 error (missing extension)
+      let filename = uri.split('/').pop() || 'photo.jpg';
+      let ext = filename.split('.').pop()?.toLowerCase() || 'jpg';
+
+      // Ensure we have a valid image extension for the backend
+      const validExts = ['jpg', 'jpeg', 'png', 'webp'];
+      if (!validExts.includes(ext)) {
+        ext = 'jpg';
+        filename = filename.includes('.') ? filename.split('.')[0] + '.jpg' : filename + '.jpg';
+      }
+
+      const mimeMap = { jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png', webp: 'image/webp' };
+      const mimeType = mimeMap[ext] || 'image/jpeg';
+
+      const fd = new FormData();
+      if (Platform.OS === 'web') {
+        const response = await fetch(uri);
+        const blob = await response.blob();
+        fd.append('file', blob, filename);
+      } else {
+        fd.append('file', {
+          uri: Platform.OS === 'android' ? uri : uri.replace('file://', ''),
+          name: filename,
+          type: mimeType,
+        });
+      }
+
       const res = await appliancesAPI.recognizeFromImage(fd);
-      if (res.data.success) {
+
+      if (res.data?.success) {
         const s = res.data.suggested_values;
         setForm({
-          appliance_name: s.appliance_name,
+          appliance_name: s.appliance_name || '',
           appliance_category: s.appliance_category || 'Other',
-          wattage: s.wattage?.toString() || '',
-          usage_duration_minutes: s.usage_duration_minutes?.toString() || '60',
-          usage_times_per_day: s.usage_times_per_day?.toString() || '1',
+          wattage: (s.wattage ?? '').toString(),
+          quantity: '1',
+          usage_duration_minutes: (s.usage_duration_minutes || 60).toString(),
+          usage_times_per_day: (s.usage_times_per_day || 1).toString(),
           usage_frequency: s.usage_frequency || 'daily',
         });
-        Alert.alert('✅ Recognised!', `${s.appliance_name}\n${s.wattage}W — Please verify before saving.`);
+        Alert.alert(
+          '✅ Recognised!',
+          `${s.appliance_name} — ${s.wattage}W\nPlease verify values before saving.`,
+        );
       } else {
-        Alert.alert('Not Recognised', res.data.message || 'Could not detect appliance. Enter manually.');
+        Alert.alert('Not Recognised', res.data?.message || 'Try a clearer photo or use a template.');
       }
     } catch (err) {
-      Alert.alert('Scan Failed', 'Could not process image.');
+      console.error('Scan error:', err?.response?.data || err);
+      const detail = err?.response?.data?.detail;
+      Alert.alert('Scan Failed', detail ? JSON.stringify(detail) : 'Could not process image.');
     } finally {
       setScanning(false);
     }
   };
 
-  const useTemplate = (template) => {
+  const useTemplate = (t) =>
     setForm({
-      appliance_name: template.name,
-      appliance_category: template.category,
-      wattage: template.typical_wattage?.toString() || '',
+      appliance_name: t.name,
+      appliance_category: t.category,
+      wattage: (t.typical_wattage || '').toString(),
+      quantity: '1',
       usage_duration_minutes: '60',
       usage_times_per_day: '1',
       usage_frequency: 'daily',
     });
-  };
 
   const saveAppliance = async () => {
-    if (!form.appliance_name.trim() || !form.wattage) {
-      Alert.alert('Validation', 'Name and wattage are required.');
-      return;
-    }
-    if (!account) {
-      Alert.alert('No Account', 'Upload a bill first to get an account number.');
-      return;
-    }
+    if (!form.appliance_name.trim()) return Alert.alert('Required', 'Please enter an appliance name.');
+    if (!form.wattage || isNaN(parseInt(form.wattage))) return Alert.alert('Required', 'Please enter a valid wattage.');
+    if (!account) return Alert.alert('No Account', 'Upload a bill first to get an account number.');
+
     setSavingApp(true);
     try {
-      const payload = {
+      const res = await appliancesAPI.add({
         appliance_name: form.appliance_name.trim(),
         appliance_category: form.appliance_category,
         wattage: parseInt(form.wattage),
+        quantity: parseInt(form.quantity) || 1,
         usage_duration_minutes: parseInt(form.usage_duration_minutes) || 60,
         usage_times_per_day: parseInt(form.usage_times_per_day) || 1,
         usage_frequency: form.usage_frequency,
         account_number: account,
-      };
-      const res = await appliancesAPI.add(payload);
+      });
       if (res.data.success) {
-        Alert.alert('✅ Added!', `Monthly: ~${res.data.monthly_kwh?.toFixed(1) || '—'} kWh · Est. Rs. ${res.data.estimated_cost?.toFixed(0) || '—'}`);
+        Alert.alert('✅ Added!', `Monthly ~${res.data.monthly_kwh?.toFixed(1)} kWh`);
         setShowModal(false);
-        setForm(emptyForm);
+        setForm(emptyForm());
         fetchData();
       }
     } catch (err) {
@@ -153,359 +262,561 @@ const AppliancesScreen = ({ navigation }) => {
     }
   };
 
-  const deleteAppliance = (app) => {
-    Alert.alert('Delete Appliance', `Remove ${app.name}?`, [
+  const deleteAppliance = (app) =>
+    Alert.alert('Remove Appliance', `Remove "${app.name}"?`, [
       { text: 'Cancel', style: 'cancel' },
       {
-        text: 'Delete',
-        style: 'destructive',
+        text: 'Remove', style: 'destructive',
         onPress: async () => {
-          try {
-            await appliancesAPI.delete(app.id);
-            fetchData();
-          } catch { Alert.alert('Error', 'Failed to delete.'); }
+          try { await appliancesAPI.delete(app.id); fetchData(); }
+          catch { Alert.alert('Error', 'Failed to remove appliance.'); }
         },
       },
     ]);
-  };
 
-  if (loading) return <LoadingScreen message="Loading appliances..." />;
+  if (loading) return <LoadingScreen message="Loading appliances…" />;
+
+  const totalMonthly = appliances.reduce((s, a) => s + (a.estimated_cost || 0), 0);
+  const totalKwh = appliances.reduce((s, a) => s + (a.monthly_kwh || 0), 0);
 
   return (
-    <View style={styles.flex}>
-      {/* Tabs */}
-      <View style={styles.tabs}>
-        <TouchableOpacity style={[styles.tab, tab === 'list' && styles.tabActive]} onPress={() => setTab('list')}>
-          <Text style={[styles.tabText, tab === 'list' && styles.tabTextActive]}>My Appliances ({appliances.length})</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={[styles.tab, tab === 'analysis' && styles.tabActive]} onPress={() => setTab('analysis')}>
-          <Text style={[styles.tabText, tab === 'analysis' && styles.tabTextActive]}>Analysis</Text>
-        </TouchableOpacity>
-      </View>
-
-      <ScrollView
-        style={styles.container}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); fetchData(); }} tintColor={COLORS.primary} />}
-      >
-        {tab === 'list' ? (
-          <>
-            {appliances.length < 5 && (
-              <View style={styles.hintCard}>
-                <Text style={styles.hintText}>
-                  ⚡ Add at least 5 appliances to unlock Budget Planning · {appliances.length}/5 added
-                </Text>
-                <View style={styles.hintBar}>
-                  <View style={[styles.hintFill, { width: `${(appliances.length / 5) * 100}%` }]} />
-                </View>
-              </View>
-            )}
-
-            {appliances.length === 0 ? (
-              <EmptyState icon="⚡" title="No Appliances" subtitle="Add your household appliances to track energy consumption." />
-            ) : (
-              appliances.map((app) => (
-                <ApplianceCard key={app.id} appliance={app} onDelete={() => deleteAppliance(app)} />
-              ))
-            )}
-          </>
-        ) : (
-          <AnalysisTab analysis={analysis} navigation={navigation} account={account} />
-        )}
-
-        <View style={{ height: 100 }} />
-      </ScrollView>
-
-      <View style={styles.fabArea}>
-        <PrimaryButton label="⚡ Add Appliance" onPress={() => setShowModal(true)} />
-      </View>
-
-      {/* Add Appliance Modal */}
-      <Modal visible={showModal} animationType="slide" onRequestClose={() => setShowModal(false)}>
-        <View style={styles.modalContainer}>
-          <View style={styles.modalHeader}>
-            <Text style={styles.modalTitle}>Add Appliance</Text>
-            <TouchableOpacity onPress={() => setShowModal(false)}>
-              <Text style={styles.modalClose}>✕</Text>
-            </TouchableOpacity>
+    <View style={s.root}>
+      <View style={s.container}>
+        {/* ── HEADER ── */}
+        <View style={s.header}>
+          <View>
+            <Text style={s.headerTitle}>Appliances</Text>
+            <Text style={s.headerSub}>
+              {appliances.length} devices · {totalKwh.toFixed(0)} kWh/mo
+            </Text>
           </View>
+          <View style={s.headerRight}>
+            <Text style={s.headerCost}>{formatCurrency(totalMonthly, 0)}</Text>
+            <Text style={s.headerCostLbl}>est/month</Text>
+          </View>
+        </View>
 
-          <ScrollView style={styles.modalBody} keyboardShouldPersistTaps="handled">
-            {/* AI Scan */}
-            <TouchableOpacity
-              style={styles.scanBtn}
-              onPress={scanImage}
-              disabled={scanning}
-            >
-              <Text style={styles.scanIcon}>{scanning ? '⏳' : '📷'}</Text>
-              <View>
-                <Text style={styles.scanTitle}>{scanning ? 'Scanning...' : 'AI Scan Appliance'}</Text>
-                <Text style={styles.scanSub}>Camera recognises appliance & wattage</Text>
-              </View>
+        {/* ── TABS ── */}
+        <View style={s.tabBar}>
+          {[{ k: 'list', l: 'My Devices' }, { k: 'analysis', l: 'Analysis' }].map(({ k, l }) => (
+            <TouchableOpacity key={k} style={[s.tab, tab === k && s.tabOn]} onPress={() => setTab(k)}>
+              <Text style={[s.tabTxt, tab === k && s.tabTxtOn]}>{l}</Text>
             </TouchableOpacity>
+          ))}
+        </View>
 
-            <Text style={styles.orText}>— or choose a template —</Text>
-
-            {/* Common appliance templates */}
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.templates}>
-              {commonAppliances.slice(0, 8).map((t, i) => (
-                <TouchableOpacity key={i} style={styles.templateChip} onPress={() => useTemplate(t)}>
-                  <Text style={styles.templateName}>{t.name}</Text>
-                  <Text style={styles.templateWatt}>{t.typical_wattage}W</Text>
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
-
-            <Divider style={{ marginVertical: SPACING.md }} />
-
-            {/* Form Fields */}
-            <FormField label="Appliance Name *" value={form.appliance_name} onChange={(v) => setForm({ ...form, appliance_name: v })} placeholder="e.g. Samsung Refrigerator" />
-            <FormField label="Wattage (W) *" value={form.wattage} onChange={(v) => setForm({ ...form, wattage: v })} placeholder="e.g. 150" keyboardType="numeric" />
-
-            <Text style={styles.fieldLabel}>Category</Text>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.chips}>
-              {CATEGORIES.map((cat) => (
-                <TouchableOpacity
-                  key={cat}
-                  style={[styles.chip, form.appliance_category === cat && { backgroundColor: getCategoryColor(cat), borderColor: getCategoryColor(cat) }]}
-                  onPress={() => setForm({ ...form, appliance_category: cat })}
-                >
-                  <Text style={[styles.chipText, form.appliance_category === cat && { color: '#fff' }]}>{cat}</Text>
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
-
-            <View style={styles.row}>
-              <View style={{ flex: 1 }}>
-                <FormField label="Minutes/use" value={form.usage_duration_minutes} onChange={(v) => setForm({ ...form, usage_duration_minutes: v })} keyboardType="numeric" />
+        <ScrollView
+          style={s.scroll}
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={{ paddingBottom: 110 }}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={() => { setRefreshing(true); fetchData(); }}
+              tintColor="#38BDF8"
+            />
+          }
+        >
+          {/* ── ONBOARDING PROGRESS ── */}
+          {tab === 'list' && appliances.length < 5 && (
+            <View style={s.progressCard}>
+              <View style={s.progressTop}>
+                <Text style={s.progressTitle}>🚀 Getting started</Text>
+                <Text style={s.progressCount}>{appliances.length} / 5 added</Text>
               </View>
-              <View style={{ width: SPACING.md }} />
-              <View style={{ flex: 1 }}>
-                <FormField label="Times/day" value={form.usage_times_per_day} onChange={(v) => setForm({ ...form, usage_times_per_day: v })} keyboardType="numeric" />
+              <Text style={s.progressSub}>Add at least 5 appliances to unlock Budget Planning & NILM</Text>
+              <View style={s.progressTrack}>
+                <View style={[s.progressFill, { width: `${(appliances.length / 5) * 100}%` }]} />
               </View>
             </View>
+          )}
 
-            <Text style={styles.fieldLabel}>Frequency</Text>
-            <View style={styles.freqRow}>
-              {FREQUENCIES.map((f) => (
-                <TouchableOpacity
-                  key={f}
-                  style={[styles.freqBtn, form.usage_frequency === f && styles.freqBtnActive]}
-                  onPress={() => setForm({ ...form, usage_frequency: f })}
-                >
-                  <Text style={[styles.freqText, form.usage_frequency === f && styles.freqTextActive]}>
-                    {f.charAt(0).toUpperCase() + f.slice(1)}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
+          {/* ── LIST TAB ── */}
+          {tab === 'list' && (
+            appliances.length === 0
+              ? <EmptyState icon="⚡" title="No Appliances Yet" subtitle="Tap 'Add Appliance' below to start tracking your devices." />
+              : appliances.map((app) => <ApplianceRow key={app.id} app={app} onDelete={() => deleteAppliance(app)} />)
+          )}
 
-            <PrimaryButton label="Save Appliance" onPress={saveAppliance} loading={savingApp} disabled={savingApp} style={{ marginTop: SPACING.xl }} />
-          </ScrollView>
-        </View>
-      </Modal>
-    </View>
-  );
-};
+          {/* ── ANALYSIS TAB ── */}
+          {tab === 'analysis' && <AnalysisView analysis={analysis} appliances={appliances} />}
+        </ScrollView>
 
-const FormField = ({ label, value, onChange, placeholder, keyboardType }) => (
-  <View style={styles.fieldWrap}>
-    <Text style={styles.fieldLabel}>{label}</Text>
-    <TextInput
-      style={styles.input}
-      value={value?.toString()}
-      onChangeText={onChange}
-      placeholder={placeholder}
-      placeholderTextColor={COLORS.textMuted}
-      keyboardType={keyboardType}
-    />
-  </View>
-);
-
-const ApplianceCard = ({ appliance, onDelete }) => {
-  const catColor = getCategoryColor(appliance.category);
-  return (
-    <View style={[styles.appCard, { borderLeftColor: catColor }]}>
-      <View style={styles.appCardBody}>
-        <View style={styles.appCardLeft}>
-          <Text style={styles.appName}>{appliance.name}</Text>
-          <Text style={styles.appMeta}>{appliance.category} · {appliance.wattage}W</Text>
-          <Text style={styles.appUsage}>{appliance.usage}</Text>
-        </View>
-        <View style={styles.appCardRight}>
-          <Text style={styles.appCost}>{formatCurrency(appliance.estimated_cost, 0)}</Text>
-          <Text style={styles.appKwh}>{appliance.monthly_kwh?.toFixed(1)} kWh/mo</Text>
-          <TouchableOpacity onPress={onDelete} style={{ marginTop: SPACING.sm }}>
-            <Text style={styles.deleteBtn}>🗑️</Text>
+        {/* ── FAB ── */}
+        <View style={s.fab}>
+          <TouchableOpacity style={s.fabBtn} onPress={() => setShowModal(true)} activeOpacity={0.85}>
+            <Text style={s.fabIcon}>＋</Text>
+            <Text style={s.fabTxt}>Add Appliance</Text>
           </TouchableOpacity>
         </View>
+
+        {/* ── ADD MODAL ── */}
+        <Modal visible={showModal} animationType="slide" onRequestClose={() => setShowModal(false)}>
+          <View style={s.modal}>
+            {/* Modal header */}
+            <View style={s.modalHdr}>
+              <Text style={s.modalTitle}>Add Appliance</Text>
+              <TouchableOpacity onPress={() => { setShowModal(false); setForm(emptyForm()); }} hitSlop={12}>
+                <Text style={s.modalClose}>✕</Text>
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView style={s.modalBody} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+
+              {/* AI SCAN */}
+              <TouchableOpacity style={s.scanCard} onPress={scanImage} disabled={scanning} activeOpacity={0.8}>
+                <View style={s.scanLeft}>
+                  <Text style={s.scanEmoji}>{scanning ? '⏳' : '📷'}</Text>
+                  <View>
+                    <Text style={s.scanTitle}>{scanning ? 'Analysing image…' : 'AI Scan'}</Text>
+                    <Text style={s.scanSub}>Point camera at appliance or power label</Text>
+                  </View>
+                </View>
+                {!scanning && <Text style={s.scanArrow}>→</Text>}
+              </TouchableOpacity>
+
+              <SectionDivider label="or pick a template" />
+
+              {/* TEMPLATE CHIPS */}
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={s.tmplRow}>
+                {commonApps.slice(0, 10).map((t, i) => {
+                  const cat = getCatMeta(t.category);
+                  return (
+                    <TouchableOpacity key={i} style={[s.tmplChip, { borderColor: cat.color + '55' }]} onPress={() => useTemplate(t)}>
+                      <Text style={s.tmplEmoji}>{cat.icon}</Text>
+                      <Text style={s.tmplName}>{t.name.replace(' (1 Ton)', '')}</Text>
+                      <Text style={[s.tmplWatt, { color: cat.color }]}>{t.typical_wattage}W</Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </ScrollView>
+
+              <SectionDivider label="appliance details" />
+
+              {/* NAME */}
+              <FieldLabel label="Name *" />
+              <TextInput
+                style={s.input}
+                value={form.appliance_name}
+                onChangeText={(v) => setForm({ ...form, appliance_name: v })}
+                placeholder="e.g. Samsung Refrigerator"
+                placeholderTextColor="#475569"
+              />
+
+              {/* WATTAGE & QTY */}
+              <View style={s.row2}>
+                <View style={{ flex: 2 }}>
+                  <FieldLabel label="Wattage (W) *" hint="Check the label" />
+                  <TextInput
+                    style={s.input}
+                    value={form.wattage}
+                    onChangeText={(v) => setForm({ ...form, wattage: v })}
+                    placeholder="e.g. 150"
+                    placeholderTextColor="#475569"
+                    keyboardType="numeric"
+                  />
+                </View>
+                <View style={{ width: 12 }} />
+                <View style={{ flex: 1 }}>
+                  <FieldLabel label="Qty" hint="How many?" />
+                  <TextInput
+                    style={s.input}
+                    value={form.quantity}
+                    onChangeText={(v) => setForm({ ...form, quantity: v })}
+                    placeholder="1"
+                    placeholderTextColor="#475569"
+                    keyboardType="numeric"
+                  />
+                </View>
+              </View>
+
+              {/* CATEGORY */}
+              <FieldLabel label="Category" />
+              <View style={s.catGrid}>
+                {CATEGORIES.map((cat) => {
+                  const active = form.appliance_category === cat.key;
+                  return (
+                    <TouchableOpacity
+                      key={cat.key}
+                      style={[s.catChip, { borderColor: active ? cat.color : '#1E293B', backgroundColor: active ? cat.bg : '#0F172A' }]}
+                      onPress={() => setForm({ ...form, appliance_category: cat.key })}
+                    >
+                      <Text style={s.catEmoji}>{cat.icon}</Text>
+                      <Text style={[s.catLbl, { color: active ? cat.color : '#64748B' }]}>{cat.key}</Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+
+              <SectionDivider label="usage pattern" />
+
+              {/* MINUTES + TIMES */}
+              <View style={s.row2}>
+                <View style={{ flex: 1 }}>
+                  <FieldLabel label="Minutes / use" />
+                  <TextInput
+                    style={s.input}
+                    value={form.usage_duration_minutes}
+                    onChangeText={(v) => setForm({ ...form, usage_duration_minutes: v })}
+                    keyboardType="numeric"
+                    placeholderTextColor="#475569"
+                  />
+                </View>
+                <View style={{ width: 12 }} />
+                <View style={{ flex: 1 }}>
+                  <FieldLabel label="Times per day" />
+                  <TextInput
+                    style={s.input}
+                    value={form.usage_times_per_day}
+                    onChangeText={(v) => setForm({ ...form, usage_times_per_day: v })}
+                    keyboardType="numeric"
+                    placeholderTextColor="#475569"
+                  />
+                </View>
+              </View>
+
+              {/* FREQUENCY */}
+              <FieldLabel label="How often is this used?" />
+              <View style={s.freqRow}>
+                {FREQUENCIES.map((f) => {
+                  const active = form.usage_frequency === f.key;
+                  return (
+                    <TouchableOpacity
+                      key={f.key}
+                      style={[s.freqBtn, active && s.freqBtnOn]}
+                      onPress={() => setForm({ ...form, usage_frequency: f.key })}
+                    >
+                      <Text style={[s.freqTxt, active && s.freqTxtOn]}>{f.label}</Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+
+              {/* LIVE PREVIEW */}
+              {form.wattage ? (
+                <View style={s.previewCard}>
+                  <Text style={s.previewTitle}>⚡ Estimated Consumption</Text>
+                  <View style={s.previewRow}>
+                    <PreviewStat label="Per day of use" value={`${preview.daily} kWh`} />
+                    <PreviewStat label="Monthly total" value={`${preview.monthly} kWh`} accent />
+                  </View>
+                  <Text style={s.previewNote}>
+                    {form.usage_frequency === 'daily' && `Used every day — ${form.usage_duration_minutes} min × ${form.usage_times_per_day}×/day × 30 days`}
+                    {form.usage_frequency === 'weekly' && `Used weekly — approx 4.33 times/month`}
+                    {form.usage_frequency === 'monthly' && `Used once this month`}
+                  </Text>
+                </View>
+              ) : null}
+
+              <TouchableOpacity
+                style={[s.saveBtn, savingApp && { opacity: 0.6 }]}
+                onPress={saveAppliance}
+                disabled={savingApp}
+              >
+                <Text style={s.saveBtnTxt}>{savingApp ? 'Saving…' : 'Save Appliance'}</Text>
+              </TouchableOpacity>
+
+              <View style={{ height: 40 }} />
+            </ScrollView>
+          </View>
+        </Modal>
       </View>
     </View>
   );
 };
 
-const AnalysisTab = ({ analysis, navigation, account }) => {
-  if (!analysis || !analysis.summary) {
-    return <EmptyState icon="📊" title="No Analysis Available" subtitle="Add appliances to see consumption analysis." />;
-  }
+// ─── APPLIANCE ROW ────────────────────────────────────────────────────────────
+
+const ApplianceRow = ({ app, onDelete }) => {
+  const cat = getCatMeta(app.category);
+  const pct = app.monthly_kwh && app.monthly_kwh > 0 ? Math.min(app.monthly_kwh / 200 * 100, 100) : 0;
+  return (
+    <View style={[ar.wrap, { borderLeftColor: cat.color }]}>
+      <View style={ar.top}>
+        <View style={[ar.iconBox, { backgroundColor: cat.bg }]}>
+          <Text style={ar.icon}>{cat.icon}</Text>
+        </View>
+        <View style={ar.info}>
+          <Text style={ar.name}>{app.name}</Text>
+          <Text style={ar.meta}>
+            {cat.key} · {app.wattage}W {app.quantity > 1 ? `(×${app.quantity})` : ''} · {app.usage}
+          </Text>
+        </View>
+        <View style={ar.right}>
+          <Text style={ar.cost}>{formatCurrency(app.estimated_cost, 0)}</Text>
+          <Text style={ar.kwh}>{app.monthly_kwh?.toFixed(1)} kWh</Text>
+        </View>
+      </View>
+      <View style={ar.barTrack}>
+        <View style={[ar.barFill, { width: `${pct}%`, backgroundColor: cat.color }]} />
+      </View>
+      <TouchableOpacity onPress={onDelete} style={ar.del} hitSlop={8}>
+        <Text style={ar.delTxt}>Remove</Text>
+      </TouchableOpacity>
+    </View>
+  );
+};
+
+const ar = StyleSheet.create({
+  wrap: {
+    backgroundColor: '#0D1422', borderRadius: 16, padding: 16,
+    marginBottom: 10, borderLeftWidth: 3,
+  },
+  top: { flexDirection: 'row', alignItems: 'center', marginBottom: 10 },
+  iconBox: { width: 42, height: 42, borderRadius: 12, alignItems: 'center', justifyContent: 'center', marginRight: 12 },
+  icon: { fontSize: 20 },
+  info: { flex: 1 },
+  name: { color: '#F1F5F9', fontSize: 15, fontWeight: '700' },
+  meta: { color: '#64748B', fontSize: 12, marginTop: 2 },
+  right: { alignItems: 'flex-end' },
+  cost: { color: '#34D399', fontSize: 16, fontWeight: '800' },
+  kwh: { color: '#64748B', fontSize: 11 },
+  barTrack: { height: 3, backgroundColor: '#1E293B', borderRadius: 99, marginBottom: 8 },
+  barFill: { height: 3, borderRadius: 99 },
+  del: { alignSelf: 'flex-end' },
+  delTxt: { color: '#EF444466', fontSize: 12 },
+});
+
+// ─── ANALYSIS VIEW ────────────────────────────────────────────────────────────
+
+const AnalysisView = ({ analysis, appliances }) => {
+  if (!analysis?.summary) return (
+    <EmptyState icon="📊" title="No Analysis" subtitle="Add appliances to see your breakdown." />
+  );
+  const { summary, by_category, high_consumers } = analysis;
   return (
     <>
-      <Card style={{ marginBottom: SPACING.md }}>
-        <Text style={styles.cardTitle}>📊 Consumption Summary</Text>
-        <View style={styles.statsRow}>
-          <StatMini label="Appliances" value={analysis.summary.total_appliances} />
-          <StatMini label="Daily kWh" value={analysis.summary.total_daily_kwh?.toFixed(2)} />
-          <StatMini label="Monthly kWh" value={analysis.summary.total_monthly_kwh?.toFixed(1)} />
+      {/* Summary */}
+      <View style={av.summaryCard}>
+        <Text style={av.sumLabel}>Monthly Bill Estimate</Text>
+        <Text style={av.sumBig}>{formatCurrency(summary.estimated_monthly_cost)}</Text>
+        <View style={av.sumRow}>
+          <SumStat label="Daily" value={`${summary.total_daily_kwh?.toFixed(2)} kWh`} />
+          <SumStat label="Monthly" value={`${summary.total_monthly_kwh?.toFixed(0)} kWh`} />
+          <SumStat label="Devices" value={summary.total_appliances} />
         </View>
-        <Text style={styles.bigCost}>{formatCurrency(analysis.summary.estimated_monthly_cost)}/mo</Text>
-      </Card>
+      </View>
 
-      {analysis.by_category?.length > 0 && (
-        <Card>
-          <Text style={styles.cardTitle}>🏷️ By Category</Text>
-          {analysis.by_category.map((cat, i) => (
-            <View key={i} style={styles.catRow}>
-              <View style={[styles.catDot, { backgroundColor: getCategoryColor(cat.category) }]} />
-              <Text style={styles.catName}>{cat.category}</Text>
-              <Text style={styles.catPct}>{cat.percentage}%</Text>
-              <Text style={styles.catCost}>{formatCurrency(cat.monthly_cost, 0)}</Text>
-            </View>
-          ))}
-        </Card>
+      {/* By Category */}
+      {by_category?.length > 0 && (
+        <View style={av.card}>
+          <Text style={av.cardTitle}>By Category</Text>
+          {by_category.map((cat, i) => {
+            const meta = getCatMeta(cat.category);
+            return (
+              <View key={i} style={av.catRow}>
+                <Text style={av.catIcon}>{meta.icon}</Text>
+                <Text style={av.catName}>{cat.category}</Text>
+                <View style={av.catBarWrap}>
+                  <View style={[av.catBar, { width: `${cat.percentage}%`, backgroundColor: meta.color }]} />
+                </View>
+                <Text style={[av.catPct, { color: meta.color }]}>{cat.percentage}%</Text>
+                <Text style={av.catCost}>{formatCurrency(cat.monthly_cost, 0)}</Text>
+              </View>
+            );
+          })}
+        </View>
       )}
 
-      {analysis.high_consumers?.appliances?.length > 0 && (
-        <Card>
-          <Text style={styles.cardTitle}>⚠️ High Consumers</Text>
-          {analysis.high_consumers.appliances.map((app, i) => (
-            <View key={i} style={styles.highRow}>
-              <Text style={styles.highName}>{app.name}</Text>
-              <Text style={styles.highPct}>{app.percentage}% · {formatCurrency(app.estimated_monthly_cost, 0)}</Text>
+      {/* High consumers */}
+      {high_consumers?.appliances?.length > 0 && (
+        <View style={av.card}>
+          <Text style={av.cardTitle}>⚠️ Top Consumers</Text>
+          {high_consumers.appliances.map((app, i) => (
+            <View key={i} style={av.highRow}>
+              <Text style={av.highName}>{app.name}</Text>
+              <Text style={av.highVal}>{app.monthly_kwh?.toFixed(1)} kWh · {formatCurrency(app.estimated_monthly_cost, 0)}</Text>
             </View>
           ))}
-        </Card>
+        </View>
       )}
     </>
   );
 };
 
-const StatMini = ({ label, value }) => (
-  <View style={{ flex: 1, alignItems: 'center' }}>
-    <Text style={{ color: COLORS.textPrimary, fontSize: 18, ...FONTS.bold }}>{value}</Text>
-    <Text style={{ color: COLORS.textSecondary, fontSize: 11 }}>{label}</Text>
+const SumStat = ({ label, value }) => (
+  <View style={{ alignItems: 'center' }}>
+    <Text style={{ color: '#F1F5F9', fontSize: 16, fontWeight: '800' }}>{value}</Text>
+    <Text style={{ color: '#64748B', fontSize: 11 }}>{label}</Text>
   </View>
 );
 
-const { formatCurrency: fmtCur } = require('../utils/helpers');
+const av = StyleSheet.create({
+  summaryCard: {
+    backgroundColor: '#0D1422', borderRadius: 20, padding: 24,
+    marginBottom: 12, borderWidth: 1, borderColor: '#38BDF822', alignItems: 'center',
+  },
+  sumLabel: { color: '#64748B', fontSize: 12, fontWeight: '600', letterSpacing: 1, marginBottom: 6 },
+  sumBig: { color: '#38BDF8', fontSize: 36, fontWeight: '900', marginBottom: 16 },
+  sumRow: { flexDirection: 'row', gap: 32 },
+  card: {
+    backgroundColor: '#0D1422', borderRadius: 16, padding: 18,
+    marginBottom: 12, borderWidth: 1, borderColor: '#1E293B',
+  },
+  cardTitle: { color: '#F1F5F9', fontSize: 15, fontWeight: '700', marginBottom: 14 },
+  catRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 10 },
+  catIcon: { fontSize: 16, width: 24 },
+  catName: { color: '#94A3B8', fontSize: 13, width: 90 },
+  catBarWrap: { flex: 1, height: 6, backgroundColor: '#1E293B', borderRadius: 99, marginHorizontal: 8, overflow: 'hidden' },
+  catBar: { height: 6, borderRadius: 99 },
+  catPct: { fontSize: 12, fontWeight: '700', width: 36, textAlign: 'right' },
+  catCost: { color: '#64748B', fontSize: 12, width: 52, textAlign: 'right' },
+  highRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 6 },
+  highName: { color: '#F1F5F9', fontSize: 14 },
+  highVal: { color: '#FB923C', fontSize: 13, fontWeight: '600' },
+});
 
-const styles = StyleSheet.create({
-  flex: { flex: 1, backgroundColor: COLORS.bg1 },
-  tabs: {
-    flexDirection: 'row',
-    backgroundColor: COLORS.bg2,
-    margin: SPACING.lg,
-    borderRadius: RADIUS.lg,
-    padding: 4,
+// ─── SMALL HELPERS ────────────────────────────────────────────────────────────
+
+const FieldLabel = ({ label, hint }) => (
+  <View style={{ marginBottom: 6, marginTop: 14 }}>
+    <Text style={{ color: '#94A3B8', fontSize: 13, fontWeight: '600' }}>{label}</Text>
+    {hint ? <Text style={{ color: '#475569', fontSize: 11, marginTop: 2 }}>{hint}</Text> : null}
+  </View>
+);
+
+const SectionDivider = ({ label }) => (
+  <View style={{ flexDirection: 'row', alignItems: 'center', marginVertical: 18, gap: 10 }}>
+    <View style={{ flex: 1, height: 1, backgroundColor: '#1E293B' }} />
+    <Text style={{ color: '#475569', fontSize: 11, fontWeight: '700', letterSpacing: 1, textTransform: 'uppercase' }}>{label}</Text>
+    <View style={{ flex: 1, height: 1, backgroundColor: '#1E293B' }} />
+  </View>
+);
+
+const PreviewStat = ({ label, value, accent }) => (
+  <View style={{ alignItems: 'center', flex: 1 }}>
+    <Text style={{ color: accent ? '#38BDF8' : '#94A3B8', fontSize: accent ? 22 : 18, fontWeight: '800' }}>{value}</Text>
+    <Text style={{ color: '#475569', fontSize: 11, marginTop: 3 }}>{label}</Text>
+  </View>
+);
+
+// ─── STYLESHEET ───────────────────────────────────────────────────────────────
+
+const s = StyleSheet.create({
+  root: { flex: 1, backgroundColor: '#060D18' },
+  container: {
+    flex: 1,
+    width: '100%',
+    backgroundColor: '#060D18',
   },
-  tab: { flex: 1, paddingVertical: SPACING.sm, alignItems: 'center', borderRadius: RADIUS.md },
-  tabActive: { backgroundColor: COLORS.primary },
-  tabText: { color: COLORS.textSecondary, fontSize: 13, ...FONTS.medium },
-  tabTextActive: { color: '#fff', ...FONTS.semiBold },
-  container: { flex: 1, paddingHorizontal: SPACING.lg },
-  hintCard: {
-    backgroundColor: COLORS.primary + '22',
-    borderRadius: RADIUS.md,
-    padding: SPACING.md,
-    marginBottom: SPACING.md,
-    borderWidth: 1,
-    borderColor: COLORS.primary + '44',
+
+  header: {
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start',
+    paddingHorizontal: 20, paddingTop: 56, paddingBottom: 16,
+    backgroundColor: '#060D18',
   },
-  hintText: { color: COLORS.primaryLight, fontSize: 13, marginBottom: SPACING.sm },
-  hintBar: { backgroundColor: COLORS.bg3, borderRadius: RADIUS.full, height: 6, overflow: 'hidden' },
-  hintFill: { height: 6, backgroundColor: COLORS.primary, borderRadius: RADIUS.full },
-  appCard: {
-    backgroundColor: COLORS.bg2,
-    borderRadius: RADIUS.lg,
-    padding: SPACING.lg,
-    marginBottom: SPACING.md,
-    borderLeftWidth: 4,
-    ...SHADOW.sm,
+  headerTitle: { color: '#F1F5F9', fontSize: 28, fontWeight: '900', letterSpacing: -0.5 },
+  headerSub: { color: '#475569', fontSize: 13, marginTop: 2 },
+  headerRight: { alignItems: 'flex-end' },
+  headerCost: { color: '#34D399', fontSize: 24, fontWeight: '900' },
+  headerCostLbl: { color: '#475569', fontSize: 11 },
+
+  tabBar: {
+    flexDirection: 'row', marginHorizontal: 20, marginBottom: 16,
+    backgroundColor: '#0D1422', borderRadius: 14, padding: 4,
+    borderWidth: 1, borderColor: '#1E293B',
   },
-  appCardBody: { flexDirection: 'row', justifyContent: 'space-between' },
-  appCardLeft: { flex: 1 },
-  appName: { color: COLORS.textPrimary, fontSize: 16, ...FONTS.semiBold },
-  appMeta: { color: COLORS.textSecondary, fontSize: 13, marginTop: 2 },
-  appUsage: { color: COLORS.textMuted, fontSize: 12, marginTop: 2 },
-  appCardRight: { alignItems: 'flex-end' },
-  appCost: { color: COLORS.success, fontSize: 17, ...FONTS.bold },
-  appKwh: { color: COLORS.textSecondary, fontSize: 12 },
-  deleteBtn: { fontSize: 18 },
-  fabArea: {
+  tab: { flex: 1, paddingVertical: 9, alignItems: 'center', borderRadius: 10 },
+  tabOn: { backgroundColor: '#38BDF8' },
+  tabTxt: { color: '#475569', fontSize: 14, fontWeight: '600' },
+  tabTxtOn: { color: '#060D18', fontWeight: '800' },
+
+  scroll: { flex: 1, paddingHorizontal: 20 },
+
+  progressCard: {
+    backgroundColor: '#0D1422', borderRadius: 16, padding: 16,
+    marginBottom: 12, borderWidth: 1, borderColor: '#38BDF822',
+  },
+  progressTop: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 },
+  progressTitle: { color: '#F1F5F9', fontSize: 14, fontWeight: '700' },
+  progressCount: { color: '#38BDF8', fontSize: 13, fontWeight: '700' },
+  progressSub: { color: '#475569', fontSize: 12, marginBottom: 10 },
+  progressTrack: { height: 6, backgroundColor: '#1E293B', borderRadius: 99, overflow: 'hidden' },
+  progressFill: { height: 6, backgroundColor: '#38BDF8', borderRadius: 99 },
+
+  fab: {
     position: 'absolute', bottom: 0, left: 0, right: 0,
-    padding: SPACING.lg, backgroundColor: COLORS.bg1,
-    borderTopWidth: 1, borderTopColor: COLORS.border,
+    padding: 16, paddingBottom: 32,
+    backgroundColor: '#060D18CC', borderTopWidth: 1, borderTopColor: '#1E293B',
   },
-  modalContainer: { flex: 1, backgroundColor: COLORS.bg1 },
-  modalHeader: {
+  fabBtn: {
+    backgroundColor: '#38BDF8', borderRadius: 16, paddingVertical: 16,
+    flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 10,
+  },
+  fabIcon: { color: '#060D18', fontSize: 22, fontWeight: '900' },
+  fabTxt: { color: '#060D18', fontSize: 16, fontWeight: '800' },
+
+  // MODAL
+  modal: { flex: 1, backgroundColor: '#060D18' },
+  modalHdr: {
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-    padding: SPACING.lg, paddingTop: SPACING.xl,
-    borderBottomWidth: 1, borderBottomColor: COLORS.border,
+    paddingHorizontal: 20, paddingTop: 56, paddingBottom: 16,
+    borderBottomWidth: 1, borderBottomColor: '#1E293B',
   },
-  modalTitle: { color: COLORS.textPrimary, fontSize: 20, ...FONTS.bold },
-  modalClose: { color: COLORS.textSecondary, fontSize: 22, padding: SPACING.sm },
-  modalBody: { flex: 1, padding: SPACING.lg },
-  scanBtn: {
-    flexDirection: 'row', alignItems: 'center', gap: SPACING.md,
-    backgroundColor: COLORS.secondary + '22',
-    borderRadius: RADIUS.lg, padding: SPACING.lg,
-    borderWidth: 1, borderColor: COLORS.secondary + '44',
-    marginBottom: SPACING.md,
+  modalTitle: { color: '#F1F5F9', fontSize: 22, fontWeight: '900' },
+  modalClose: { color: '#475569', fontSize: 22, padding: 4 },
+  modalBody: { flex: 1, paddingHorizontal: 20 },
+
+  scanCard: {
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+    backgroundColor: '#0D1422', borderRadius: 16, padding: 18, marginTop: 18,
+    borderWidth: 1.5, borderColor: '#7C3AED55',
   },
-  scanIcon: { fontSize: 36 },
-  scanTitle: { color: COLORS.secondary, fontSize: 16, ...FONTS.semiBold },
-  scanSub: { color: COLORS.textSecondary, fontSize: 12, marginTop: 2 },
-  orText: { color: COLORS.textMuted, textAlign: 'center', marginVertical: SPACING.sm, fontSize: 13 },
-  templates: { marginBottom: SPACING.md },
-  templateChip: {
-    backgroundColor: COLORS.bg3, borderRadius: RADIUS.md,
-    padding: SPACING.md, marginRight: SPACING.sm, alignItems: 'center',
-    borderWidth: 1, borderColor: COLORS.border, minWidth: 100,
+  scanLeft: { flexDirection: 'row', alignItems: 'center', gap: 14 },
+  scanEmoji: { fontSize: 34 },
+  scanTitle: { color: '#A78BFA', fontSize: 16, fontWeight: '800' },
+  scanSub: { color: '#475569', fontSize: 12, marginTop: 2 },
+  scanArrow: { color: '#7C3AED', fontSize: 22 },
+
+  tmplRow: { marginBottom: 4 },
+  tmplChip: {
+    backgroundColor: '#0D1422', borderRadius: 12, padding: 12,
+    marginRight: 10, alignItems: 'center', minWidth: 88,
+    borderWidth: 1,
   },
-  templateName: { color: COLORS.textPrimary, fontSize: 12, ...FONTS.medium, textAlign: 'center' },
-  templateWatt: { color: COLORS.textMuted, fontSize: 11, marginTop: 2 },
-  fieldWrap: { marginBottom: SPACING.md },
-  fieldLabel: { color: COLORS.textSecondary, fontSize: 13, ...FONTS.medium, marginBottom: 6 },
+  tmplEmoji: { fontSize: 22, marginBottom: 4 },
+  tmplName: { color: '#94A3B8', fontSize: 11, fontWeight: '600', textAlign: 'center' },
+  tmplWatt: { fontSize: 12, fontWeight: '800', marginTop: 2 },
+
   input: {
-    backgroundColor: COLORS.bg3, color: COLORS.textPrimary,
-    borderRadius: RADIUS.md, padding: SPACING.md, fontSize: 15,
-    borderWidth: 1, borderColor: COLORS.border,
+    backgroundColor: '#0D1422', color: '#F1F5F9',
+    borderRadius: 12, paddingHorizontal: 16, paddingVertical: 14,
+    fontSize: 15, borderWidth: 1, borderColor: '#1E293B',
   },
-  chips: { marginBottom: SPACING.md },
-  chip: {
-    borderRadius: RADIUS.full, paddingHorizontal: SPACING.md, paddingVertical: 6,
-    borderWidth: 1, borderColor: COLORS.border, marginRight: SPACING.sm,
-    backgroundColor: COLORS.bg3,
+
+  catGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  catChip: {
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+    paddingHorizontal: 12, paddingVertical: 8,
+    borderRadius: 10, borderWidth: 1,
   },
-  chipText: { color: COLORS.textSecondary, fontSize: 13 },
-  row: { flexDirection: 'row' },
-  freqRow: { flexDirection: 'row', gap: SPACING.sm, marginBottom: SPACING.md },
+  catEmoji: { fontSize: 15 },
+  catLbl: { fontSize: 13, fontWeight: '600' },
+
+  row2: { flexDirection: 'row' },
+  freqRow: { flexDirection: 'row', gap: 8 },
   freqBtn: {
-    flex: 1, padding: SPACING.md, borderRadius: RADIUS.md,
-    borderWidth: 1, borderColor: COLORS.border, alignItems: 'center',
+    flex: 1, paddingVertical: 12, borderRadius: 12,
+    borderWidth: 1, borderColor: '#1E293B', alignItems: 'center',
+    backgroundColor: '#0D1422',
   },
-  freqBtnActive: { backgroundColor: COLORS.primary, borderColor: COLORS.primary },
-  freqText: { color: COLORS.textSecondary, ...FONTS.medium },
-  freqTextActive: { color: '#fff' },
-  cardTitle: { color: COLORS.textPrimary, fontSize: 16, ...FONTS.semiBold, marginBottom: SPACING.md },
-  statsRow: { flexDirection: 'row', marginBottom: SPACING.md },
-  bigCost: { color: COLORS.success, fontSize: 26, ...FONTS.bold, textAlign: 'center' },
-  catRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: SPACING.sm },
-  catDot: { width: 10, height: 10, borderRadius: 5, marginRight: SPACING.sm },
-  catName: { color: COLORS.textPrimary, flex: 1, fontSize: 14 },
-  catPct: { color: COLORS.textSecondary, marginRight: SPACING.sm, fontSize: 13 },
-  catCost: { color: COLORS.success, fontSize: 13, ...FONTS.medium },
-  highRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: SPACING.xs },
-  highName: { color: COLORS.textPrimary, fontSize: 14 },
-  highPct: { color: COLORS.danger, fontSize: 13 },
+  freqBtnOn: { backgroundColor: '#38BDF8', borderColor: '#38BDF8' },
+  freqTxt: { color: '#64748B', fontSize: 14, fontWeight: '600' },
+  freqTxtOn: { color: '#060D18', fontWeight: '800' },
+
+  previewCard: {
+    backgroundColor: '#0D1422', borderRadius: 16, padding: 18,
+    marginTop: 16, borderWidth: 1, borderColor: '#38BDF822',
+  },
+  previewTitle: { color: '#38BDF8', fontSize: 13, fontWeight: '700', marginBottom: 12 },
+  previewRow: { flexDirection: 'row', marginBottom: 10 },
+  previewNote: { color: '#475569', fontSize: 11, textAlign: 'center' },
+
+  saveBtn: {
+    backgroundColor: '#38BDF8', borderRadius: 16, paddingVertical: 18,
+    alignItems: 'center', marginTop: 20,
+  },
+  saveBtnTxt: { color: '#060D18', fontSize: 16, fontWeight: '900' },
 });
 
 export default AppliancesScreen;
