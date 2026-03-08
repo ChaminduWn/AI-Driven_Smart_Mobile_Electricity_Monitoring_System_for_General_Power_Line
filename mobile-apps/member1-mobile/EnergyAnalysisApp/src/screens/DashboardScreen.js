@@ -15,6 +15,7 @@ import AccountSelector from '../components/AccountSelector';
 import { COLORS, SPACING, RADIUS, FONTS, SHADOW } from '../utils/theme';
 import { formatCurrency, formatKwh, formatMonthYear, getStatusColor, getStatusLabel, extractAccountNumbers } from '../utils/helpers';
 import { Modal } from 'react-native';
+import { Bell, LogOut } from 'lucide-react-native';
 
 const DashboardScreen = ({ navigation }) => {
   const { user, logout } = useAuth();
@@ -107,7 +108,7 @@ const DashboardScreen = ({ navigation }) => {
         </View>
         <View style={styles.headerRight}>
           <TouchableOpacity style={styles.notifBtn} onPress={() => setShowNotifModal(true)}>
-            <Text style={styles.notifIcon}>🔔</Text>
+            <Bell size={24} color={COLORS.textPrimary} strokeWidth={2} />
             {notifications.length > 0 && (
               <View style={styles.notifBadge}>
                 <Text style={styles.notifBadgeText}>{notifications.length}</Text>
@@ -115,7 +116,7 @@ const DashboardScreen = ({ navigation }) => {
             )}
           </TouchableOpacity>
           <TouchableOpacity style={styles.logoutBtn} onPress={logout}>
-            <Text style={styles.logoutIcon}>🚪</Text>
+            <LogOut size={22} color={COLORS.textSecondary} strokeWidth={2} />
           </TouchableOpacity>
         </View>
       </View>
@@ -312,8 +313,14 @@ const styles = StyleSheet.create({
     borderWidth: 2, borderColor: COLORS.bg1
   },
   notifBadgeText: { color: '#fff', fontSize: 8, ...FONTS.bold },
-  logoutBtn: { padding: SPACING.sm },
-  logoutIcon: { fontSize: 22 },
+  logoutBtn: {
+    padding: SPACING.sm,
+    marginLeft: SPACING.xs,
+    borderRadius: RADIUS.md,
+    backgroundColor: COLORS.bg2,
+    borderWidth: 1,
+    borderColor: COLORS.divider,
+  },
   billCard: { marginBottom: SPACING.md },
   billRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
   billMonth: { color: COLORS.textPrimary, fontSize: 18, ...FONTS.semiBold },
