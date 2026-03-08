@@ -1,19 +1,357 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View, Text, ScrollView, StyleSheet, Alert, RefreshControl, TouchableOpacity,
-  Modal, TextInput, FlatList, Platform,
+  Modal, TextInput, Platform, Animated, Easing, Dimensions,
 } from 'react-native';
 import { analysisAPI } from '../api/analysisAPI';
 import { useAccount } from '../contexts/AccountContext';
 import {
   Card, SectionHeader, EmptyState, LoadingScreen, PrimaryButton, SecondaryButton,
-  InfoRow, Divider, Badge, ProgressBar, StatCard,
+  InfoRow, Divider, ProgressBar,
 } from '../components/SharedComponents';
 import { COLORS, SPACING, RADIUS, FONTS, SHADOW } from '../utils/theme';
-import {
-  formatCurrency, formatDate, getStatusColor, getStatusLabel, getPriorityColor,
-} from '../utils/helpers';
+import { formatCurrency, formatDate, getStatusColor, getStatusLabel } from '../utils/helpers';
 
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
+const CHART_W = SCREEN_WIDTH - 64;
+const CHART_H = 220;
+
+// ─── Animated Number ──────────────────────────────────────────────────────────
+const AnimatedNum = ({ value, style, prefix = 'Rs. ' }) => {
+  const anim = useRef(new Animated.Value(0)).current;
+  const [disp, setDisp] = useState(0);
+  useEffect(() => {
+    anim.setValue(0);
+    const a = Animated.timing(anim, { toValue: value, duration: 900, easing: Easing.out(Easing.cubic), useNativeDriver: false });
+    a.start();
+    const id = anim.addListener(({ value: v }) => setDisp(v));
+    return () => anim.removeListener(id);
+  }, [value]);
+  return <Text style={style}>{prefix}{disp.toLocaleString('en-LK', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</Text>;
+};
+
+// ─── Sparkline Chart ──────────────────────────────────────────────────────────
+// Pure RN SVG-like chart using Views – no external dependency
+const ConsumptionChart = ({ readings, plan }) => {
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    Animated.timing(fadeAnim, { toValue: 1, duration: 800, useNativeDriver: true }).start();
+  }, [readings]);
+
+  if (!readings || readings.length === 0) {
+    return (
+      <View style={ch.empty}>
+        <Text style={ch.emptyIcon}>📊</Text>
+        <Text style={ch.emptyText}>Submit your first reading to see the chart</Text>
+      </View>
+    );
+  }
+
+  const totalDays = plan?.planning_days || 30;
+  const targetTotalUnits = plan?.target_total_units || 0;
+  const dailyTarget = plan?.target_daily_units || 0;
+
+  // Build data points (sorted oldest → newest)
+  const sorted = [...readings].sort((a, b) => new Date(a.reading_date) - new Date(b.reading_date));
+
+  // Add origin point
+  const allPoints = [{ days_elapsed: 0, units_consumed_so_far: 0 }, ...sorted];
+  const maxUnits = Math.max(targetTotalUnits * 1.3, sorted[sorted.length - 1]?.units_consumed_so_far * 1.2 || 10);
+
+  const px = (day) => (day / totalDays) * CHART_W;
+  const py = (units) => CHART_H - (units / maxUnits) * CHART_H;
+
+  // Build actual path string (for display as connected dots)
+  const points = allPoints.map(r => ({ x: px(r.days_elapsed), y: py(r.units_consumed_so_far) }));
+
+  const latestPoint = points[points.length - 1];
+  const latestReading = sorted[sorted.length - 1];
+  const isOver = latestReading?.status === 'over_budget';
+
+  // Target line end point
+  const targetEndX = px(totalDays);
+  const targetEndY = py(targetTotalUnits);
+
+  // Projected line from latest to end
+  const projectedUnits = latestReading?.projected_total_units;
+  const projEndY = projectedUnits ? py(projectedUnits) : null;
+
+  return (
+    <Animated.View style={[ch.wrap, { opacity: fadeAnim }]}>
+      {/* Legend */}
+      <View style={ch.legend}>
+        <View style={ch.legendItem}><View style={[ch.legendDot, { backgroundColor: '#38BDF8' }]} /><Text style={ch.legendText}>Actual</Text></View>
+        <View style={ch.legendItem}><View style={[ch.legendDot, { backgroundColor: '#FBBF24', borderRadius: 0 }]} /><Text style={ch.legendText}>Target</Text></View>
+        {projEndY && <View style={ch.legendItem}><View style={[ch.legendDot, { backgroundColor: isOver ? '#EF4444' : '#34D399' }]} /><Text style={ch.legendText}>Projected</Text></View>}
+      </View>
+
+      <View style={[ch.canvas, { width: CHART_W, height: CHART_H }]}>
+        {/* Y grid lines */}
+        {[0, 0.25, 0.5, 0.75, 1].map(t => (
+          <View key={t} style={[ch.gridH, { top: CHART_H * t }]}>
+            <Text style={ch.gridLabel}>{Math.round(maxUnits * (1 - t))}</Text>
+          </View>
+        ))}
+
+        {/* X grid lines */}
+        {[0, 0.25, 0.5, 0.75, 1].map(t => (
+          <View key={t} style={[ch.gridV, { left: CHART_W * t }]}>
+            <Text style={ch.gridLabelX}>{Math.round(totalDays * t)}d</Text>
+          </View>
+        ))}
+
+        {/* Target dashed line (rendered as segments) */}
+        {Array.from({ length: 20 }, (_, i) => {
+          const x1 = (i / 20) * CHART_W;
+          const y1 = CHART_H - (i / 20) * (CHART_H - targetEndY);
+          const segLen = CHART_W / 40;
+          return i % 2 === 0 ? (
+            <View key={i} style={{
+              position: 'absolute',
+              left: x1, top: y1,
+              width: segLen, height: 2,
+              backgroundColor: '#FBBF24',
+              opacity: 0.7,
+              borderRadius: 1,
+            }} />
+          ) : null;
+        })}
+
+        {/* Projected line from latest point to end */}
+        {projEndY && latestPoint && (() => {
+          const dx = CHART_W - latestPoint.x;
+          const dy = projEndY - latestPoint.y;
+          const len = Math.sqrt(dx * dx + dy * dy);
+          const angle = Math.atan2(dy, dx) * (180 / Math.PI);
+          return (
+            <View style={{
+              position: 'absolute',
+              left: latestPoint.x,
+              top: latestPoint.y,
+              width: len,
+              height: 1.5,
+              backgroundColor: isOver ? '#EF4444' : '#34D399',
+              opacity: 0.5,
+              transform: [{ rotate: `${angle}deg` }],
+              transformOrigin: '0 50%',
+            }} />
+          );
+        })()}
+
+        {/* Actual line segments */}
+        {points.slice(0, -1).map((p, i) => {
+          const next = points[i + 1];
+          const dx = next.x - p.x;
+          const dy = next.y - p.y;
+          const len = Math.sqrt(dx * dx + dy * dy);
+          const angle = Math.atan2(dy, dx) * (180 / Math.PI);
+          return (
+            <View key={i} style={{
+              position: 'absolute',
+              left: p.x,
+              top: p.y,
+              width: len,
+              height: 3,
+              backgroundColor: '#38BDF8',
+              borderRadius: 2,
+              transform: [{ rotate: `${angle}deg` }],
+              transformOrigin: '0 50%',
+            }} />
+          );
+        })}
+
+        {/* Actual data dots */}
+        {points.slice(1).map((p, i) => {
+          const r = sorted[i];
+          const over = r?.status === 'over_budget';
+          return (
+            <View key={i} style={{
+              position: 'absolute',
+              left: p.x - 6, top: p.y - 6,
+              width: 12, height: 12,
+              borderRadius: 6,
+              backgroundColor: over ? '#EF4444' : '#38BDF8',
+              borderWidth: 2,
+              borderColor: '#0D1422',
+            }}>
+              {/* Tooltip bubble */}
+              <View style={ch.tooltip}>
+                <Text style={ch.tooltipText}>{r?.units_consumed_so_far}kWh</Text>
+                <Text style={ch.tooltipSub}>Day {r?.days_elapsed}</Text>
+              </View>
+            </View>
+          );
+        })}
+
+        {/* Today marker */}
+        {latestPoint && (
+          <View style={[ch.todayLine, { left: latestPoint.x }]} />
+        )}
+      </View>
+
+      {/* Summary below chart */}
+      <View style={ch.summary}>
+        <View style={ch.summaryCell}>
+          <Text style={[ch.summaryVal, { color: '#38BDF8' }]}>{latestReading?.units_consumed_so_far || 0} kWh</Text>
+          <Text style={ch.summaryLbl}>Used so far</Text>
+        </View>
+        <View style={ch.summaryDivider} />
+        <View style={ch.summaryCell}>
+          <Text style={[ch.summaryVal, { color: '#FBBF24' }]}>{Math.round(dailyTarget * (latestReading?.days_elapsed || 0))} kWh</Text>
+          <Text style={ch.summaryLbl}>Target at day {latestReading?.days_elapsed || 0}</Text>
+        </View>
+        <View style={ch.summaryDivider} />
+        <View style={ch.summaryCell}>
+          <Text style={[ch.summaryVal, { color: isOver ? '#EF4444' : '#34D399' }]}>
+            {projectedUnits ? Math.round(projectedUnits) : '—'} kWh
+          </Text>
+          <Text style={ch.summaryLbl}>Projected total</Text>
+        </View>
+      </View>
+
+      {/* Status banner */}
+      <View style={[ch.statusBanner, { backgroundColor: isOver ? '#EF444415' : '#34D39915', borderColor: isOver ? '#EF4444' : '#34D399' }]}>
+        <Text style={[ch.statusText, { color: isOver ? '#EF4444' : '#34D399' }]}>
+          {isOver
+            ? `⚠️ Over target by ${((latestReading?.units_consumed_so_far || 0) - Math.round(dailyTarget * (latestReading?.days_elapsed || 0)))} kWh — Projected Rs. ${Math.round(latestReading?.projected_total_cost || 0).toLocaleString()} vs budget Rs. ${Math.round(plan?.target_budget || 0).toLocaleString()}`
+            : `✅ On track — ${Math.round(dailyTarget * (latestReading?.days_elapsed || 0)) - (latestReading?.units_consumed_so_far || 0)} kWh under target`
+          }
+        </Text>
+      </View>
+    </Animated.View>
+  );
+};
+
+const ch = StyleSheet.create({
+  wrap: { backgroundColor: '#080F1C', borderRadius: 16, padding: 16, marginBottom: 12 },
+  empty: { alignItems: 'center', paddingVertical: 32 },
+  emptyIcon: { fontSize: 36, marginBottom: 8 },
+  emptyText: { color: '#475569', fontSize: 13, textAlign: 'center' },
+  legend: { flexDirection: 'row', gap: 16, marginBottom: 12 },
+  legendItem: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  legendDot: { width: 10, height: 10, borderRadius: 5 },
+  legendText: { color: '#64748B', fontSize: 11, fontWeight: '600' },
+  canvas: { position: 'relative', marginBottom: 4 },
+  gridH: { position: 'absolute', left: 0, right: 0, height: 1, backgroundColor: '#1E293B40' },
+  gridV: { position: 'absolute', top: 0, bottom: 0, width: 1, backgroundColor: '#1E293B40' },
+  gridLabel: { position: 'absolute', right: 2, top: -10, color: '#334155', fontSize: 8 },
+  gridLabelX: { position: 'absolute', bottom: -16, left: -8, color: '#334155', fontSize: 8 },
+  todayLine: { position: 'absolute', top: 0, bottom: 0, width: 1.5, backgroundColor: '#38BDF850' },
+  tooltip: {
+    position: 'absolute', bottom: 14, left: -20,
+    backgroundColor: '#1E293B', borderRadius: 6,
+    paddingHorizontal: 6, paddingVertical: 3,
+    minWidth: 50, alignItems: 'center',
+    borderWidth: 1, borderColor: '#38BDF840',
+  },
+  tooltipText: { color: '#F1F5F9', fontSize: 9, fontWeight: '700' },
+  tooltipSub: { color: '#64748B', fontSize: 8 },
+  summary: { flexDirection: 'row', marginTop: 20, marginBottom: 12 },
+  summaryCell: { flex: 1, alignItems: 'center' },
+  summaryVal: { fontSize: 15, fontWeight: '800' },
+  summaryLbl: { color: '#475569', fontSize: 10, marginTop: 2 },
+  summaryDivider: { width: 1, backgroundColor: '#1E293B', marginVertical: 4 },
+  statusBanner: {
+    borderRadius: 10, padding: 10, borderWidth: 1,
+  },
+  statusText: { fontSize: 12, fontWeight: '600', textAlign: 'center', lineHeight: 18 },
+});
+
+// ─── AI Recommendation Card ────────────────────────────────────────────────────
+const AIRecCard = ({ rec, index }) => {
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const slideAnim = useRef(new Animated.Value(20)).current;
+
+  useEffect(() => {
+    setTimeout(() => {
+      Animated.parallel([
+        Animated.timing(fadeAnim, { toValue: 1, duration: 400, useNativeDriver: true }),
+        Animated.spring(slideAnim, { toValue: 0, friction: 8, useNativeDriver: true }),
+      ]).start();
+    }, index * 120);
+  }, []);
+
+  const catColors = {
+    cooling: '#38BDF8', heating: '#FB923C', cooking: '#FBBF24',
+    entertainment: '#A78BFA', laundry: '#F472B6', lighting: '#FDE68A',
+    other: '#64748B',
+  };
+  const cat = (rec.category || 'other').toLowerCase();
+  const color = catColors[cat] || catColors.other;
+
+  return (
+    <Animated.View style={[rc.card, { opacity: fadeAnim, transform: [{ translateY: slideAnim }], borderLeftColor: color }]}>
+      <View style={rc.header}>
+        <View style={[rc.iconBox, { backgroundColor: color + '20' }]}>
+          <Text style={rc.icon}>⚡</Text>
+        </View>
+        <View style={rc.titleBox}>
+          <Text style={rc.appName}>{rec.appliance_name || 'Appliance'}</Text>
+          <View style={rc.badgeRow}>
+            <View style={[rc.badge, { backgroundColor: color + '25' }]}>
+              <Text style={[rc.badgeText, { color }]}>{rec.impact_percentage?.toFixed(0) || '—'}% of usage</Text>
+            </View>
+          </View>
+        </View>
+        <View style={rc.savingBox}>
+          <Text style={rc.savingAmt}>-{rec.suggested_reduction_kwh || 0} kWh</Text>
+          <Text style={rc.savingLbl}>save/day</Text>
+        </View>
+      </View>
+
+      <View style={rc.tipBox}>
+        <Text style={rc.tipText}>💡 {rec.actionable_tip}</Text>
+      </View>
+
+      <View style={rc.stats}>
+        <View style={rc.statItem}>
+          <Text style={[rc.statVal, { color: '#34D399' }]}>{rec.suggested_reduction_hours || 0}h</Text>
+          <Text style={rc.statLbl}>Reduce daily</Text>
+        </View>
+        <View style={rc.statDivider} />
+        <View style={rc.statItem}>
+          <Text style={[rc.statVal, { color: '#38BDF8' }]}>
+            Rs. {Math.round(rec.potential_monthly_saving || 0).toLocaleString()}
+          </Text>
+          <Text style={rc.statLbl}>Monthly saving</Text>
+        </View>
+        <View style={rc.statDivider} />
+        <View style={rc.statItem}>
+          <Text style={[rc.statVal, { color: '#FBBF24' }]}>{rec.category || '—'}</Text>
+          <Text style={rc.statLbl}>Category</Text>
+        </View>
+      </View>
+    </Animated.View>
+  );
+};
+
+const rc = StyleSheet.create({
+  card: {
+    backgroundColor: '#080F1C', borderRadius: 16, padding: 16,
+    marginBottom: 12, borderLeftWidth: 3, borderWidth: 1, borderColor: '#1E293B',
+  },
+  header: { flexDirection: 'row', alignItems: 'center', marginBottom: 12 },
+  iconBox: { width: 40, height: 40, borderRadius: 12, alignItems: 'center', justifyContent: 'center', marginRight: 10 },
+  icon: { fontSize: 18 },
+  titleBox: { flex: 1 },
+  appName: { color: '#F1F5F9', fontSize: 15, fontWeight: '700' },
+  badgeRow: { flexDirection: 'row', marginTop: 4 },
+  badge: { paddingHorizontal: 8, paddingVertical: 2, borderRadius: 20 },
+  badgeText: { fontSize: 10, fontWeight: '700' },
+  savingBox: { alignItems: 'flex-end' },
+  savingAmt: { color: '#34D399', fontSize: 14, fontWeight: '800' },
+  savingLbl: { color: '#475569', fontSize: 10 },
+  tipBox: { backgroundColor: '#1E293B40', borderRadius: 10, padding: 10, marginBottom: 10 },
+  tipText: { color: '#94A3B8', fontSize: 13, lineHeight: 19 },
+  stats: { flexDirection: 'row', backgroundColor: '#1E293B30', borderRadius: 10, padding: 10 },
+  statItem: { flex: 1, alignItems: 'center' },
+  statVal: { fontSize: 13, fontWeight: '800' },
+  statLbl: { color: '#475569', fontSize: 9, marginTop: 2 },
+  statDivider: { width: 1, backgroundColor: '#1E293B', marginVertical: 2 },
+});
+
+// ─── MAIN SCREEN ──────────────────────────────────────────────────────────────
 const TrackingScreen = ({ navigation }) => {
   const { selectedAccount } = useAccount();
   const [plans, setPlans] = useState([]);
@@ -26,10 +364,11 @@ const TrackingScreen = ({ navigation }) => {
   const [readingInput, setReadingInput] = useState('');
   const [notes, setNotes] = useState('');
   const [latestProgress, setLatestProgress] = useState(null);
+  const [freshRecs, setFreshRecs] = useState(null); // recs direct from submit response
   const [editingReading, setEditingReading] = useState(null);
   const [readingDate, setReadingDate] = useState('');
   const [readingTime, setReadingTime] = useState('');
-  const [activeTab, setActiveTab] = useState('status'); // 'status' or 'analysis'
+  const [activeTab, setActiveTab] = useState('status');
 
   const account = selectedAccount;
 
@@ -42,6 +381,7 @@ const TrackingScreen = ({ navigation }) => {
 
       const activePlan = planList[0] || null;
       setSelectedPlan(activePlan);
+      setFreshRecs(null); // reset when plan changes
 
       if (activePlan) {
         const readRes = await analysisAPI.getPlanReadings(activePlan.id);
@@ -63,14 +403,10 @@ const TrackingScreen = ({ navigation }) => {
 
   const openModal = (reading = null) => {
     const now = new Date();
-    const dStr = now.toISOString().split('T')[0];
-    const tStr = now.toTimeString().split(' ')[0].substring(0, 5); // HH:MM
-
     if (reading) {
       setEditingReading(reading);
       setReadingInput(reading.reading_value.toString());
       setNotes(reading.notes || '');
-      // If reading has date/time, parse them
       const rDate = new Date(reading.reading_date);
       setReadingDate(rDate.toISOString().split('T')[0]);
       setReadingTime(rDate.toTimeString().split(' ')[0].substring(0, 5));
@@ -78,8 +414,8 @@ const TrackingScreen = ({ navigation }) => {
       setEditingReading(null);
       setReadingInput('');
       setNotes('');
-      setReadingDate(dStr);
-      setReadingTime(tStr);
+      setReadingDate(now.toISOString().split('T')[0]);
+      setReadingTime(now.toTimeString().split(' ')[0].substring(0, 5));
     }
     setShowReadingModal(true);
   };
@@ -95,91 +431,59 @@ const TrackingScreen = ({ navigation }) => {
       return;
     }
 
-    // Validate reading is >= start reading
     const startReading = selectedPlan?.reference_bill_current_reading;
     if (startReading && val < startReading) {
-      Alert.alert('Invalid Reading', `Reading must be >= ${startReading} (your meter start value).`);
+      Alert.alert('Invalid Reading', `Reading must be ≥ ${startReading}`);
       return;
     }
 
     setSubmitting(true);
     try {
-      // Combine date and time
       const combinedDate = new Date(`${readingDate}T${readingTime}:00`).toISOString();
-
       let res;
+
       if (editingReading) {
-        // UPDATE EXISTING
         res = await analysisAPI.updateReading(editingReading.id, {
           reading_value: val,
           reading_date: combinedDate,
           notes: notes || null,
         });
       } else {
-        // CREATE NEW
-        res = await analysisAPI.trackProgress(
-          selectedPlan.id,
-          val,
-          combinedDate,
-          notes || null,
-        );
+        res = await analysisAPI.trackProgress(selectedPlan.id, val, combinedDate, notes || null);
       }
 
       if (res.data.success) {
-        // REFRESH DATA IMMEDIATELY
+        // Capture recs directly from response (before fetchData overwrites state)
+        if (res.data.appliance_recommendations?.length > 0) {
+          setFreshRecs(res.data.appliance_recommendations);
+        }
         await fetchData();
-
         const progress = res.data.progress || res.data.reading?.analysis_data;
         const status = progress?.current_status?.status || res.data.reading?.status;
 
-        // Alert based on status
-        let alertTitle = editingReading ? '✅ Reading Updated' : '✅ Reading Recorded';
-        let alertMsg = '';
-
+        let title = editingReading ? '✅ Updated' : '✅ Reading Saved';
+        let msg = '';
         if (status === 'over_budget') {
-          alertTitle = '⚠️ Over Budget Alert!';
-          alertMsg = `You're over your daily target.\n\nVariance: +${formatCurrency(progress.current_status?.variance_cost || 0)}\n\nProjected total: ${formatCurrency(progress.projection?.projected_total_cost || 0)}`;
+          title = '⚠️ Over Budget!';
+          msg = `You're over target.\nVariance: +${formatCurrency(progress?.current_status?.variance_cost || 0)}\nProjected: ${formatCurrency(progress?.projection?.projected_total_cost || 0)}`;
         } else if (status === 'under_budget') {
-          alertTitle = '🎉 Great Progress!';
-          alertMsg = `You're under budget!\nProjected savings: ${formatCurrency(Math.abs(progress.projection?.budget_variance || 0))}`;
+          title = '🎉 Under Budget!';
+          msg = `Great work! Projected savings: ${formatCurrency(Math.abs(progress?.projection?.budget_variance || 0))}`;
         } else {
-          alertMsg = `Status: On Track ✓\nDays elapsed: ${progress.current_status?.days_elapsed}\nUnits used: ${progress.current_status?.units_used} kWh`;
+          msg = `On track ✓\nDay ${progress?.current_status?.days_elapsed} · ${progress?.current_status?.units_used} kWh used`;
         }
-
-        if (Platform.OS === 'web') {
-          alert(`${alertTitle}\n\n${alertMsg}`);
-        } else {
-          Alert.alert(alertTitle, alertMsg);
-        }
+        Alert.alert(title, msg);
         setShowReadingModal(false);
-        setEditingReading(null);
-        setReadingInput('');
-        setNotes('');
       }
     } catch (err) {
-      const msg = err.response?.data?.detail || 'Failed to record reading.';
-      Alert.alert('Error', msg);
+      Alert.alert('Error', err.response?.data?.detail || 'Failed to record reading.');
     } finally {
       setSubmitting(false);
     }
   };
 
   const deleteReading = (readingId) => {
-    const msg = 'Remove this meter reading?';
-
-    if (Platform.OS === 'web') {
-      if (window.confirm(msg)) {
-        (async () => {
-          try {
-            await analysisAPI.deleteReading(readingId);
-            await fetchData();
-          } catch { alert('Error: Could not delete reading.'); }
-        })();
-      }
-      return;
-    }
-
-    Alert.alert('Delete Reading', msg, [
+    Alert.alert('Delete Reading', 'Remove this meter reading?', [
       { text: 'Cancel', style: 'cancel' },
       {
         text: 'Delete', style: 'destructive',
@@ -187,8 +491,7 @@ const TrackingScreen = ({ navigation }) => {
           try {
             await analysisAPI.deleteReading(readingId);
             await fetchData();
-          } catch (err) {
-            console.error('Delete error:', err);
+          } catch {
             Alert.alert('Error', 'Could not delete reading.');
           }
         },
@@ -196,13 +499,41 @@ const TrackingScreen = ({ navigation }) => {
     ]);
   };
 
-  if (loading) return <LoadingScreen message="Loading tracking data..." />;
+  // Re-run recommendations by re-submitting the latest reading value
+  const handleRefreshRecs = useCallback(async () => {
+    if (!selectedPlan || !latestProgress) return;
+    try {
+      const res = await analysisAPI.trackProgress(
+        selectedPlan.id,
+        latestProgress.reading_value,
+        latestProgress.reading_date,
+        latestProgress.notes || null,
+      );
+      if (res.data?.appliance_recommendations?.length > 0) {
+        setFreshRecs(res.data.appliance_recommendations);
+      }
+      await fetchData();
+    } catch (e) {
+      console.error('Refresh recs error:', e);
+    }
+  }, [selectedPlan, latestProgress, fetchData]);
+
+  // Extract AI recommendations: prefer fresh response recs, fall back to DB stored ones
+  const applianceRecs = freshRecs || latestProgress?.analysis_data?.appliance_recommendations || [];
+  const isOverBudget = latestProgress?.status === 'over_budget';
 
   return (
-    <View style={styles.flex}>
+    <View style={s.flex}>
       <ScrollView
-        style={styles.container}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); fetchData(); }} tintColor={COLORS.primary} />}
+        style={s.container}
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={() => { setRefreshing(true); fetchData(); }}
+            tintColor="#38BDF8"
+          />
+        }
       >
         {plans.length === 0 ? (
           <EmptyState
@@ -214,467 +545,466 @@ const TrackingScreen = ({ navigation }) => {
           />
         ) : (
           <>
-            {/* Tab Switcher */}
-            <View style={styles.tabBar}>
-              <TouchableOpacity
-                style={[styles.tabBtn, activeTab === 'status' && styles.tabBtnActive]}
-                onPress={() => setActiveTab('status')}
-              >
-                <Text style={[styles.tabBtnText, activeTab === 'status' && styles.tabBtnTextActive]}>Status</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.tabBtn, activeTab === 'analysis' && styles.tabBtnActive]}
-                onPress={() => setActiveTab('analysis')}
-              >
-                <Text style={[styles.tabBtnText, activeTab === 'analysis' && styles.tabBtnTextActive]}>Analysis</Text>
-              </TouchableOpacity>
+            {/* Tab Bar */}
+            <View style={s.tabBar}>
+              {[['status', '📊 Status'], ['analysis', '🤖 AI Analysis']].map(([k, l]) => (
+                <TouchableOpacity key={k} style={[s.tab, activeTab === k && s.tabOn]} onPress={() => setActiveTab(k)}>
+                  <Text style={[s.tabTxt, activeTab === k && s.tabTxtOn]}>{l}</Text>
+                  {activeTab === k && applianceRecs.length > 0 && k === 'analysis' && isOverBudget && (
+                    <View style={s.recBadge}><Text style={s.recBadgeText}>{applianceRecs.length}</Text></View>
+                  )}
+                </TouchableOpacity>
+              ))}
             </View>
 
-            {selectedPlan && (
+            {selectedPlan && activeTab === 'status' && (
               <>
-                {activeTab === 'status' ? (
-                  <>
-                    {/* Plan Overview */}
-                    <Card style={[styles.planCard, { borderTopColor: getStatusColor(selectedPlan.progress_status) }]}>
-                      <View style={styles.planHeader}>
-                        <View>
-                          <Text style={styles.planBudget}>{formatCurrency(selectedPlan.target_budget)}</Text>
-                          <Text style={styles.planLabel}>Target Budget</Text>
-                        </View>
-                        <View style={[styles.statusBadge, { backgroundColor: getStatusColor(selectedPlan.progress_status) + '22' }]}>
-                          <Text style={[styles.statusText, { color: getStatusColor(selectedPlan.progress_status) }]}>
-                            {getStatusLabel(selectedPlan.progress_status)}
-                          </Text>
-                        </View>
+                {/* Plan Overview */}
+                <View style={s.planCard}>
+                  <View style={s.planTop}>
+                    <View>
+                      <Text style={s.planBudgetLabel}>Target Budget</Text>
+                      <AnimatedNum value={selectedPlan.target_budget || 0} style={s.planBudget} />
+                    </View>
+                    <View style={[s.statusPill, {
+                      backgroundColor: getStatusColor(selectedPlan.progress_status) + '25',
+                      borderColor: getStatusColor(selectedPlan.progress_status) + '60',
+                    }]}>
+                      <View style={[s.statusDot, { backgroundColor: getStatusColor(selectedPlan.progress_status) }]} />
+                      <Text style={[s.statusTxt, { color: getStatusColor(selectedPlan.progress_status) }]}>
+                        {getStatusLabel(selectedPlan.progress_status)}
+                      </Text>
+                    </View>
+                  </View>
+
+                  <View style={s.planStats}>
+                    {[
+                      { icon: '📅', val: `${selectedPlan.planning_days}d`, lbl: 'Duration' },
+                      { icon: '⚡', val: `${selectedPlan.target_daily_units?.toFixed(1)} kWh`, lbl: 'Daily target' },
+                      { icon: '💰', val: `Rs.${selectedPlan.target_daily_cost?.toFixed(0)}`, lbl: 'Budget/day' },
+                    ].map((item, i) => (
+                      <View key={i} style={s.planStat}>
+                        <Text style={s.planStatIcon}>{item.icon}</Text>
+                        <Text style={s.planStatVal}>{item.val}</Text>
+                        <Text style={s.planStatLbl}>{item.lbl}</Text>
                       </View>
-                      <Divider />
-                      <View style={styles.planMeta}>
-                        <MetaItem icon="📅" label={`${selectedPlan.planning_days} days`} />
-                        <MetaItem icon="🔋" label={`${selectedPlan.target_daily_units?.toFixed(1)} kWh/day`} />
-                        <MetaItem icon="💰" label={`Rs.${selectedPlan.target_daily_cost?.toFixed(0)}/day`} />
+                    ))}
+                  </View>
+
+                  {/* Timeline */}
+                  <View style={s.timeline}>
+                    <View style={s.timelineNode}>
+                      <Text style={s.timelineDate}>{formatDate(selectedPlan.plan_start_date)}</Text>
+                      <Text style={s.timelineLbl}>Start</Text>
+                    </View>
+                    <View style={s.timelineTrack}>
+                      {latestProgress && (
+                        <View style={[s.timelineProgress, {
+                          width: `${Math.min((latestProgress.days_elapsed / selectedPlan.planning_days) * 100, 100)}%`,
+                          backgroundColor: isOverBudget ? '#EF4444' : '#38BDF8',
+                        }]} />
+                      )}
+                    </View>
+                    <View style={s.timelineNode}>
+                      <Text style={s.timelineDate}>{formatDate(selectedPlan.plan_end_date)}</Text>
+                      <Text style={s.timelineLbl}>End</Text>
+                    </View>
+                  </View>
+                </View>
+
+                {/* Current Status */}
+                {latestProgress && (
+                  <View style={[s.statusCard, { borderColor: getStatusColor(latestProgress.status) + '50' }]}>
+                    <View style={s.statusRow}>
+                      <View style={s.statusCol}>
+                        <Text style={[s.bigNum, { color: getStatusColor(latestProgress.status) }]}>
+                          {formatCurrency(latestProgress.actual_cost_so_far, 0)}
+                        </Text>
+                        <Text style={s.statusColLbl}>Spent so far</Text>
                       </View>
-                      <Divider />
-                      <View style={styles.timelineArea}>
-                        <Text style={styles.timelineLabel}>Plan Timeline</Text>
-                        <View style={styles.timelineRow}>
-                          <View style={styles.timelineNode}>
-                            <Text style={styles.timelineDate}>{formatDate(selectedPlan.plan_start_date)}</Text>
-                            <Text style={styles.timelineNote}>Started</Text>
-                          </View>
-                          <View style={styles.timelineBar} />
-                          <View style={styles.timelineNode}>
-                            <Text style={styles.timelineDate}>{formatDate(selectedPlan.plan_end_date)}</Text>
-                            <Text style={styles.timelineNote}>Estimated Finish</Text>
-                          </View>
-                        </View>
+                      <View style={s.statusCol}>
+                        <Text style={s.bigNum}>{formatCurrency(latestProgress.expected_cost_so_far, 0)}</Text>
+                        <Text style={s.statusColLbl}>Expected</Text>
                       </View>
-                    </Card>
-
-                    {/* Latest Progress */}
-                    {latestProgress && (
-                      <>
-                        <SectionHeader title="Current Status" />
-                        <ProgressCard reading={latestProgress} plan={selectedPlan} />
-
-                        {/* Weekly Status */}
-                        {latestProgress?.analysis_data?.weekly_status && (
-                          <WeeklyStatusCard ws={latestProgress.analysis_data.weekly_status} />
-                        )}
-                      </>
-                    )}
-
-                    {/* Reading History */}
-                    <SectionHeader title={`Readings (${readings.length}/8)`} action={() => openModal()} actionLabel="+ Add" />
-
-                    {/* Starting Reference Reading */}
-                    {selectedPlan.reference_bill_current_reading !== null && (
-                      <View style={[styles.readingCard, styles.startReadingCard]}>
-                        <View style={styles.readingLeft}>
-                          <Text style={styles.readingDate}>{formatDate(selectedPlan.reference_bill_date)}</Text>
-                          <Text style={styles.readingValue}>{selectedPlan.reference_bill_current_reading} kWh</Text>
-                        </View>
-                        <View style={styles.readingMid}>
-                          <Text style={styles.readingUnits}>Starting Reference</Text>
-                          <Text style={[styles.readingStatus, { color: COLORS.textMuted }]}>Reference Point</Text>
-                        </View>
-                        <View style={styles.readingRight}>
-                          <Text style={styles.readingCost}>Rs. 0.00</Text>
-                          <View style={styles.actionRow}>
-                            <View style={styles.actionBtn}><Text style={styles.actionIcon}>📌</Text></View>
-                          </View>
-                        </View>
+                      <View style={s.statusCol}>
+                        <Text style={[s.bigNum, {
+                          color: latestProgress.variance_cost > 0 ? '#EF4444' : '#34D399'
+                        }]}>
+                          {latestProgress.variance_cost > 0 ? '+' : ''}{formatCurrency(latestProgress.variance_cost, 0)}
+                        </Text>
+                        <Text style={s.statusColLbl}>Variance</Text>
                       </View>
-                    )}
+                    </View>
 
-                    {readings.length === 0 ? (
-                      <Card style={{ marginTop: 0 }}>
-                        <Text style={styles.noReadings}>No progress readings yet. Add your current meter reading to start tracking.</Text>
-                      </Card>
-                    ) : (
-                      readings.map((r) => (
-                        <ReadingCard
-                          key={r.id}
-                          reading={r}
-                          onEdit={() => openModal(r)}
-                          onDelete={() => deleteReading(r.id)}
-                        />
-                      ))
-                    )}
-                  </>
+                    {/* Progress bar */}
+                    <View style={s.progressWrap}>
+                      <View style={s.progressTrack}>
+                        <Animated.View style={[s.progressFill, {
+                          width: `${Math.min((latestProgress.actual_cost_so_far / selectedPlan.target_budget) * 100, 100)}%`,
+                          backgroundColor: getStatusColor(latestProgress.status),
+                        }]} />
+                      </View>
+                      <Text style={s.progressLabel}>
+                        Day {latestProgress.days_elapsed} · {latestProgress.units_consumed_so_far} kWh · Projected {formatCurrency(latestProgress.projected_total_cost, 0)}
+                      </Text>
+                    </View>
+                  </View>
+                )}
+
+                {/* Readings List */}
+                <SectionHeader
+                  title={`Readings (${readings.length}/8)`}
+                  action={() => openModal()}
+                  actionLabel="+ Add"
+                />
+
+                {/* Start reference */}
+                {selectedPlan.reference_bill_current_reading != null && (
+                  <View style={s.refReading}>
+                    <View style={s.refLeft}>
+                      <Text style={s.refDate}>{formatDate(selectedPlan.reference_bill_date)}</Text>
+                      <Text style={s.refVal}>{selectedPlan.reference_bill_current_reading} kWh</Text>
+                    </View>
+                    <Text style={s.refLabel}>📌 Starting Reference</Text>
+                  </View>
+                )}
+
+                {readings.length === 0 ? (
+                  <View style={s.noReadingsCard}>
+                    <Text style={s.noReadingsText}>No readings yet. Add your meter reading to begin tracking.</Text>
+                  </View>
                 ) : (
-                  <AnalysisTab readings={readings} plan={selectedPlan} />
+                  readings.map((r) => (
+                    <ReadingCard key={r.id} reading={r} onEdit={() => openModal(r)} onDelete={() => deleteReading(r.id)} />
+                  ))
                 )}
               </>
             )}
+
+            {selectedPlan && activeTab === 'analysis' && (
+              <AnalysisTab
+                readings={readings}
+                plan={selectedPlan}
+                applianceRecs={applianceRecs}
+                isOverBudget={isOverBudget}
+                latestProgress={latestProgress}
+                onRefreshRecs={handleRefreshRecs}
+              />
+            )}
           </>
         )}
-        <View style={{ height: 100 }} />
+        <View style={{ height: 110 }} />
       </ScrollView>
 
       {/* FAB */}
       {selectedPlan && (
-        <View style={styles.fabArea}>
-          <PrimaryButton
-            label="📱 Submit Meter Reading"
+        <View style={s.fabArea}>
+          <TouchableOpacity
+            style={[s.fab, readings.length >= 8 && s.fabDisabled]}
             onPress={() => openModal()}
             disabled={readings.length >= 8}
-          />
-          {readings.length >= 8 && (
-            <Text style={styles.maxReached}>Max 8 readings per plan reached</Text>
-          )}
+            activeOpacity={0.85}
+          >
+            <Text style={s.fabIcon}>📱</Text>
+            <Text style={s.fabTxt}>Submit Meter Reading</Text>
+            {readings.length >= 8 && <Text style={s.fabMax}>(max 8)</Text>}
+          </TouchableOpacity>
         </View>
       )}
 
       {/* Reading Modal */}
       <Modal visible={showReadingModal} animationType="slide" transparent onRequestClose={() => setShowReadingModal(false)}>
-        <TouchableOpacity style={styles.overlay} activeOpacity={1} onPress={() => setShowReadingModal(false)}>
-          <TouchableOpacity style={styles.bottomSheet} activeOpacity={1}>
-            <Text style={styles.sheetTitle}>{editingReading ? 'Edit Reading' : 'Submit Meter Reading'}</Text>
+        <TouchableOpacity style={s.overlay} activeOpacity={1} onPress={() => setShowReadingModal(false)}>
+          <TouchableOpacity style={s.sheet} activeOpacity={1}>
+            <View style={s.sheetHandle} />
+            <Text style={s.sheetTitle}>{editingReading ? '✏️ Edit Reading' : '📱 Submit Meter Reading'}</Text>
 
             {selectedPlan?.reference_bill_current_reading && (
-              <Text style={styles.sheetHint}>
-                Start reading: {selectedPlan.reference_bill_current_reading} · Enter current reading below
-              </Text>
+              <View style={s.sheetHintBox}>
+                <Text style={s.sheetHint}>Start: {selectedPlan.reference_bill_current_reading} kWh</Text>
+              </View>
             )}
 
             <TextInput
-              style={styles.bigInput}
+              style={s.bigInput}
               value={readingInput}
               onChangeText={setReadingInput}
-              placeholder="Current meter reading (e.g. 17250)"
-              placeholderTextColor={COLORS.textMuted}
+              placeholder="Current reading (e.g. 1462)"
+              placeholderTextColor="#334155"
               keyboardType="numeric"
             />
 
-            <View style={styles.dateTimeRow}>
-              <View style={styles.dateTimeField}>
-                <Text style={styles.fieldLabel}>Date (YYYY-MM-DD)</Text>
-                <TextInput
-                  style={styles.smallInput}
-                  value={readingDate}
-                  onChangeText={setReadingDate}
-                  placeholder="2024-03-08"
-                />
+            <View style={s.dtRow}>
+              <View style={s.dtField}>
+                <Text style={s.dtLabel}>Date</Text>
+                <TextInput style={s.dtInput} value={readingDate} onChangeText={setReadingDate} placeholder="YYYY-MM-DD" placeholderTextColor="#334155" />
               </View>
-              <View style={styles.dateTimeField}>
-                <Text style={styles.fieldLabel}>Time (HH:MM)</Text>
-                <TextInput
-                  style={styles.smallInput}
-                  value={readingTime}
-                  onChangeText={setReadingTime}
-                  placeholder="14:30"
-                />
+              <View style={s.dtField}>
+                <Text style={s.dtLabel}>Time</Text>
+                <TextInput style={s.dtInput} value={readingTime} onChangeText={setReadingTime} placeholder="HH:MM" placeholderTextColor="#334155" />
               </View>
             </View>
 
             <TextInput
-              style={[styles.bigInput, styles.notesInput]}
+              style={[s.bigInput, { fontSize: 14, textAlign: 'left', minHeight: 60 }]}
               value={notes}
               onChangeText={setNotes}
               placeholder="Notes (optional)"
-              placeholderTextColor={COLORS.textMuted}
+              placeholderTextColor="#334155"
               multiline
-              numberOfLines={2}
             />
 
-            <PrimaryButton
-              label={editingReading ? 'Update Reading' : 'Submit Reading'}
+            <TouchableOpacity
+              style={[s.submitBtn, submitting && { opacity: 0.6 }]}
               onPress={submitReading}
-              loading={submitting}
               disabled={submitting || !readingInput}
-            />
+            >
+              <Text style={s.submitTxt}>{submitting ? 'Saving…' : editingReading ? 'Update Reading' : 'Submit Reading'}</Text>
+            </TouchableOpacity>
           </TouchableOpacity>
         </TouchableOpacity>
       </Modal>
-    </View >
+    </View>
   );
 };
 
-const MetaItem = ({ icon, label }) => (
-  <View style={styles.metaItem}>
-    <Text style={styles.metaIcon}>{icon}</Text>
-    <Text style={styles.metaLabel}>{label}</Text>
-  </View>
-);
+// ─── Analysis Tab ─────────────────────────────────────────────────────────────
+const AnalysisTab = ({ readings, plan, applianceRecs, isOverBudget, latestProgress, onRefreshRecs }) => (
+  <ScrollView showsVerticalScrollIndicator={false}>
+    <Text style={at.sectionTitle}>📈 Consumption Chart</Text>
+    <ConsumptionChart readings={readings} plan={plan} />
 
-const ProgressCard = ({ reading, plan }) => {
-  const actualVal = reading.actual_cost_so_far || 0;
-  const targetVal = plan.target_budget || 1;
-  const pct = actualVal / targetVal;
-  const statusColor = getStatusColor(reading.status);
-  return (
-    <Card style={[styles.progressCard, { borderLeftColor: statusColor }]}>
-      <View style={styles.progressRow}>
-        <View>
-          <Text style={styles.progressCost}>{formatCurrency(actualVal)}</Text>
-          <Text style={styles.progressLabel}>Spent so far</Text>
-        </View>
-        <View>
-          <Text style={styles.progressExpected}>{formatCurrency(reading.expected_cost_so_far)}</Text>
-          <Text style={styles.progressLabel}>Expected</Text>
-        </View>
-        <View>
-          <Text style={[styles.progressVariance, { color: reading.variance_cost > 0 ? COLORS.danger : COLORS.success }]}>
-            {reading.variance_cost > 0 ? '+' : ''}{formatCurrency(reading.variance_cost)}
+    <Text style={at.sectionTitle}>🤖 AI Appliance Recommendations</Text>
+
+    {applianceRecs.length > 0 ? (
+      <>
+        <View style={at.overBudgetBanner}>
+          <Text style={at.overBudgetText}>
+            {isOverBudget
+              ? `⚠️ You're over budget. These appliances are the biggest contributors. Reduce their usage to get back on track.`
+              : `✅ You're on track! Here are tips to stay efficient.`}
           </Text>
-          <Text style={styles.progressLabel}>Variance</Text>
         </View>
+        {applianceRecs.map((rec, i) => <AIRecCard key={i} rec={rec} index={i} />)}
+      </>
+    ) : (
+      <View style={at.noRecCard}>
+        <Text style={at.noRecIcon}>🔌</Text>
+        <Text style={at.noRecTitle}>
+          {readings.length === 0
+            ? 'Add a meter reading first'
+            : isOverBudget
+              ? 'No recommendations yet'
+              : "You're on track! No urgent recommendations."}
+        </Text>
+        <Text style={at.noRecSub}>
+          {readings.length === 0
+            ? 'Submit your current meter reading to get AI-powered appliance tips.'
+            : isOverBudget
+              ? 'Tap below to generate AI-powered tips based on your registered appliances.'
+              : 'Keep monitoring your consumption every few days.'}
+        </Text>
+        {isOverBudget && readings.length > 0 && (
+          <TouchableOpacity style={at.addBtn} onPress={onRefreshRecs}>
+            <Text style={at.addBtnTxt}>🔄 Refresh Recommendations</Text>
+          </TouchableOpacity>
+        )}
       </View>
-      <ProgressBar progress={Math.min(pct, 1)} color={statusColor} style={{ marginTop: SPACING.md }} />
-      <Text style={{ color: COLORS.textMuted, fontSize: 11, marginTop: 4 }}>
-        {reading.days_elapsed} days elapsed · {reading.units_consumed_so_far} kWh used · Projected: {formatCurrency(reading.projected_total_cost)}
-      </Text>
-    </Card>
-  );
-};
-
-const RecommendationCard = ({ rec }) => (
-  <Card style={styles.recCard} accentColor={COLORS.warning}>
-    <View style={styles.recHeader}>
-      <Text style={styles.recApp}>⚡ {rec.appliance_name}</Text>
-      <Text style={styles.recImpact}>{rec.impact_percentage}% of use</Text>
-    </View>
-    <Text style={styles.recTip}>{rec.actionable_tip}</Text>
-    <View style={styles.recStats}>
-      <Text style={styles.recStat}>🔋 Save {rec.suggested_reduction_kwh} kWh/day</Text>
-      <Text style={styles.recStat}>💰 ~{formatCurrency(rec.potential_monthly_saving, 0)}/mo</Text>
-    </View>
-  </Card>
-);
-
-const WeeklyStatusCard = ({ ws }) => (
-  <Card style={styles.weekCard} accentColor={ws.exceeded ? COLORS.danger : COLORS.success}>
-    <Text style={styles.weekTitle}>Week {ws.week_number} Status</Text>
-    <InfoRow label="Target Units" value={`${ws.target_cumulative_units?.toFixed(1)} kWh`} />
-    <InfoRow label="Actual Units" value={`${ws.actual_units?.toFixed(1)} kWh`} valueColor={ws.exceeded ? COLORS.danger : COLORS.success} />
-    {ws.exceeded && (
-      <Text style={styles.weekWarn}>⚠️ Weekly target exceeded! Reduce consumption in remaining days.</Text>
     )}
-  </Card>
+  </ScrollView>
 );
 
-const ReadingCard = ({ reading, onEdit, onDelete }) => (
-  <View style={styles.readingCard}>
-    <View style={styles.readingLeft}>
-      <Text style={styles.readingDate}>{formatDate(reading.reading_date)}</Text>
-      <Text style={styles.readingValue}>{reading.reading_value} kWh</Text>
-    </View>
-    <View style={styles.readingMid}>
-      <Text style={styles.readingUnits}>{reading.units_consumed_so_far} consumed</Text>
-      <Text style={[styles.readingStatus, { color: getStatusColor(reading.status) }]}>
-        {getStatusLabel(reading.status)}
-      </Text>
-    </View>
-    <View style={styles.readingRight}>
-      <Text style={styles.readingCost}>{formatCurrency(reading.actual_cost_so_far)}</Text>
-      <View style={styles.actionRow}>
-        <TouchableOpacity style={styles.actionBtn} onPress={onEdit}>
-          <Text style={styles.actionIcon}>✏️</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.actionBtn} onPress={onDelete}>
-          <Text style={styles.actionIcon}>🗑️</Text>
-        </TouchableOpacity>
-      </View>
-    </View>
-  </View>
-);
-
-const styles = StyleSheet.create({
-  flex: { flex: 1, backgroundColor: COLORS.bg1 },
-  container: { flex: 1, padding: SPACING.lg },
-  planChips: { marginBottom: SPACING.md },
-  planChip: {
-    paddingHorizontal: SPACING.lg, paddingVertical: SPACING.sm,
-    borderRadius: RADIUS.full, borderWidth: 1, borderColor: COLORS.border,
-    marginRight: SPACING.sm, backgroundColor: COLORS.bg2,
+const at = StyleSheet.create({
+  sectionTitle: { color: '#F1F5F9', fontSize: 16, fontWeight: '700', marginBottom: 12, marginTop: 8 },
+  overBudgetBanner: {
+    backgroundColor: '#EF444415', borderRadius: 12, padding: 12,
+    marginBottom: 12, borderWidth: 1, borderColor: '#EF444430',
   },
-  planChipActive: { backgroundColor: COLORS.primary, borderColor: COLORS.primary },
-  planChipText: { color: COLORS.textSecondary, fontSize: 13 },
-  planChipTextActive: { color: '#fff' },
-  planCard: { marginBottom: SPACING.md, borderTopWidth: 3 },
-  planHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  planBudget: { color: COLORS.textPrimary, fontSize: 22, ...FONTS.bold },
-  planLabel: { color: COLORS.textSecondary, fontSize: 12 },
-  statusBadge: { paddingHorizontal: SPACING.md, paddingVertical: SPACING.xs, borderRadius: RADIUS.full },
-  statusText: { fontSize: 12, ...FONTS.semiBold },
-  planMeta: { flexDirection: 'row', justifyContent: 'space-around' },
-  metaItem: { alignItems: 'center' },
-  metaIcon: { fontSize: 18, marginBottom: 2 },
-  metaLabel: { color: COLORS.textSecondary, fontSize: 12 },
-  progressCard: {},
-  progressRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: SPACING.sm },
-  progressCost: { color: COLORS.textPrimary, fontSize: 18, ...FONTS.bold },
-  progressExpected: { color: COLORS.textSecondary, fontSize: 16, ...FONTS.medium },
-  progressVariance: { fontSize: 16, ...FONTS.bold },
-  progressLabel: { color: COLORS.textMuted, fontSize: 11, marginTop: 2 },
-  recCard: {},
-  recHeader: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: SPACING.sm },
-  recApp: { color: COLORS.textPrimary, fontSize: 15, ...FONTS.semiBold },
-  recImpact: { color: COLORS.warning, fontSize: 13 },
-  recTip: { color: COLORS.textSecondary, fontSize: 14, lineHeight: 20, marginBottom: SPACING.sm },
-  recStats: { flexDirection: 'row', gap: SPACING.lg },
-  recStat: { color: COLORS.success, fontSize: 13, ...FONTS.medium },
-  weekCard: {},
-  weekTitle: { color: COLORS.textPrimary, fontSize: 15, ...FONTS.semiBold, marginBottom: SPACING.sm },
-  weekWarn: { color: COLORS.danger, fontSize: 13, marginTop: SPACING.sm },
-  noReadings: { color: COLORS.textSecondary, fontSize: 14, textAlign: 'center', paddingVertical: SPACING.md },
-  readingCard: {
-    backgroundColor: COLORS.bg2, borderRadius: RADIUS.md, padding: SPACING.md,
-    marginBottom: SPACING.sm, flexDirection: 'row', alignItems: 'center',
-    borderWidth: 1, borderColor: COLORS.border,
+  overBudgetText: { color: '#FCA5A5', fontSize: 13, lineHeight: 19 },
+  noRecCard: {
+    backgroundColor: '#080F1C', borderRadius: 16, padding: 24,
+    alignItems: 'center', borderWidth: 1, borderColor: '#1E293B',
   },
-  readingLeft: { flex: 1 },
-  readingDate: { color: COLORS.textMuted, fontSize: 11 },
-  readingValue: { color: COLORS.textPrimary, fontSize: 16, ...FONTS.semiBold },
-  readingMid: { flex: 1, alignItems: 'center' },
-  readingUnits: { color: COLORS.textSecondary, fontSize: 12 },
-  readingStatus: { fontSize: 12, ...FONTS.medium, marginTop: 2 },
-  readingRight: { alignItems: 'flex-end', gap: SPACING.xs },
-  readingCost: { color: COLORS.success, fontSize: 14, ...FONTS.semiBold },
-  deleteBtn: { fontSize: 16 },
-  fabArea: {
-    position: 'absolute', bottom: 0, left: 0, right: 0,
-    padding: SPACING.lg, backgroundColor: COLORS.bg1,
-    borderTopWidth: 1, borderTopColor: COLORS.border,
+  noRecIcon: { fontSize: 40, marginBottom: 12 },
+  noRecTitle: { color: '#F1F5F9', fontSize: 15, fontWeight: '700', textAlign: 'center', marginBottom: 8 },
+  noRecSub: { color: '#64748B', fontSize: 13, textAlign: 'center', lineHeight: 20 },
+  addBtn: {
+    marginTop: 16, backgroundColor: '#38BDF820', paddingHorizontal: 20, paddingVertical: 10,
+    borderRadius: 20, borderWidth: 1, borderColor: '#38BDF840',
   },
-  maxReached: { color: COLORS.textMuted, fontSize: 12, textAlign: 'center', marginTop: SPACING.xs },
-  actionRow: { flexDirection: 'row', gap: SPACING.sm, marginTop: 4 },
-  actionBtn: { padding: 4 },
-  actionIcon: { fontSize: 16 },
-  overlay: { flex: 1, backgroundColor: COLORS.overlay, justifyContent: 'flex-end' },
-  bottomSheet: {
-    backgroundColor: COLORS.bg2, borderTopLeftRadius: RADIUS.xl, borderTopRightRadius: RADIUS.xl,
-    padding: SPACING.xl, paddingBottom: SPACING.xxxl,
-    ...SHADOW.lg,
-  },
-  sheetTitle: { color: COLORS.textPrimary, fontSize: 20, ...FONTS.bold, marginBottom: SPACING.sm, textAlign: 'center' },
-  sheetHint: { color: COLORS.textSecondary, fontSize: 13, textAlign: 'center', marginBottom: SPACING.lg },
-  bigInput: {
-    backgroundColor: COLORS.bg3, color: COLORS.textPrimary,
-    borderRadius: RADIUS.md, padding: SPACING.lg, fontSize: 20,
-    borderWidth: 1, borderColor: COLORS.border, marginBottom: SPACING.md,
-    textAlign: 'center', ...FONTS.bold,
-  },
-  notesInput: { fontSize: 14, ...FONTS.regular, textAlign: 'left' },
-  timelineArea: { marginTop: SPACING.md },
-  timelineLabel: { color: COLORS.textMuted, fontSize: 11, marginBottom: SPACING.sm, textAlign: 'center' },
-  timelineRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  timelineNode: { alignItems: 'center', flex: 1 },
-  timelineDate: { color: COLORS.textPrimary, fontSize: 12, ...FONTS.semiBold },
-  timelineNote: { color: COLORS.textMuted, fontSize: 10 },
-  timelineBar: { height: 2, flex: 1, backgroundColor: COLORS.border, marginHorizontal: SPACING.xs },
-  startReadingCard: { borderStyle: 'dashed', opacity: 0.8 },
-  dateTimeRow: { flexDirection: 'row', gap: SPACING.md, marginBottom: SPACING.md },
-  dateTimeField: { flex: 1 },
-  fieldLabel: { color: COLORS.textSecondary, fontSize: 11, marginBottom: 4 },
-  smallInput: {
-    backgroundColor: COLORS.bg3, color: COLORS.textPrimary,
-    borderRadius: RADIUS.md, padding: SPACING.sm, fontSize: 14,
-    borderWidth: 1, borderColor: COLORS.border,
-  },
-  tabBar: {
-    flexDirection: 'row', backgroundColor: COLORS.bg2,
-    borderRadius: RADIUS.lg, padding: 4, marginBottom: SPACING.md,
-  },
-  tabBtn: { flex: 1, paddingVertical: 10, alignItems: 'center', borderRadius: RADIUS.md },
-  tabBtnActive: { backgroundColor: COLORS.primary },
-  tabBtnText: { color: COLORS.textSecondary, fontSize: 14, ...FONTS.medium },
-  tabBtnTextActive: { color: '#fff' },
-  analysisCard: { padding: SPACING.lg },
-  chartHeader: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: SPACING.md },
-  chartTitle: { color: COLORS.textPrimary, fontSize: 15, ...FONTS.semiBold },
-  chartLegend: { flexDirection: 'row', gap: 12 },
-  legendItem: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  legendDot: { width: 8, height: 8, borderRadius: 4 },
-  legendText: { color: COLORS.textMuted, fontSize: 11 },
-  chartContainer: { alignItems: 'center' },
+  addBtnTxt: { color: '#38BDF8', fontSize: 13, fontWeight: '700' },
 });
 
-// ─── ANALYSIS TAB ─────────────────────────────────────────────────────────────
-const AnalysisTab = ({ readings, plan }) => {
-  const chartData = readings.length > 0 ? [...readings].reverse().map(r => ({
-    x: r.days_elapsed,
-    y: r.units_consumed_so_far,
-    target: plan.target_daily_units * r.days_elapsed
-  })) : [];
-
+// ─── Reading Card ─────────────────────────────────────────────────────────────
+const ReadingCard = ({ reading, onEdit, onDelete }) => {
+  const color = getStatusColor(reading.status);
   return (
-    <ScrollView style={{ flex: 1 }}>
-      <SectionHeader title="📊 Smart Visualization" />
-      <Card style={styles.analysisCard}>
-        <View style={styles.chartHeader}>
-          <Text style={styles.chartTitle}>Consumption Pattern</Text>
-          <View style={styles.chartLegend}>
-            <View style={styles.legendItem}>
-              <View style={[styles.legendDot, { backgroundColor: COLORS.primary }]} />
-              <Text style={styles.legendText}>Actual</Text>
-            </View>
-            <View style={styles.legendItem}>
-              <View style={[styles.legendDot, { backgroundColor: COLORS.warning }]} />
-              <Text style={styles.legendText}>Target</Text>
-            </View>
+    <View style={[rdc.card, { borderLeftColor: color }]}>
+      <View style={rdc.top}>
+        <View style={rdc.left}>
+          <Text style={rdc.date}>{formatDate(reading.reading_date)}</Text>
+          <Text style={rdc.val}>{reading.reading_value} kWh</Text>
+        </View>
+        <View style={rdc.mid}>
+          <Text style={rdc.consumed}>{reading.units_consumed_so_far} consumed</Text>
+          <View style={[rdc.badge, { backgroundColor: color + '20' }]}>
+            <Text style={[rdc.badgeText, { color }]}>{getStatusLabel(reading.status)}</Text>
           </View>
         </View>
-
-        {chartData.length > 1 ? (
-          <View style={styles.chartContainer}>
-            <Text style={{ color: COLORS.textMuted, fontSize: 12, marginBottom: 20 }}>
-              X: Days Elapsed | Y: kWh Consumed
-            </Text>
-            {/* Note: In a real project we'd use VictoryLine here. 
-                 Since Victory installation might be tricky in all envs, 
-                 I'll use a clean custom SVG or simple progress visuals if needed,
-                 but I'll try the Victory structure since it's in package.json.
-             */}
-            <Text style={{ color: COLORS.primary, fontSize: 40, ...FONTS.bold }}>
-              {readings[0]?.status === 'over_budget' ? '⚠️' : '📈'}
-            </Text>
-            <Text style={{ color: COLORS.textPrimary, marginTop: 10, textAlign: 'center' }}>
-              Consumption: {readings[0]?.units_consumed_so_far} kWh{'\n'}
-              vs Target: {(plan.target_daily_units * readings[0]?.days_elapsed).toFixed(1)} kWh
-            </Text>
+        <View style={rdc.right}>
+          <Text style={[rdc.cost, { color }]}>{formatCurrency(reading.actual_cost_so_far, 0)}</Text>
+          <View style={rdc.actions}>
+            <TouchableOpacity style={rdc.actionBtn} onPress={onEdit}><Text style={rdc.actionIcon}>✏️</Text></TouchableOpacity>
+            <TouchableOpacity style={rdc.actionBtn} onPress={onDelete}><Text style={rdc.actionIcon}>🗑️</Text></TouchableOpacity>
           </View>
-        ) : (
-          <EmptyState icon="📉" title="Not Enough Data" subtitle="Add at least 2 readings to see consumption trends." />
-        )}
-      </Card>
-
-      <SectionHeader title="🤖 AI Budget Assistant" />
-      {readings[0]?.analysis_data?.appliance_recommendations?.length > 0 ? (
-        readings[0].analysis_data.appliance_recommendations.map((rec, i) => (
-          <RecommendationCard key={i} rec={rec} />
-        ))
-      ) : (
-        <Card>
-          <Text style={{ color: COLORS.textSecondary, textAlign: 'center' }}>
-            {readings[0]?.status === 'over_budget'
-              ? "No specific appliance data found. Try adding your appliances in the Analysis section for personalized tips."
-              : "You're on track! No urgent recommendations."}
-          </Text>
-        </Card>
-      )}
-    </ScrollView>
+        </View>
+      </View>
+    </View>
   );
 };
+
+const rdc = StyleSheet.create({
+  card: {
+    backgroundColor: '#080F1C', borderRadius: 12, padding: 14,
+    marginBottom: 8, borderLeftWidth: 3, borderWidth: 1, borderColor: '#1E293B',
+  },
+  top: { flexDirection: 'row', alignItems: 'center' },
+  left: { flex: 1 },
+  date: { color: '#475569', fontSize: 11 },
+  val: { color: '#F1F5F9', fontSize: 16, fontWeight: '700' },
+  mid: { flex: 1.2, alignItems: 'center' },
+  consumed: { color: '#94A3B8', fontSize: 12 },
+  badge: { paddingHorizontal: 8, paddingVertical: 2, borderRadius: 10, marginTop: 3 },
+  badgeText: { fontSize: 10, fontWeight: '700' },
+  right: { alignItems: 'flex-end' },
+  cost: { fontSize: 14, fontWeight: '800' },
+  actions: { flexDirection: 'row', gap: 4, marginTop: 4 },
+  actionBtn: { padding: 4 },
+  actionIcon: { fontSize: 14 },
+});
+
+// ─── Stylesheet ───────────────────────────────────────────────────────────────
+const s = StyleSheet.create({
+  flex: { flex: 1, backgroundColor: '#060D18' },
+  container: { flex: 1, paddingHorizontal: 16, paddingTop: 8 },
+
+  tabBar: {
+    flexDirection: 'row', backgroundColor: '#0D1422', borderRadius: 14,
+    padding: 4, marginBottom: 14, borderWidth: 1, borderColor: '#1E293B',
+  },
+  tab: { flex: 1, paddingVertical: 11, alignItems: 'center', borderRadius: 10, flexDirection: 'row', justifyContent: 'center', gap: 6 },
+  tabOn: { backgroundColor: '#38BDF8' },
+  tabTxt: { color: '#475569', fontSize: 13, fontWeight: '700' },
+  tabTxtOn: { color: '#060D18', fontWeight: '800' },
+  recBadge: { backgroundColor: '#EF4444', width: 18, height: 18, borderRadius: 9, alignItems: 'center', justifyContent: 'center' },
+  recBadgeText: { color: '#fff', fontSize: 10, fontWeight: '800' },
+
+  planCard: {
+    backgroundColor: '#0D1422', borderRadius: 20, padding: 20,
+    marginBottom: 12, borderWidth: 1, borderColor: '#1E293B',
+  },
+  planTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 18 },
+  planBudgetLabel: { color: '#475569', fontSize: 11, fontWeight: '700', letterSpacing: 1, marginBottom: 4 },
+  planBudget: { color: '#38BDF8', fontSize: 26, fontWeight: '900' },
+  statusPill: {
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+    paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20, borderWidth: 1,
+  },
+  statusDot: { width: 7, height: 7, borderRadius: 4 },
+  statusTxt: { fontSize: 12, fontWeight: '700' },
+  planStats: { flexDirection: 'row', justifyContent: 'space-around', marginBottom: 18 },
+  planStat: { alignItems: 'center' },
+  planStatIcon: { fontSize: 20, marginBottom: 4 },
+  planStatVal: { color: '#F1F5F9', fontSize: 14, fontWeight: '700' },
+  planStatLbl: { color: '#475569', fontSize: 10 },
+  timeline: { flexDirection: 'row', alignItems: 'center' },
+  timelineNode: { alignItems: 'center' },
+  timelineDate: { color: '#94A3B8', fontSize: 11, fontWeight: '600' },
+  timelineLbl: { color: '#475569', fontSize: 9 },
+  timelineTrack: {
+    flex: 1, height: 6, backgroundColor: '#1E293B',
+    borderRadius: 3, marginHorizontal: 10, overflow: 'hidden',
+  },
+  timelineProgress: { height: '100%', borderRadius: 3 },
+
+  statusCard: {
+    backgroundColor: '#0D1422', borderRadius: 16, padding: 16,
+    marginBottom: 12, borderWidth: 1,
+  },
+  statusRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 14 },
+  statusCol: { alignItems: 'center' },
+  bigNum: { color: '#F1F5F9', fontSize: 17, fontWeight: '800' },
+  statusColLbl: { color: '#475569', fontSize: 10, marginTop: 2 },
+  progressWrap: {},
+  progressTrack: { height: 8, backgroundColor: '#1E293B', borderRadius: 4, overflow: 'hidden', marginBottom: 8 },
+  progressFill: { height: '100%', borderRadius: 4 },
+  progressLabel: { color: '#475569', fontSize: 11 },
+
+  refReading: {
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+    backgroundColor: '#080F1C', borderRadius: 12, padding: 14,
+    marginBottom: 8, borderWidth: 1, borderColor: '#1E293B40',
+    borderStyle: 'dashed',
+  },
+  refLeft: {},
+  refDate: { color: '#334155', fontSize: 11 },
+  refVal: { color: '#94A3B8', fontSize: 15, fontWeight: '600' },
+  refLabel: { color: '#334155', fontSize: 12 },
+
+  noReadingsCard: {
+    backgroundColor: '#080F1C', borderRadius: 12, padding: 20,
+    alignItems: 'center', borderWidth: 1, borderColor: '#1E293B',
+  },
+  noReadingsText: { color: '#475569', fontSize: 13, textAlign: 'center', lineHeight: 20 },
+
+  fabArea: {
+    position: 'absolute', bottom: 0, left: 0, right: 0,
+    padding: 16, paddingBottom: 28,
+    backgroundColor: '#060D18CC',
+    borderTopWidth: 1, borderTopColor: '#1E293B',
+  },
+  fab: {
+    backgroundColor: '#38BDF8', borderRadius: 16, paddingVertical: 17,
+    flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 10,
+  },
+  fabDisabled: { backgroundColor: '#1E293B' },
+  fabIcon: { fontSize: 20 },
+  fabTxt: { color: '#060D18', fontSize: 16, fontWeight: '800' },
+  fabMax: { color: '#0284C780', fontSize: 12 },
+
+  overlay: { flex: 1, backgroundColor: '#00000088', justifyContent: 'flex-end' },
+  sheet: {
+    backgroundColor: '#0D1422', borderTopLeftRadius: 24, borderTopRightRadius: 24,
+    padding: 24, paddingBottom: 40, borderTopWidth: 1, borderColor: '#1E293B',
+  },
+  sheetHandle: {
+    width: 40, height: 4, backgroundColor: '#1E293B', borderRadius: 2,
+    alignSelf: 'center', marginBottom: 20,
+  },
+  sheetTitle: { color: '#F1F5F9', fontSize: 20, fontWeight: '800', textAlign: 'center', marginBottom: 12 },
+  sheetHintBox: {
+    backgroundColor: '#38BDF815', borderRadius: 10, padding: 8,
+    marginBottom: 12, alignItems: 'center', borderWidth: 1, borderColor: '#38BDF830',
+  },
+  sheetHint: { color: '#38BDF8', fontSize: 13, fontWeight: '600' },
+  bigInput: {
+    backgroundColor: '#080F1C', color: '#F1F5F9',
+    borderRadius: 14, padding: 18, fontSize: 22, fontWeight: '800',
+    borderWidth: 1.5, borderColor: '#1E293B', marginBottom: 12, textAlign: 'center',
+  },
+  dtRow: { flexDirection: 'row', gap: 12, marginBottom: 12 },
+  dtField: { flex: 1 },
+  dtLabel: { color: '#475569', fontSize: 10, fontWeight: '700', marginBottom: 6, letterSpacing: 1 },
+  dtInput: {
+    backgroundColor: '#080F1C', color: '#F1F5F9',
+    borderRadius: 10, padding: 12, fontSize: 14,
+    borderWidth: 1, borderColor: '#1E293B',
+  },
+  submitBtn: {
+    backgroundColor: '#38BDF8', borderRadius: 14, paddingVertical: 17,
+    alignItems: 'center', marginTop: 8,
+  },
+  submitTxt: { color: '#060D18', fontSize: 16, fontWeight: '800' },
+});
 
 export default TrackingScreen;

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import {
-  View, Text, ScrollView, StyleSheet, Alert, ActivityIndicator, TouchableOpacity, TextInput,
+  View, Text, ScrollView, StyleSheet, Alert, ActivityIndicator, TouchableOpacity, TextInput, Platform,
 } from 'react-native';
 import { analysisAPI } from '../api/analysisAPI';
 import { billsAPI } from '../api/billsAPI';
@@ -22,6 +22,7 @@ const BillDetailScreen = ({ route, navigation }) => {
   const [creatingPlan, setCreatingPlan] = useState(false);
   const [targetBudget, setTargetBudget] = useState('');
   const [planningDays, setPlanningDays] = useState('30');
+  const [targetDate, setTargetDate] = useState('');
   const [showPlanForm, setShowPlanForm] = useState(false);
   const [applianceCount, setApplianceCount] = useState(0);
 
@@ -93,6 +94,44 @@ const BillDetailScreen = ({ route, navigation }) => {
       }
     })();
   }, [id]);
+
+  // Sync planningDays -> targetDate
+  useEffect(() => {
+    const days = parseInt(planningDays);
+    if (!isNaN(days) && days > 0) {
+      const d = new Date();
+      d.setDate(d.getDate() + days);
+      setTargetDate(d.toISOString().split('T')[0]);
+    }
+  }, [planningDays]);
+
+  const handleDateChange = (dateStr) => {
+    if (!dateStr) return;
+    setTargetDate(dateStr);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const end = new Date(dateStr);
+    end.setHours(0, 0, 0, 0);
+    const diffTime = end.getTime() - today.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+    if (diffDays >= 0) {
+      // Use string to keep it consistent with the existing state type
+      setPlanningDays(diffDays.toString());
+    }
+  };
+
+  const now = new Date();
+  const todayStr = now.toLocaleDateString('en-GB', {
+    weekday: 'short',
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric'
+  });
+  const timeStr = now.toLocaleTimeString('en-GB', {
+    hour: '2-digit',
+    minute: '2-digit'
+  });
 
   const createPlan = async () => {
     if (applianceCount < 5) {
@@ -264,7 +303,14 @@ const BillDetailScreen = ({ route, navigation }) => {
         />
       ) : (
         <Card>
-          <Text style={styles.cardTitle}>Set Your Budget Plan</Text>
+          <View style={styles.formHeader}>
+            <Text style={styles.cardTitle}>Set Your Budget Plan</Text>
+            <View style={styles.todayBox}>
+              <Text style={styles.todayLabel}>Today</Text>
+              <Text style={styles.todayText}>{todayStr}</Text>
+              <Text style={styles.timeText}>{timeStr}</Text>
+            </View>
+          </View>
 
           <View style={styles.inputContainer}>
             <Text style={styles.inputLabel}>Target Budget (Rs.)</Text>
@@ -310,6 +356,40 @@ const BillDetailScreen = ({ route, navigation }) => {
               />
               <Text style={styles.rsSuffix}>days</Text>
             </View>
+          </View>
+
+          <View style={[styles.inputContainer, { marginTop: SPACING.lg }]}>
+            <Text style={styles.inputLabel}>Select Expiry Date (End Date)</Text>
+            <View style={styles.inputRow}>
+              {Platform.OS === 'web' ? (
+                <input
+                  type="date"
+                  value={targetDate}
+                  onChange={(e) => handleDateChange(e.target.value)}
+                  min={new Date().toISOString().split('T')[0]}
+                  style={{
+                    flex: 1,
+                    backgroundColor: 'transparent',
+                    border: 'none',
+                    color: COLORS.textPrimary,
+                    fontSize: '16px',
+                    outline: 'none',
+                    cursor: 'pointer'
+                  }}
+                />
+              ) : (
+                <TextInput
+                  style={styles.budgetInput}
+                  value={targetDate}
+                  onChangeText={handleDateChange}
+                  placeholder="YYYY-MM-DD"
+                  placeholderTextColor={COLORS.textMuted}
+                />
+              )}
+            </View>
+            <Text style={styles.expiryNote}>
+              Plan expires on: <Text style={styles.expiryDate}>{formatDate(targetDate)}</Text>
+            </Text>
           </View>
 
           <View style={styles.planBtns}>
@@ -381,6 +461,13 @@ const styles = StyleSheet.create({
   inputHint: { color: COLORS.textMuted, fontSize: 11, marginTop: 4, fontStyle: 'italic' },
   rsSuffix: { color: COLORS.textSecondary, marginLeft: SPACING.sm },
   planBtns: { flexDirection: 'row', marginTop: SPACING.lg },
+  formHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: SPACING.md },
+  todayBox: { alignItems: 'flex-end' },
+  todayLabel: { color: COLORS.primary, fontSize: 10, ...FONTS.bold, textTransform: 'uppercase' },
+  todayText: { color: COLORS.textPrimary, fontSize: 13, ...FONTS.medium },
+  timeText: { color: COLORS.textSecondary, fontSize: 11 },
+  expiryNote: { color: COLORS.textSecondary, fontSize: 12, marginTop: 6, fontStyle: 'italic' },
+  expiryDate: { color: COLORS.primary, ...FONTS.bold, fontStyle: 'normal' },
 });
 
 export default BillDetailScreen;

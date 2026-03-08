@@ -21,9 +21,9 @@ class DeviceSession(Base):
     __tablename__ = "device_sessions"
 
     id             = Column(Integer,  primary_key=True, index=True)
-    user_id        = Column(Integer,  ForeignKey("users.id", ondelete="CASCADE"), nullable=True, index=True)
+    user_id        = Column(Integer,  ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
     device_id      = Column(String(64), nullable=False, index=True)
-    account_number = Column(String(64), nullable=True, index=True)
+    account_number = Column(String(64), nullable=False, index=True)
 
     appliance_name        = Column(String(256))
     appliance_brand       = Column(String(256))

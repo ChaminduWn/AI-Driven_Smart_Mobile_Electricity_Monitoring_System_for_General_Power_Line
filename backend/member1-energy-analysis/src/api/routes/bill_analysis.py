@@ -11,8 +11,10 @@ from pydantic import BaseModel, Field
 from src.database import get_db
 from src.services.bill_analysis import BillAnalysisService
 from src.models.bill import ElectricityBill
+from src.models.user import User
 from src.models.budget_plan import BudgetPlan, MeterReading, HouseholdAppliance
 from src.services.recommendation_engine import RecommendationEngine
+from src.api.routes.auth import get_user_from_token
 
 router = APIRouter(prefix="/analysis", tags=["Bill Analysis"])
 analysis_service = BillAnalysisService()
@@ -82,11 +84,10 @@ def analyze_past_month_bill(
             detail="Bill missing required data (units_consumed, billing_period_days)"
         )
     
-    # ✅ FIXED: Use total_charge instead of total_due
     bill_data = {
         'units_consumed': bill.units_consumed,
         'billing_period_days': bill.billing_period_days,
-        'total_charge': bill.total_charge or 0,  # Changed from total_due
+        'total_charge': bill.total_charge or 0,
         'bill_date': bill.bill_date
     }
     
@@ -111,7 +112,7 @@ def analyze_manual_data(
     bill_data = {
         'units_consumed': request.past_bill_units,
         'billing_period_days': request.past_bill_days,
-        'total_charge': request.past_bill_amount,  # Changed from total_due
+        'total_charge': request.past_bill_amount,
         'bill_date': request.past_bill_date
     }
     
@@ -140,6 +141,49 @@ def calculate_tariff(
     }
 
 
+@router.post("/save-manual-bill")
+def save_manual_bill(
+    request: ManualBillDataRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_user_from_token)
+):
+    """
+    Save manually entered bill data as an ElectricityBill record.
+    Useful for users who don't have a physical bill to upload.
+    """
+    account_number = current_user.selected_account
+    if not account_number:
+         raise HTTPException(status_code=400, detail="Please set a default account number in your profile first.")
+
+    try:
+        new_bill = ElectricityBill(
+            user_id=current_user.id,
+            account_number=account_number,
+            bill_date=request.past_bill_date,
+            units_consumed=request.past_bill_units,
+            total_charge=request.past_bill_amount,
+            billing_period_days=request.past_bill_days,
+            current_reading=request.current_meter_reading,
+            previous_reading=request.current_meter_reading - request.past_bill_units,
+            is_manual=True
+        )
+        db.add(new_bill)
+        db.commit()
+        db.refresh(new_bill)
+
+        from src.api.routes.notifications import create_notification
+        create_notification(db, current_user.id, "Bill Added Manually", f"Your bill for {request.past_bill_units} units has been recorded.", "success")
+
+        return {
+            "success": True,
+            "message": "Manual bill data saved successfully",
+            "bill_id": new_bill.id
+        }
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Error saving manual bill: {str(e)}")
+
+
 # ========== PHASE 2 ENDPOINTS (BUDGET PLANNING & TRACKING) ==========
 
 @router.post("/create-budget-plan")
@@ -157,7 +201,6 @@ def create_budget_plan(
     if not bill:
         raise HTTPException(status_code=404, detail="Bill not found")
 
-    # Ensure household appliances exist before allowing budget planning
     appliances_count = db.query(HouseholdAppliance).filter(
         HouseholdAppliance.account_number == bill.account_number,
         HouseholdAppliance.is_active == True
@@ -173,25 +216,21 @@ def create_budget_plan(
             )
         )
     
-    # ✅ FIXED: Use total_charge instead of total_due
     bill_data = {
         'units_consumed': bill.units_consumed,
         'billing_period_days': bill.billing_period_days,
-        'total_charge': bill.total_charge or 0  # Changed from total_due
+        'total_charge': bill.total_charge or 0
     }
     
-    # Create the plan
     plan = analysis_service.create_budget_plan(
         bill_data,
         request.target_budget,
         request.planning_days
     )
     
-    # Check for validation errors
     if 'error' in plan:
         raise HTTPException(status_code=400, detail=plan['message'])
     
-    # Save plan to database
     try:
         plan_record = BudgetPlan(
             reference_bill_id=request.bill_id,
@@ -207,7 +246,7 @@ def create_budget_plan(
             target_weekly_units=plan['weekly_targets'][0]['target_units'],
             target_weekly_cost=plan['weekly_targets'][0]['target_cost'],
             target_total_units=plan['total_targets']['units'],
-            past_bill_amount=bill.total_charge,  # Changed from total_due
+            past_bill_amount=bill.total_charge,
             past_bill_units=bill.units_consumed,
             past_billing_days=bill.billing_period_days,
             weekly_targets=plan['weekly_targets'],
@@ -219,6 +258,9 @@ def create_budget_plan(
         db.commit()
         db.refresh(plan_record)
         
+        from src.api.routes.notifications import create_notification
+        create_notification(db, bill.user_id, "Plan Created", f"Successfully created your {plan_record.planning_days}-day budget plan for Rs. {plan_record.target_budget}.", "success")
+
         return {
             'success': True,
             'message': 'Budget plan created and saved successfully',
@@ -263,7 +305,6 @@ def update_budget_plan(
         updated = True
     
     if updated:
-        # Recalculate plan targets
         bill_data = {
             'units_consumed': bill.units_consumed,
             'billing_period_days': bill.billing_period_days,
@@ -279,7 +320,6 @@ def update_budget_plan(
         if 'error' in new_plan:
             raise HTTPException(status_code=400, detail=new_plan['message'])
         
-        # Update plan fields
         plan.target_daily_units = new_plan['daily_targets']['units']
         plan.target_daily_cost = new_plan['daily_targets']['cost']
         plan.target_weekly_units = new_plan['weekly_targets'][0]['target_units']
@@ -328,7 +368,6 @@ def delete_budget_plan(
         raise HTTPException(status_code=404, detail="Plan not found")
     
     try:
-        # Rely on SQLAlchemy cascade="all, delete-orphan" to remove meter readings
         db.delete(plan)
         db.commit()
         
@@ -358,7 +397,6 @@ def update_meter_reading(
     if not plan or not plan.reference_bill:
         raise HTTPException(status_code=404, detail="Plan or reference bill not found")
 
-    # Start = earliest other reading, or plan start if this is the only/first reading
     first_reading = db.query(MeterReading).filter(
         MeterReading.budget_plan_id == reading.budget_plan_id,
         MeterReading.id != reading_id
@@ -395,9 +433,7 @@ def update_meter_reading(
 
     reading.reading_value = request.reading_value
     reading.reading_date = request.reading_date
-    # Extract time as string
     reading.reading_time = request.reading_date.strftime("%H:%M:%S")
-    # Ensure bill_id is present
     if not reading.bill_id:
         reading.bill_id = plan.reference_bill_id
     reading.notes = request.notes
@@ -416,7 +452,6 @@ def update_meter_reading(
 
     db.commit()
     
-    # ✅ SYNC: Update the plan's overall status based on this update
     plan.current_progress_status = reading.status
     plan.last_check_date = reading.reading_date
     db.commit()
@@ -458,7 +493,6 @@ def delete_meter_reading(
         db.delete(reading)
         db.commit()
         
-        # ✅ SYNC: Recalculate plan status based on the remaining latest reading
         latest_reading = db.query(MeterReading).filter(
             MeterReading.budget_plan_id == plan_id
         ).order_by(MeterReading.reading_date.desc()).first()
@@ -469,7 +503,7 @@ def delete_meter_reading(
                 plan.current_progress_status = latest_reading.status
                 plan.last_check_date = latest_reading.reading_date
             else:
-                plan.current_progress_status = 'on_track' # Reset if no readings left
+                plan.current_progress_status = 'on_track'
                 plan.last_check_date = None
             db.commit()
 
@@ -488,7 +522,8 @@ def track_budget_progress(
     db: Session = Depends(get_db)
 ):
     """
-    Track progress against budget plan using current meter reading
+    Track progress against budget plan using current meter reading.
+    Generates AI appliance recommendations when over budget or projected to exceed.
     """
     # Get the budget plan
     plan = db.query(BudgetPlan).filter(BudgetPlan.id == request.plan_id).first()
@@ -513,12 +548,23 @@ def track_budget_progress(
             detail="You have reached the maximum of 8 meter readings for this budget plan."
         )
 
+    # Weekly spacing logic (approx 7 days)
+    last_reading = db.query(MeterReading).filter(
+        MeterReading.budget_plan_id == request.plan_id
+    ).order_by(MeterReading.reading_date.desc()).first()
+
+    if last_reading:
+        days_since_last = (request.reading_date.replace(tzinfo=None) - last_reading.reading_date.replace(tzinfo=None)).days
+        if days_since_last < 1:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Please wait at least 1 day between readings. Your last reading was {days_since_last} days ago."
+            )
+
     # ALWAYS use the bill's current reading as the starting reference for the budget plan
-    # This ensures "units consumed" and "cost so far" are cumulative from day 1 of the plan.
     start_reading = bill.current_reading
     start_date = plan.plan_start_date
     
-    # If bill has no current_reading (e.g. old extraction), derive from previous + units
     if start_reading is None and bill.previous_reading is not None and bill.units_consumed is not None:
         start_reading = bill.previous_reading + bill.units_consumed
     if start_date is None and bill.bill_date is not None:
@@ -534,10 +580,9 @@ def track_budget_progress(
             )
         )
 
-    # Normalize datetimes for subtraction (avoid timezone-aware vs naive)
+    # Normalize datetimes for subtraction
     _start = start_date.replace(tzinfo=None) if start_date and getattr(start_date, 'tzinfo', None) else start_date
     _reading = request.reading_date.replace(tzinfo=None) if request.reading_date and getattr(request.reading_date, 'tzinfo', None) else request.reading_date
-    # Robust comparison: Allow readings on the same day even if seconds are slightly off due to TZ mismatch
     if _start and _reading and _reading.date() < _start.date():
         raise HTTPException(
             status_code=400,
@@ -546,19 +591,24 @@ def track_budget_progress(
 
     # Prepare plan data for tracking
     plan_data = {
+        'budget_info': {
+            'target_budget': plan.target_budget,
+            'past_bill': plan.past_bill_amount,
+            'savings_target': plan.past_bill_amount - plan.target_budget,
+            'percentage_change': ((plan.target_budget - plan.past_bill_amount) / plan.past_bill_amount) * 100
+        },
         'daily_targets': {
             'units': plan.target_daily_units,
             'cost': plan.target_daily_cost
         },
+        'weekly_targets': plan.weekly_targets or [],
         'total_targets': {
+            'units': plan.target_total_units,
+            'cost': plan.target_budget,
             'days': plan.planning_days
-        },
-        'budget_info': {
-            'target_budget': plan.target_budget
         }
     }
 
-    # Use normalized datetimes for progress calculation
     start_date_for_calc = _start if _start is not None else start_date
     reading_date_for_calc = _reading if _reading is not None else request.reading_date
 
@@ -571,70 +621,119 @@ def track_budget_progress(
             start_reading,
             start_date_for_calc
         )
-        
-        # Weekly target status (for recommendations & UI)
-        weekly_status = None
+
+        current_status = progress['current_status']
+        projection = progress['projection']
+
+        # ── Weekly target status ──────────────────────────────────────────────
+        days_elapsed = int(current_status.get('days_elapsed', 0))
+        week_number = (days_elapsed // 7) + 1
+        week_target = None
         if plan.weekly_targets:
-            # Determine which week we are currently in (1-based)
-            # Approximate by elapsed days; cap to available weeks
-            days_elapsed = progress['current_status']['days_elapsed']
-            if days_elapsed > 0:
-                week_index = min(
-                    len(plan.weekly_targets) - 1,
-                    max(0, int((days_elapsed - 1) / 7))
-                )
-                weekly_target = plan.weekly_targets[week_index]
-                target_units = weekly_target.get('cumulative_units', weekly_target.get('target_units', 0))
-                units_used = progress['current_status']['units_used']
-                weekly_status = {
-                    'week_number': week_index + 1,
-                    'target_cumulative_units': target_units,
-                    'actual_units': units_used,
-                    'exceeded': units_used > target_units
-                }
+            for wt in plan.weekly_targets:
+                if wt.get('week') == week_number:
+                    week_target = wt
+                    break
 
-        # Appliance-wise recommendations when over budget OR we're on a trend to exceed
-        appliance_recommendations = []
-        # Get appliances linked to this specific user OR this account
-        appliances_query = db.query(HouseholdAppliance).filter(
-            HouseholdAppliance.is_active == True
-        ).filter(
-            (HouseholdAppliance.account_number == bill.account_number) | 
-            (HouseholdAppliance.user_id == plan.user_id)
-        )
-        
-        appliances = appliances_query.all()
-
-        # Prepare appliance data for engine
-        appliances_data = [
-            {
-                'id': a.id,
-                'name': a.appliance_name,
-                'category': a.appliance_category,
-                'wattage': a.wattage
+        weekly_status = None
+        if week_target:
+            actual_units = current_status.get('units_used', 0)
+            target_cum = week_target.get('cumulative_units', week_target.get('target_units', 0))
+            weekly_status = {
+                'week_number': week_number,
+                'target_cumulative_units': target_cum,
+                'actual_units': actual_units,
+                'exceeded': actual_units > target_cum
             }
-            for a in appliances
-        ]
-
-        # Use AI Recommendation Engine if status is not 'under_budget'
-        if progress['current_status']['status'] != 'under_budget' and appliances_data:
-            appliance_recommendations = recommendation_engine.generate_recommendations(
-                current_status=progress['current_status'],
-                projection=progress['projection'],
-                user_appliances=appliances_data,
-                account_number=bill.account_number
+        elif plan.weekly_targets:
+            # Fallback: derive week from elapsed days, cap to available weeks
+            week_index = min(
+                len(plan.weekly_targets) - 1,
+                max(0, int((days_elapsed - 1) / 7)) if days_elapsed > 0 else 0
             )
+            weekly_target_fb = plan.weekly_targets[week_index]
+            target_units_fb = weekly_target_fb.get('cumulative_units', weekly_target_fb.get('target_units', 0))
+            units_used_fb = current_status.get('units_used', 0)
+            weekly_status = {
+                'week_number': week_index + 1,
+                'target_cumulative_units': target_units_fb,
+                'actual_units': units_used_fb,
+                'exceeded': units_used_fb > target_units_fb
+            }
 
-        # Attach helper data for frontend
+        # ── AI Appliance Recommendations ──────────────────────────────────────
+        # KEY FIX: call RecommendationEngine and inject into analysis_data BEFORE saving to DB
+        appliance_recommendations = []
+        is_over = (
+            current_status.get('status') == 'over_budget' or
+            projection.get('budget_variance', 0) > 0
+        )
+
+        if is_over:
+            try:
+                user_appliances_raw = db.query(HouseholdAppliance).filter(
+                    HouseholdAppliance.is_active == True
+                ).filter(
+                    (HouseholdAppliance.account_number == plan.account_number) |
+                    (HouseholdAppliance.user_id == plan.user_id)
+                ).all()
+
+                # Fallback: check any appliances for this user
+                if not user_appliances_raw and plan.user_id:
+                    user_appliances_raw = db.query(HouseholdAppliance).filter(
+                        HouseholdAppliance.user_id == plan.user_id,
+                        HouseholdAppliance.is_active == True
+                    ).all()
+
+                user_appliances = [
+                    {
+                        'id': a.id,
+                        'name': a.appliance_name,
+                        'category': a.appliance_category,
+                        'wattage': a.wattage,
+                        'daily_kwh': a.daily_kwh or 0,
+                        'monthly_kwh': a.monthly_kwh or 0,
+                    }
+                    for a in user_appliances_raw
+                ]
+
+                if user_appliances:
+                    projection_for_rec = {
+                        'days_remaining': max(1, plan.planning_days - days_elapsed),
+                        'budget_variance': projection.get('budget_variance', 0),
+                        'projected_total_cost': projection.get('projected_total_cost', 0),
+                    }
+                    appliance_recommendations = recommendation_engine.generate_recommendations(
+                        current_status=current_status,
+                        projection=projection_for_rec,
+                        user_appliances=user_appliances,
+                        account_number=bill.account_number
+                    )
+            except Exception as e:
+                import logging
+                logging.getLogger(__name__).warning(f"Recommendation engine error: {e}")
+                appliance_recommendations = []
+
+        # ── Build analysis_data with appliance_recommendations included ───────
+        analysis_data = {
+            **current_status,
+            'projection': projection,
+            'weekly_status': weekly_status,
+            'recommendations': progress.get('recommendations', []),
+            # KEY: store appliance recommendations so frontend can display them
+            'appliance_recommendations': appliance_recommendations,
+        }
+
+        # Attach helper data for frontend on the progress dict too
         progress['weekly_status'] = weekly_status
         progress['appliance_recommendations'] = appliance_recommendations
 
         # Save meter reading to database
         variance_percentage = 0
-        if progress['current_status']['expected_cost'] > 0:
+        if current_status['expected_cost'] > 0:
             variance_percentage = (
-                progress['current_status']['variance_cost'] / 
-                progress['current_status']['expected_cost'] * 100
+                current_status['variance_cost'] / 
+                current_status['expected_cost'] * 100
             )
         
         reading_record = MeterReading(
@@ -643,18 +742,18 @@ def track_budget_progress(
             reading_value=request.current_reading,
             reading_date=request.reading_date,
             reading_time=request.reading_date.strftime("%H:%M:%S"),
-            units_consumed_so_far=progress['current_status']['units_used'],
-            days_elapsed=progress['current_status']['days_elapsed'],
-            actual_cost_so_far=progress['current_status']['actual_cost'],
-            expected_cost_so_far=progress['current_status']['expected_cost'],
-            variance_units=progress['current_status']['variance_units'],
-            variance_cost=progress['current_status']['variance_cost'],
-            variance_percentage=variance_percentage,
-            status=progress['current_status']['status'],
-            projected_total_units=progress['projection']['projected_total_units'],
-            projected_total_cost=progress['projection']['projected_total_cost'],
-            projected_budget_variance=progress['projection']['budget_variance'],
-            analysis_data=progress,
+            units_consumed_so_far=current_status['units_used'],
+            days_elapsed=current_status['days_elapsed'],
+            actual_cost_so_far=round(current_status['actual_cost'], 2),
+            expected_cost_so_far=round(current_status['expected_cost'], 2),
+            variance_units=round(current_status['variance_units'], 2),
+            variance_cost=round(current_status['variance_cost'], 2),
+            variance_percentage=round(variance_percentage, 2),
+            status=current_status['status'],
+            projected_total_units=round(projection['projected_total_units'], 2),
+            projected_total_cost=round(projection['projected_total_cost'], 2),
+            projected_budget_variance=round(projection['budget_variance'], 2),
+            analysis_data=analysis_data,  # Now includes appliance_recommendations
             notes=request.notes
         )
         
@@ -662,16 +761,38 @@ def track_budget_progress(
         
         # Update plan status
         plan.last_check_date = request.reading_date
-        plan.current_progress_status = progress['current_status']['status']
+        plan.current_progress_status = current_status['status']
         
         db.commit()
         db.refresh(reading_record)
+
+        from src.api.routes.notifications import create_notification
+        if current_status['status'] == 'over_budget':
+            create_notification(db, plan.user_id, "Budget Alert ⚠️", "Your consumption is exceeding the target! Check recommendations.", "warning")
+        elif weekly_status and weekly_status['exceeded']:
+            create_notification(db, plan.user_id, "Weekly Goal Alert", f"Week {weekly_status['week_number']} goal exceeded. Consider reducing appliance usage.", "warning")
+        else:
+            create_notification(db, plan.user_id, "Progress Tracked", "Meter reading recorded. You are currently on track!", "success")
         
         return {
             'success': True,
             'message': 'Progress tracked successfully',
             'reading_id': reading_record.id,
             'plan_id': request.plan_id,
+            'appliance_recommendations': appliance_recommendations,
+            'reading': {
+                'id': reading_record.id,
+                'reading_value': reading_record.reading_value,
+                'reading_date': reading_record.reading_date,
+                'units_consumed_so_far': reading_record.units_consumed_so_far,
+                'days_elapsed': reading_record.days_elapsed,
+                'actual_cost_so_far': reading_record.actual_cost_so_far,
+                'expected_cost_so_far': reading_record.expected_cost_so_far,
+                'variance_cost': reading_record.variance_cost,
+                'status': reading_record.status,
+                'projected_total_cost': reading_record.projected_total_cost,
+                'analysis_data': analysis_data,
+            },
             'progress': progress
         }
         
@@ -691,7 +812,6 @@ def get_plan_details(
     if not plan:
         raise HTTPException(status_code=404, detail="Plan not found")
     
-    # Get all meter readings for this plan
     readings = db.query(MeterReading).filter(
         MeterReading.budget_plan_id == plan_id
     ).order_by(MeterReading.reading_date).all()
@@ -750,7 +870,7 @@ def get_plans_by_account(
                 'plan_end_date': p.plan_end_date,
                 'target_daily_units': p.target_daily_units,
                 'target_daily_cost': p.target_daily_cost,
-                # Extra context for progress tracker start point
+                'target_total_units': p.target_total_units,
                 'reference_bill_id': p.reference_bill_id,
                 'reference_bill_date': p.reference_bill.bill_date if p.reference_bill else None,
                 'reference_bill_current_reading': p.reference_bill.current_reading if p.reference_bill else None
@@ -780,12 +900,13 @@ def get_plan_readings(
                 'reading_value': r.reading_value,
                 'reading_date': r.reading_date,
                 'days_elapsed': r.days_elapsed,
-                'units_consumed': r.units_consumed_so_far,
-                'actual_cost': r.actual_cost_so_far,
-                'expected_cost': r.expected_cost_so_far,
+                'units_consumed_so_far': r.units_consumed_so_far,
+                'actual_cost_so_far': r.actual_cost_so_far,
+                'expected_cost_so_far': r.expected_cost_so_far,
                 'variance_cost': r.variance_cost,
                 'status': r.status,
-                'projected_total_cost': r.projected_total_cost
+                'projected_total_cost': r.projected_total_cost,
+                'notes': r.notes
             }
             for r in readings
         ]
@@ -807,7 +928,6 @@ def compare_billing_periods(
     if not bill1 or not bill2:
         raise HTTPException(status_code=404, detail="One or both bills not found")
     
-    # ✅ FIXED: Use total_charge instead of total_due
     bill1_daily = bill1.units_consumed / bill1.billing_period_days
     bill2_daily = bill2.units_consumed / bill2.billing_period_days
     
@@ -831,7 +951,7 @@ def compare_billing_periods(
                 'date': bill1.bill_date,
                 'units': bill1.units_consumed,
                 'days': bill1.billing_period_days,
-                'cost': bill1.total_charge,  # Changed
+                'cost': bill1.total_charge,
                 'normalized_units_30d': round(bill1_normalized, 2),
                 'normalized_cost_30d': round(cost1_normalized, 2)
             },
@@ -840,7 +960,7 @@ def compare_billing_periods(
                 'date': bill2.bill_date,
                 'units': bill2.units_consumed,
                 'days': bill2.billing_period_days,
-                'cost': bill2.total_charge,  # Changed
+                'cost': bill2.total_charge,
                 'normalized_units_30d': round(bill2_normalized, 2),
                 'normalized_cost_30d': round(cost2_normalized, 2)
             },
@@ -866,18 +986,15 @@ def get_budget_recommendations(
     if not bill:
         raise HTTPException(status_code=404, detail="Bill not found")
     
-    # ✅ FIXED: Use total_charge instead of total_due
     past_cost = bill.total_charge or 0
     past_units = bill.units_consumed or 0
     days = bill.billing_period_days or 30
     
-    # Calculate threshold impact
     adjusted_threshold = 60 * (days / 30)
     
     recommendations = []
     
     if past_units > adjusted_threshold:
-        # Calculate savings if stayed under threshold
         under_threshold_calc = analysis_service.tariff_calculator.calculate_bill(
             int(adjusted_threshold) - 1, days
         )
@@ -893,7 +1010,6 @@ def get_budget_recommendations(
             'savings': round(potential_savings, 2)
         })
     
-    # Budget range suggestions
     conservative_budget = past_cost * 0.9
     moderate_budget = past_cost * 0.8
     aggressive_budget = past_cost * 0.7

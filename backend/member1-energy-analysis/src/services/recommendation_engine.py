@@ -61,18 +61,25 @@ class RecommendationEngine:
         )
         
         # 3. Calculate target reduction
-        # How much do we need to reduce DAILY to get back to budget?
+        # We want to show tips if they are over current target OR projected total
         days_remaining = projection.get('days_remaining', 30)
-        budget_variance = projection.get('budget_variance', 0) # Cost-based variance
+        cost_variance = projection.get('budget_variance', 0)
         
-        if budget_variance <= 0:
+        # Base the reduction on whichever is more "alarming": 
+        # current variance or projected total variance
+        reduction_target_cost = max(cost_variance, current_status.get('variance_cost', 0))
+        
+        if reduction_target_cost <= 0:
             return []
             
-        # Estimate units reduction needed based on cost variance (rough estimate)
-        # Assuming average rate from NILM or current status
-        avg_rate = current_status.get('actual_cost', 0) / total_kwh if total_kwh > 0 else 1.0
-        units_reduction_needed = budget_variance / avg_rate if avg_rate > 0 else 0
-        daily_units_reduction = units_reduction_needed / days_remaining if days_remaining > 0 else 0
+        # Estimate units reduction needed
+        # Use target rate if actual rate is too low/high or the plan is very new
+        target_rate = current_status.get('expected_cost', 0) / (current_status.get('expected_units', 1) or 1)
+        actual_rate = current_status.get('actual_cost', 0) / (total_kwh or 1) if total_kwh > 0 else target_rate
+        avg_rate = (actual_rate + target_rate) / 2
+        
+        units_reduction_needed = reduction_target_cost / avg_rate if avg_rate > 0 else 0
+        daily_units_reduction = units_reduction_needed / days_remaining if days_remaining > 0 else units_reduction_needed / 7
         
         # 4. Filter appliances that have the highest impact and are "reducible"
         breakdown = nilm_result.get('breakdown', [])

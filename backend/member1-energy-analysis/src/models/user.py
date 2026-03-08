@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Boolean, DateTime, ForeignKey
+from sqlalchemy import Column, Integer, String, Boolean, DateTime, ForeignKey, Text
 from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship
 
@@ -28,6 +28,26 @@ class User(Base):
     profile = relationship("UserProfile", back_populates="user", uselist=False, cascade="all, delete-orphan")
     bills = relationship("ElectricityBill", back_populates="user", cascade="all, delete-orphan")
 
+    @property
+    def selected_account(self) -> str:
+        """Unified helper to get the best available account number for the user."""
+        # 1. Check profile
+        if self.profile and self.profile.default_account_number:
+            return self.profile.default_account_number
+            
+        # 2. Check most recent bill
+        if self.bills:
+            # Sort bills by date descending
+            sorted_bills = sorted([b for b in self.bills if b.bill_date], key=lambda x: x.bill_date, reverse=True)
+            if sorted_bills and sorted_bills[0].account_number:
+                return sorted_bills[0].account_number
+            
+            # Fallback to absolute latest bill by ID if dates are missing
+            if self.bills[-1].account_number:
+                return self.bills[-1].account_number
+
+        return None
+
     def __repr__(self) -> str:
         return f"<User(id={self.id}, email={self.email})>"
 
@@ -54,3 +74,26 @@ class UserProfile(Base):
 
     def __repr__(self) -> str:
         return f"<UserProfile(id={self.id}, user_id={self.user_id}, full_name={self.full_name})>"
+
+
+class Notification(Base):
+    """User notifications and alerts"""
+    __tablename__ = "notifications"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    
+    title = Column(String(255), nullable=False)
+    message = Column(Text, nullable=False)
+    type = Column(String(50), default="info") # info, success, warning, danger
+    
+    is_read = Column(Boolean, default=False)
+    
+    # Metadata
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    read_at = Column(DateTime(timezone=True), nullable=True)
+
+    user = relationship("User")
+
+    def __repr__(self) -> str:
+        return f"<Notification(id={self.id}, user_id={self.user_id}, title={self.title})>"

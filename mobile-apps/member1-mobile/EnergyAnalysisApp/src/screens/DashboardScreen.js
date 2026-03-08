@@ -7,12 +7,14 @@ import { useAccount } from '../contexts/AccountContext';
 import { billsAPI } from '../api/billsAPI';
 import { appliancesAPI } from '../api/appliancesAPI';
 import { analysisAPI } from '../api/analysisAPI';
+import { notificationsAPI } from '../api/notificationsAPI';
 import {
   StatCard, SectionHeader, EmptyState, LoadingScreen, Card, ProgressBar,
 } from '../components/SharedComponents';
 import AccountSelector from '../components/AccountSelector';
 import { COLORS, SPACING, RADIUS, FONTS, SHADOW } from '../utils/theme';
 import { formatCurrency, formatKwh, formatMonthYear, getStatusColor, getStatusLabel, extractAccountNumbers } from '../utils/helpers';
+import { Modal } from 'react-native';
 
 const DashboardScreen = ({ navigation }) => {
   const { user, logout } = useAuth();
@@ -24,6 +26,8 @@ const DashboardScreen = ({ navigation }) => {
   const [applianceAnalysis, setApplianceAnalysis] = useState(null);
   const [activePlan, setActivePlan] = useState(null);
   const [latestBill, setLatestBill] = useState(null);
+  const [notifications, setNotifications] = useState([]);
+  const [showNotifModal, setShowNotifModal] = useState(false);
 
   const fetchData = useCallback(async () => {
     try {
@@ -51,14 +55,20 @@ const DashboardScreen = ({ navigation }) => {
       try {
         const appRes = await appliancesAPI.analyze(account);
         if (appRes.data.success) setApplianceAnalysis(appRes.data);
-      } catch (_) {}
+      } catch (_) { }
 
       // Active budget plan
       try {
         const planRes = await analysisAPI.getPlansByAccount(account, true);
         const plans = planRes.data?.plans || [];
         setActivePlan(plans[0] || null);
-      } catch (_) {}
+      } catch (_) { }
+
+      // Notifications
+      try {
+        const notifRes = await notificationsAPI.getAll(true);
+        setNotifications(notifRes.data || []);
+      } catch (_) { }
 
     } catch (err) {
       console.error('Dashboard fetch error:', err);
@@ -71,6 +81,13 @@ const DashboardScreen = ({ navigation }) => {
   useEffect(() => { fetchData(); }, [fetchData]);
 
   const onRefresh = () => { setRefreshing(true); fetchData(); };
+
+  const handleMarkAllRead = async () => {
+    try {
+      await notificationsAPI.markAllRead();
+      setNotifications([]);
+    } catch (_) { }
+  };
 
   const firstName = user?.full_name?.split(' ')[0] || user?.email?.split('@')[0] || 'User';
   const allAccounts = extractAccountNumbers(bills);
@@ -88,9 +105,19 @@ const DashboardScreen = ({ navigation }) => {
           <Text style={styles.greeting}>Good day, {firstName} 👋</Text>
           <Text style={styles.subGreeting}>Your energy overview</Text>
         </View>
-        <TouchableOpacity style={styles.logoutBtn} onPress={logout}>
-          <Text style={styles.logoutIcon}>🚪</Text>
-        </TouchableOpacity>
+        <View style={styles.headerRight}>
+          <TouchableOpacity style={styles.notifBtn} onPress={() => setShowNotifModal(true)}>
+            <Text style={styles.notifIcon}>🔔</Text>
+            {notifications.length > 0 && (
+              <View style={styles.notifBadge}>
+                <Text style={styles.notifBadgeText}>{notifications.length}</Text>
+              </View>
+            )}
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.logoutBtn} onPress={logout}>
+            <Text style={styles.logoutIcon}>🚪</Text>
+          </TouchableOpacity>
+        </View>
       </View>
 
       {/* Account Selector */}
@@ -203,8 +230,56 @@ const DashboardScreen = ({ navigation }) => {
       )}
 
       <View style={{ height: SPACING.xxxl }} />
+
+      {/* Notifications Modal */}
+      <Modal visible={showNotifModal} animationType="slide" transparent>
+        <TouchableOpacity
+          style={styles.overlay}
+          activeOpacity={1}
+          onPress={() => setShowNotifModal(false)}
+        >
+          <View style={styles.notifSheet}>
+            <View style={styles.sheetHeader}>
+              <Text style={styles.sheetTitle}>Notifications</Text>
+              <TouchableOpacity onPress={handleMarkAllRead}>
+                <Text style={styles.markReadText}>Mark all as read</Text>
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView style={styles.notifList}>
+              {notifications.length === 0 ? (
+                <Text style={styles.emptyNotif}>All caught up! No unread notifications.</Text>
+              ) : (
+                notifications.map(n => (
+                  <View key={n.id} style={[styles.notifCard, { borderLeftColor: getNotifColor(n.type) }]}>
+                    <Text style={styles.notifTitle}>{n.title}</Text>
+                    <Text style={styles.notifMsg}>{n.message}</Text>
+                    <Text style={styles.notifDate}>{new Date(n.created_at).toLocaleDateString()}</Text>
+                  </View>
+                ))
+              )}
+            </ScrollView>
+
+            <TouchableOpacity
+              style={styles.closeBtn}
+              onPress={() => setShowNotifModal(false)}
+            >
+              <Text style={styles.closeBtnText}>Close</Text>
+            </TouchableOpacity>
+          </View>
+        </TouchableOpacity>
+      </Modal>
     </ScrollView>
   );
+};
+
+const getNotifColor = (type) => {
+  switch (type) {
+    case 'success': return COLORS.success;
+    case 'warning': return COLORS.warning;
+    case 'danger': return COLORS.danger;
+    default: return COLORS.primary;
+  }
 };
 
 const QuickAction = ({ icon, label, color, onPress }) => (
@@ -227,6 +302,16 @@ const styles = StyleSheet.create({
   },
   greeting: { color: COLORS.textPrimary, fontSize: 24, ...FONTS.bold },
   subGreeting: { color: COLORS.textSecondary, fontSize: 14, marginTop: 2 },
+  headerRight: { flexDirection: 'row', alignItems: 'center', gap: SPACING.md },
+  notifBtn: { padding: SPACING.sm, position: 'relative' },
+  notifIcon: { fontSize: 22 },
+  notifBadge: {
+    position: 'absolute', top: 4, right: 4,
+    backgroundColor: COLORS.danger, width: 18, height: 18,
+    borderRadius: 9, justifyContent: 'center', alignItems: 'center',
+    borderWidth: 2, borderColor: COLORS.bg1
+  },
+  notifBadgeText: { color: '#fff', fontSize: 8, ...FONTS.bold },
   logoutBtn: { padding: SPACING.sm },
   logoutIcon: { fontSize: 22 },
   billCard: { marginBottom: SPACING.md },
@@ -266,6 +351,28 @@ const styles = StyleSheet.create({
   qaIcon: { width: 48, height: 48, borderRadius: RADIUS.full, justifyContent: 'center', alignItems: 'center', marginBottom: SPACING.sm },
   qaIconText: { fontSize: 24 },
   qaLabel: { color: COLORS.textPrimary, fontSize: 13, ...FONTS.medium, textAlign: 'center' },
+  overlay: { flex: 1, backgroundColor: COLORS.overlay, justifyContent: 'flex-end' },
+  notifSheet: {
+    backgroundColor: COLORS.bg2, borderTopLeftRadius: RADIUS.xl, borderTopRightRadius: RADIUS.xl,
+    padding: SPACING.xl, minHeight: '50%', maxHeight: '80%', ...SHADOW.lg,
+  },
+  sheetHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: SPACING.lg },
+  sheetTitle: { color: COLORS.textPrimary, fontSize: 20, ...FONTS.bold },
+  markReadText: { color: COLORS.primary, fontSize: 13, ...FONTS.medium },
+  notifList: { flex: 1 },
+  emptyNotif: { color: COLORS.textSecondary, textAlign: 'center', marginTop: SPACING.xxl, ...FONTS.medium },
+  notifCard: {
+    backgroundColor: COLORS.bg3, padding: SPACING.lg, borderRadius: RADIUS.md,
+    marginBottom: SPACING.md, borderLeftWidth: 4,
+  },
+  notifTitle: { color: COLORS.textPrimary, fontSize: 15, ...FONTS.bold, marginBottom: 4 },
+  notifMsg: { color: COLORS.textSecondary, fontSize: 13, lineHeight: 18 },
+  notifDate: { color: COLORS.textMuted, fontSize: 11, marginTop: 8, textAlign: 'right' },
+  closeBtn: {
+    backgroundColor: COLORS.primary, padding: SPACING.lg, borderRadius: RADIUS.lg,
+    alignItems: 'center', marginTop: SPACING.lg,
+  },
+  closeBtnText: { color: '#fff', fontSize: 16, ...FONTS.bold },
 });
 
 export default DashboardScreen;

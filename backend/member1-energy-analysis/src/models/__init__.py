@@ -8,7 +8,7 @@ from src.database import Base
 
 # Import models in dependency order (tables that are referenced by foreign keys first)
 from src.models.bill import ElectricityBill
-from src.models.user import User, UserProfile
+from src.models.user import User, UserProfile, Notification
 from src.models.budget_plan import (
     BudgetPlan,
     MeterReading,
@@ -25,6 +25,7 @@ __all__ = [
     'ElectricityBill',
     'User',
     'UserProfile',
+    'Notification',
     'BudgetPlan',
     'MeterReading',
     'HouseholdAppliance',

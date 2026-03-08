@@ -46,6 +46,15 @@ const loadAuth = async () => {
   let acct = await _getFromStorage('selectedAccount');
   if (!acct) {
     try {
+      const uStr = await _getFromStorage('user');
+      if (uStr) {
+        const uObj = JSON.parse(uStr);
+        acct = uObj.default_account_number || uObj.account_number;
+      }
+    } catch { }
+  }
+  if (!acct) {
+    try {
       const raw = await _getFromStorage('accounts');
       const arr = JSON.parse(raw || '[]');
       if (arr.length) acct = arr[0];

@@ -16,6 +16,9 @@ export const analysisAPI = {
       params: { bill_id_1: billId1, bill_id_2: billId2 },
     }),
 
+  saveManualBill: (data) =>
+    apiClient.post('/analysis/save-manual-bill', data),
+
   // ── Budget Plans ────────────────────────────────────────────────────────
   createBudgetPlan: (billId, targetBudget, planningDays = 30) =>
     apiClient.post('/analysis/create-budget-plan', {

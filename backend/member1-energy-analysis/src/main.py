@@ -12,7 +12,7 @@ from src.api.routes import household
 from src.api.routes import ml_predictions
 from src.api.routes import auth
 from src.api.routes import smart_predictions
-from src.api.routes import iot
+from src.api.routes import iot, notifications
 from src.services.iot_service import iot_service
 
 # Import all models to register them with SQLAlchemy (needed for create_all)
@@ -123,6 +123,7 @@ app.include_router(household.router,          prefix="/api/v1")
 app.include_router(ml_predictions.router,     prefix="/api/v1")
 app.include_router(smart_predictions.router,  prefix="/api/v1")
 app.include_router(iot.router,                prefix="/api/v1")
+app.include_router(notifications.router,      prefix="/api/v1")
 
 logger.info(f"{settings.APP_NAME} v{settings.APP_VERSION} initialized")
 
