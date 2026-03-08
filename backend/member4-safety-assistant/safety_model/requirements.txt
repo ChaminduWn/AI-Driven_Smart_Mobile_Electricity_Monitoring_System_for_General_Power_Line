@@ -1,0 +1,12 @@
+langchain
+langchain-community
+faiss-cpu
+sentence-transformers
+transformers
+accelerate
+fastapi
+uvicorn
+streamlit
+openai
+anthropic
+requests

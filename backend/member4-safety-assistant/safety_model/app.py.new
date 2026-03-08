@@ -1,0 +1,101 @@
+from fastapi import FastAPI
+from pydantic import BaseModel
+
+# Try to use langchain FAISS if available, otherwise use direct faiss
+try:
+    from langchain.vectorstores import FAISS  # type: ignore
+    HAVE_LANGCHAIN_FAISS = True
+except Exception:
+    HAVE_LANGCHAIN_FAISS = False
+
+from langchain.embeddings import HuggingFaceEmbeddings
+import json
+import numpy as np
+import faiss
+from pathlib import Path
+
+app = FastAPI(title="Electricity Safety Assistant API")
+
+EMBED_MODEL = "sentence-transformers/all-MiniLM-L6-v2"
+INDEX_DIR = Path("electricity_safety_db")
+
+embedding_model = HuggingFaceEmbeddings(model_name=EMBED_MODEL)
+
+if HAVE_LANGCHAIN_FAISS:
+    vectorstore = FAISS.load_local(str(INDEX_DIR), embedding_model)
+    retriever = vectorstore.as_retriever(search_kwargs={"k": 3})
+else:
+    # load faiss index + metadata
+    idx_path = INDEX_DIR / "electricity.index"
+    meta_path = INDEX_DIR / "metadata.json"
+    if not idx_path.exists() or not meta_path.exists():
+        raise RuntimeError(f"Index not found. Run build_index.py to create {idx_path} and {meta_path}.")
+    index = faiss.read_index(str(idx_path))
+    with open(meta_path, "r", encoding="utf-8") as f:
+        METADATA = json.load(f)
+
+
+class QueryRequest(BaseModel):
+    question: str
+
+
+class QueryResponse(BaseModel):
+    question: str
+    answer: str
+    hazard_type: str
+    source: str
+    confidence: float
+
+
+@app.post("/ask", response_model=QueryResponse)
+async def ask_question(request: QueryRequest):
+    if HAVE_LANGCHAIN_FAISS:
+        docs = retriever.get_relevant_documents(request.question)
+
+        if not docs:
+            return QueryResponse(
+                question=request.question,
+                answer="No relevant safety information found. Please consult a licensed electrician.",
+                hazard_type="Unknown",
+                source="N/A",
+                confidence=0.0
+            )
+
+        top_doc = docs[0]
+        return QueryResponse(
+            question=request.question,
+            answer=top_doc.metadata.get("answer", top_doc.page_content),
+            hazard_type=top_doc.metadata.get("hazard_type", "Unknown"),
+            source=top_doc.metadata.get("source", "Unknown"),
+            confidence=0.95
+        )
+    else:
+        # embed query and search faiss
+        q_vec = embedding_model.embed_query(request.question)
+        q_arr = np.array([q_vec], dtype="float32")
+        D, I = index.search(q_arr, 3)
+        if I.size == 0:
+            return QueryResponse(
+                question=request.question,
+                answer="No relevant safety information found. Please consult a licensed electrician.",
+                hazard_type="Unknown",
+                source="N/A",
+                confidence=0.0
+            )
+        top_idx = int(I[0][0])
+        meta = METADATA[top_idx]
+        return QueryResponse(
+            question=request.question,
+            answer=meta.get("answer", ""),
+            hazard_type=meta.get("hazard_type", "Unknown"),
+            source=meta.get("source", "Unknown"),
+            confidence=0.95
+        )
+
+
+@app.get("/health")
+def health_check():
+    return {"status": "running", "model": "Electricity Safety RAG"}
+
+
+# Run with: uvicorn app:app --reload --port 8000
