@@ -7,6 +7,7 @@ import 'react-toastify/dist/ReactToastify.css';
 
 // Layout
 import DashboardLayout from './components/common/DashboardLayout';
+import PublicLayout from './components/common/PublicLayout';
 
 // Pages
 import Dashboard from './pages/Dashboard';
@@ -34,13 +35,15 @@ function App() {
       <Router>
         <Routes>
           
-          <Route path="/" element={<Home />} />
+          <Route element={<PublicLayout />}>
+            <Route path="/" element={<Home />} />
 
-          {/* Direct member route */}
-          <Route path="/Energy Analysis" element={<Member1Dashboard />}/>
-          <Route path="/Outage Tracking" element={<Member2Dashboard />} />
-          <Route path="/Solar Intelligence" element={<Member3Dashboard />} />
-          <Route path="/Safety Assistant" element={<Member4Dashboard />} />
+            {/* Direct member route */}
+            <Route path="/Energy Analysis" element={<Member1Dashboard />}/>
+            <Route path="/Outage Tracking" element={<Member2Dashboard />} />
+            <Route path="/Solar Intelligence" element={<Member3Dashboard />} />
+            <Route path="/Safety Assistant" element={<Member4Dashboard />} />
+          </Route>
 
           {/* Dashboard Layout Routes */}
           <Route path="/d" element={<DashboardLayout />}>
