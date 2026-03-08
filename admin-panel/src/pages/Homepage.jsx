@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState } from "react";
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 
@@ -96,80 +96,10 @@ const Orb = ({ x, y, color, size = 400 }) => (
 
 export default function Home() {
   const navigate = useNavigate();
-  const [scrollY, setScrollY] = useState(0);
   const [hoveredFeature, setHoveredFeature] = useState(null);
 
-  useEffect(() => {
-    const onScroll = () => setScrollY(window.scrollY);
-    window.addEventListener("scroll", onScroll);
-    return () => window.removeEventListener("scroll", onScroll);
-  }, []);
-
-  const navScrolled = scrollY > 20;
-
   return (
-    <div style={{
-      background: "#F8FAFF",
-      minHeight: "100vh",
-      color: "#1E293B",
-      fontFamily: "'Inter', system-ui, -apple-system, sans-serif",
-      overflowX: "hidden",
-    }}>
-
-      {/* ── NAVBAR ── */}
-      <nav style={{
-        position: "fixed", top: 0, left: 0, right: 0, zIndex: 100,
-        padding: "0 24px",
-        background: navScrolled ? "rgba(248,250,255,0.92)" : "transparent",
-        backdropFilter: navScrolled ? "blur(20px)" : "none",
-        borderBottom: navScrolled ? "1px solid rgba(37,99,235,0.1)" : "1px solid transparent",
-        transition: "all 0.3s ease",
-      }}>
-        <div style={{ maxWidth: 1200, margin: "0 auto", display: "flex", alignItems: "center", height: 68 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 10, flex: 1 }}>
-            <div style={{
-              width: 36, height: 36, borderRadius: 10,
-              background: "linear-gradient(135deg, #2563EB, #1D4ED8)",
-              display: "flex", alignItems: "center", justifyContent: "center",
-              boxShadow: "0 4px 12px rgba(37,99,235,0.3)",
-            }}>
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5">
-                <path d="M13 2L4.09 12.26a1 1 0 00.9 1.74H12l-1 8 8.91-10.26a1 1 0 00-.9-1.74H13l1-8z" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
-            </div>
-            <span style={{ fontSize: 20, fontWeight: 800, letterSpacing: "-0.5px", color: "#0F172A" }}>
-              EMS<span style={{ color: "#2563EB" }}>CORE</span>
-            </span>
-          </div>
-
-          <div style={{ display: "flex", gap: 4, alignItems: "center" }}>
-            {["Solutions", "Technology", "Pricing"].map(item => (
-              <button key={item} style={{
-                background: "none", border: "none", cursor: "pointer",
-                padding: "8px 16px", borderRadius: 8, fontSize: 14,
-                fontWeight: 500, color: "#475569",
-                transition: "all 0.2s",
-              }}
-              onMouseEnter={e => { e.target.style.color = "#2563EB"; e.target.style.background = "rgba(37,99,235,0.06)"; }}
-              onMouseLeave={e => { e.target.style.color = "#475569"; e.target.style.background = "none"; }}
-              >{item}</button>
-            ))}
-            <div style={{ width: 1, height: 20, background: "#E2E8F0", margin: "0 8px" }}/>
-            <button style={{
-              background: "linear-gradient(135deg, #2563EB, #1D4ED8)",
-              border: "none", cursor: "pointer",
-              padding: "9px 20px", borderRadius: 10, fontSize: 14,
-              fontWeight: 600, color: "white",
-              boxShadow: "0 4px 12px rgba(37,99,235,0.3)",
-              transition: "all 0.2s",
-            }}
-            onMouseEnter={e => e.target.style.boxShadow = "0 6px 20px rgba(37,99,235,0.45)"}
-            onMouseLeave={e => e.target.style.boxShadow = "0 4px 12px rgba(37,99,235,0.3)"}
-            >Launch App →</button>
-          </div>
-        </div>
-      </nav>
-
+    <div style={{ color: "#1E293B" }}>
       {/* ── HERO ── */}
       <section style={{ position: "relative", minHeight: "100vh", display: "flex", alignItems: "center", overflow: "hidden" }}>
         <GridBackground />
@@ -596,18 +526,6 @@ export default function Home() {
           </div>
         </motion.div>
       </section>
-
-      {/* ── FOOTER ── */}
-      <footer style={{
-        borderTop: "1px solid #EEF2FF",
-        padding: "32px 24px",
-        textAlign: "center",
-        background: "white",
-      }}>
-        <p style={{ fontSize: 13, color: "#CBD5E1", margin: 0 }}>
-          © 2026 EMS.plus · Smart Mobile Electricity Monitoring System 
-        </p>
-      </footer>
 
       <style>{`
         @keyframes livePulse {

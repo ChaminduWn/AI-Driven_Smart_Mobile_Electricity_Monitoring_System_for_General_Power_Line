@@ -22,8 +22,14 @@ import NILMScreen from '../screens/NILMScreen';
 import SmartInsightsScreen from '../screens/SmartInsightsScreen';
 import LiveMeterScreen from '../screens/LiveMeterScreen';
 
-// ── ✅ NEW: Tariff Calculator Screen ──────────────────────────────────────────
+// ── Tariff Calculator ─────────────────────────────────────────────────────────
 import TariffScreen from '../screens/TariffScreen';
+
+// ── Solar Recommendation ──────────────────────────────────────────────────────
+import SolarRecommendationScreen from '../screens/SolarRecommendationScreen';
+
+// ── ✅ NEW: Safety & Disaster Management ──────────────────────────────────────
+import SafetyManagementScreen from '../screens/SafetyManagementScreen';
 
 const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator();
@@ -63,7 +69,6 @@ const sharedHeaderOptions = {
 };
 
 // ─── Dashboard Stack ──────────────────────────────────────────────────────────
-// AnalysisScreen is reachable here → its Tariff tab → TariffScreen
 const DashboardStack = () => (
   <Stack.Navigator screenOptions={sharedHeaderOptions}>
     <Stack.Screen
@@ -81,17 +86,31 @@ const DashboardStack = () => (
       component={AnalysisScreen}
       options={{ title: 'Analysis' }}
     />
-    {/* ✅ TariffScreen — navigated to from AnalysisScreen's Tariff tab */}
+    {/* Tariff Calculator */}
     <Stack.Screen
       name="Tariff"
       component={TariffScreen}
-      options={{ headerShown: false }}  // TariffScreen has its own dark header
+      options={{ headerShown: false }}
     />
     <Stack.Screen
       name="NILM"
       component={NILMScreen}
       options={{ title: 'NILM Disaggregation' }}
     />
+    {/* Solar Recommendation */}
+    <Stack.Screen
+      name="Solar"
+      component={SolarRecommendationScreen}
+      options={{ headerShown: false }}
+    />
+    {/* ✅ Safety & Disaster Management */}
+    <Stack.Screen
+      name="Safety"
+      component={SafetyManagementScreen}
+      options={{ headerShown: false }}
+    />
+    {/* Outage — placeholder until OutageScreen is created */}
+    {/* <Stack.Screen name="Outage" component={OutageScreen} options={{ headerShown: false }} /> */}
   </Stack.Navigator>
 );
 
@@ -128,7 +147,6 @@ const TrackingStack = () => (
 );
 
 // ─── Smart Insights Stack ─────────────────────────────────────────────────────
-// Also includes Analysis → Tariff path in case user reaches it from here
 const SmartInsightsStack = () => (
   <Stack.Navigator screenOptions={sharedHeaderOptions}>
     <Stack.Screen
@@ -146,7 +164,6 @@ const SmartInsightsStack = () => (
       component={AnalysisScreen}
       options={{ title: 'Analysis' }}
     />
-    {/* ✅ TariffScreen — also reachable from SmartInsights → Analysis → Tariff tab */}
     <Stack.Screen
       name="Tariff"
       component={TariffScreen}
@@ -156,6 +173,12 @@ const SmartInsightsStack = () => (
       name="NILM"
       component={NILMScreen}
       options={{ title: 'NILM Disaggregation' }}
+    />
+    {/* ✅ Safety also reachable from SmartInsights if needed */}
+    <Stack.Screen
+      name="Safety"
+      component={SafetyManagementScreen}
+      options={{ headerShown: false }}
     />
   </Stack.Navigator>
 );
