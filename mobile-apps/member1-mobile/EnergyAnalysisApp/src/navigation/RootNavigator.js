@@ -25,6 +25,9 @@ import LiveMeterScreen from '../screens/LiveMeterScreen';
 // ── ✅ NEW: Tariff Calculator Screen ──────────────────────────────────────────
 import TariffScreen from '../screens/TariffScreen';
 
+// ── ✅ ADD: Solar Recommendation (for Dashboard → Solar card navigation) ──────
+import SolarRecommendationScreen from '../screens/SolarRecommendationScreen';
+
 const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator();
 const AuthStack = createStackNavigator();
@@ -91,6 +94,12 @@ const DashboardStack = () => (
       name="NILM"
       component={NILMScreen}
       options={{ title: 'NILM Disaggregation' }}
+    />
+    {/* ✅ ADD: Solar — navigated to from Dashboard → Solar Power Recommendation card */}
+    <Stack.Screen
+      name="Solar"
+      component={SolarRecommendationScreen}
+      options={{ headerShown: false }}
     />
   </Stack.Navigator>
 );
