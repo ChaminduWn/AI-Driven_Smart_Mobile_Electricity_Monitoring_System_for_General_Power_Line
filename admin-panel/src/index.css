@@ -1,26 +1,7 @@
-:root {
-  font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
-  line-height: 1.5;
-  font-weight: 400;
-
-  color-scheme: light dark;
-  color: rgba(255, 255, 255, 0.87);
-  background-color: #242424;
-
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-}
-
-a {
-  font-weight: 500;
-  color: #646cff;
-  text-decoration: inherit;
-}
-a:hover {
-  color: #535bf2;
-}
+/* src/index.css */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
 body {
   margin: 0;
@@ -29,59 +10,45 @@ body {
     sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  background-color: #f5f5f5;
 }
 
 * {
-  margin: 0;
-  padding: 0;
   box-sizing: border-box;
 }
 
-#root {
-  min-height: 100vh;
+/* Ensure Tailwind colors work properly */
+.bg-gray-800 {
+  background-color: #1f2937 !important;
 }
 
-h1 {
-  font-size: 3.2em;
-  line-height: 1.1;
+.bg-gray-900 {
+  background-color: #111827 !important;
 }
 
-button {
-  border-radius: 8px;
-  border: 1px solid transparent;
-  padding: 0.6em 1.2em;
-  font-size: 1em;
-  font-weight: 500;
-  font-family: inherit;
-  background-color: #1a1a1a;
-  cursor: pointer;
-  transition: border-color 0.25s;
-}
-button:hover {
-  border-color: #646cff;
-}
-button:focus,
-button:focus-visible {
-  outline: 4px auto -webkit-focus-ring-color;
+.bg-gray-700 {
+  background-color: #374151 !important;
 }
 
-@media (prefers-color-scheme: light) {
-  :root {
-    color: #213547;
-    background-color: #ffffff;
-  }
-  a:hover {
-    color: #747bff;
-  }
-  button {
-    background-color: #f9f9f9;
-  }
+.text-white {
+  color: #ffffff !important;
 }
 
-/* Leaflet Map Styles */
-.leaflet-container {
-  height: 100%;
-  width: 100%;
-  z-index: 1;
+/* Add custom gradient backgrounds */
+.bg-gradient-to-br {
+  background-image: linear-gradient(to bottom right, var(--tw-gradient-stops)) !important;
+}
+
+.from-gray-900 {
+  --tw-gradient-from: #111827 !important;
+  --tw-gradient-to: rgb(17 24 39 / 0) !important;
+  --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to) !important;
+}
+
+.via-gray-800 {
+  --tw-gradient-to: rgb(31 41 55 / 0) !important;
+  --tw-gradient-stops: var(--tw-gradient-from), #1f2937, var(--tw-gradient-to) !important;
+}
+
+.to-gray-900 {
+  --tw-gradient-to: #111827 !important;
 }

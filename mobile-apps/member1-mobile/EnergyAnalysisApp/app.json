@@ -1,0 +1,50 @@
+{
+  "expo": {
+    "name": "EnergyAnalysisApp",
+    "slug": "energy-analysis-app",
+    "version": "1.0.0",
+    "scheme": "energyanalysis",
+    "orientation": "portrait",
+    "userInterfaceStyle": "dark",
+    "newArchEnabled": true,
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.chamindu.energyanalysis",
+      "infoPlist": {
+        "NSCameraUsageDescription": "Used to scan appliances for automatic recognition",
+        "NSPhotoLibraryUsageDescription": "Used to upload electricity bills from your photo library",
+        "NSPhotoLibraryAddUsageDescription": "Used to save captured appliance images"
+      }
+    },
+    "android": {
+      "package": "com.chamindu.energyanalysis",
+      "permissions": [
+        "android.permission.CAMERA",
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.WRITE_EXTERNAL_STORAGE",
+        "android.permission.READ_MEDIA_IMAGES"
+      ]
+    },
+    "web": {},
+    "plugins": [
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Used to upload electricity bills from your photo library",
+          "cameraPermission": "Used to scan appliances for automatic recognition"
+        }
+      ],
+      [
+        "expo-document-picker",
+        {
+          "iCloudContainerEnvironment": "Production"
+        }
+      ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "your-project-id"
+      }
+    }
+  }
+}
