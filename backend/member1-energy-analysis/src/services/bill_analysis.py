@@ -311,13 +311,15 @@ class BillAnalysisService:
                       start_reading: int, start_date: datetime) -> Dict:
         """Track progress against the plan"""
         units_used = current_reading - start_reading
-        days_elapsed = (reading_date - start_date).days
+        # Ensure at least 1 day for tariff calculation to avoid divide-by-zero or zero-cost errors
+        days_diff = (reading_date - start_date).days
+        days_elapsed = max(1, days_diff)
         
         daily_target = plan_data['daily_targets']['units']
-        expected_units = daily_target * days_elapsed
+        expected_units = daily_target * days_diff # Use actual days for expectation
         
         actual_cost = self.tariff_calculator.calculate_bill(units_used, days_elapsed)['total']
-        expected_cost = plan_data['daily_targets']['cost'] * days_elapsed
+        expected_cost = plan_data['daily_targets']['cost'] * days_diff # Use actual days for expectation
         
         variance_units = units_used - expected_units
         variance_cost = actual_cost - expected_cost

@@ -7,7 +7,7 @@ const defaultLocalApi = (() => {
     return 'http://localhost:8000/api/v1';
   }
   // For real devices and emulators on your network, use the current active IP
-  return 'http://192.168.244.242:8000/api/v1';
+  return 'http://192.168.90.242:8000/api/v1';
 })();
 
 const API_BASE = envApi || defaultLocalApi;

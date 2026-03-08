@@ -5,7 +5,7 @@ Updated to use total_charge instead of total_due
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from typing import Optional
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from pydantic import BaseModel, Field
 
 from src.database import get_db
@@ -195,11 +195,13 @@ def create_budget_plan(
     try:
         plan_record = BudgetPlan(
             reference_bill_id=request.bill_id,
+            bill_id=request.bill_id,
+            user_id=bill.user_id,
             account_number=bill.account_number,
             target_budget=request.target_budget,
             planning_days=request.planning_days,
-            plan_start_date=datetime.now(),
-            plan_end_date=datetime.now() + timedelta(days=request.planning_days),
+            plan_start_date=datetime.now(timezone.utc),
+            plan_end_date=datetime.now(timezone.utc) + timedelta(days=request.planning_days),
             target_daily_units=plan['daily_targets']['units'],
             target_daily_cost=plan['daily_targets']['cost'],
             target_weekly_units=plan['weekly_targets'][0]['target_units'],
@@ -326,10 +328,7 @@ def delete_budget_plan(
         raise HTTPException(status_code=404, detail="Plan not found")
     
     try:
-        # Delete associated meter readings
-        db.query(MeterReading).filter(MeterReading.budget_plan_id == plan_id).delete()
-        
-        # Delete the plan
+        # Rely on SQLAlchemy cascade="all, delete-orphan" to remove meter readings
         db.delete(plan)
         db.commit()
         
@@ -396,6 +395,11 @@ def update_meter_reading(
 
     reading.reading_value = request.reading_value
     reading.reading_date = request.reading_date
+    # Extract time as string
+    reading.reading_time = request.reading_date.strftime("%H:%M:%S")
+    # Ensure bill_id is present
+    if not reading.bill_id:
+        reading.bill_id = plan.reference_bill_id
     reading.notes = request.notes
     reading.units_consumed_so_far = progress['current_status']['units_used']
     reading.days_elapsed = progress['current_status']['days_elapsed']
@@ -411,6 +415,12 @@ def update_meter_reading(
     reading.analysis_data = progress
 
     db.commit()
+    
+    # ✅ SYNC: Update the plan's overall status based on this update
+    plan.current_progress_status = reading.status
+    plan.last_check_date = reading.reading_date
+    db.commit()
+    
     db.refresh(reading)
     return {
         'success': True,
@@ -444,12 +454,28 @@ def delete_meter_reading(
         raise HTTPException(status_code=404, detail="Meter reading not found")
 
     try:
+        plan_id = reading.budget_plan_id
         db.delete(reading)
         db.commit()
+        
+        # ✅ SYNC: Recalculate plan status based on the remaining latest reading
+        latest_reading = db.query(MeterReading).filter(
+            MeterReading.budget_plan_id == plan_id
+        ).order_by(MeterReading.reading_date.desc()).first()
+        
+        plan = db.query(BudgetPlan).filter(BudgetPlan.id == plan_id).first()
+        if plan:
+            if latest_reading:
+                plan.current_progress_status = latest_reading.status
+                plan.last_check_date = latest_reading.reading_date
+            else:
+                plan.current_progress_status = 'on_track' # Reset if no readings left
+                plan.last_check_date = None
+            db.commit()
 
         return {
             'success': True,
-            'message': 'Meter reading deleted successfully'
+            'message': 'Meter reading deleted and plan status updated successfully'
         }
     except Exception as e:
         db.rollback()
@@ -487,39 +513,35 @@ def track_budget_progress(
             detail="You have reached the maximum of 8 meter readings for this budget plan."
         )
 
-    # Determine starting point: first meter reading in plan, or reference bill's "current" reading at plan start
-    first_reading = db.query(MeterReading).filter(
-        MeterReading.budget_plan_id == request.plan_id
-    ).order_by(MeterReading.reading_date).first()
-
-    if first_reading:
-        start_reading = first_reading.reading_value
-        start_date = first_reading.reading_date
-    else:
-        start_reading = bill.current_reading
-        start_date = plan.plan_start_date
-        # If bill has no current_reading (e.g. old extraction), derive from previous + units
-        if start_reading is None and bill.previous_reading is not None and bill.units_consumed is not None:
-            start_reading = bill.previous_reading + bill.units_consumed
-        if start_date is None and bill.bill_date is not None:
-            start_date = bill.bill_date
-        if start_reading is None or start_date is None:
-            db.rollback()
-            raise HTTPException(
-                status_code=400,
-                detail=(
-                    "Reference bill has no meter readings. Re-upload the bill so we can extract "
-                    "previous/current reading and dates, or add them manually in the database."
-                )
+    # ALWAYS use the bill's current reading as the starting reference for the budget plan
+    # This ensures "units consumed" and "cost so far" are cumulative from day 1 of the plan.
+    start_reading = bill.current_reading
+    start_date = plan.plan_start_date
+    
+    # If bill has no current_reading (e.g. old extraction), derive from previous + units
+    if start_reading is None and bill.previous_reading is not None and bill.units_consumed is not None:
+        start_reading = bill.previous_reading + bill.units_consumed
+    if start_date is None and bill.bill_date is not None:
+        start_date = bill.bill_date
+        
+    if start_reading is None or start_date is None:
+        db.rollback()
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                "Reference bill has no meter readings. Re-upload the bill so we can extract "
+                "previous/current reading and dates, or add them manually in the database."
             )
+        )
 
     # Normalize datetimes for subtraction (avoid timezone-aware vs naive)
     _start = start_date.replace(tzinfo=None) if start_date and getattr(start_date, 'tzinfo', None) else start_date
     _reading = request.reading_date.replace(tzinfo=None) if request.reading_date and getattr(request.reading_date, 'tzinfo', None) else request.reading_date
-    if _start and _reading and _reading < _start:
+    # Robust comparison: Allow readings on the same day even if seconds are slightly off due to TZ mismatch
+    if _start and _reading and _reading.date() < _start.date():
         raise HTTPException(
             status_code=400,
-            detail="Reading date cannot be before the plan start date."
+            detail=f"Reading date ({_reading.date()}) cannot be before the plan start date ({_start.date()})."
         )
 
     # Prepare plan data for tracking
@@ -571,26 +593,31 @@ def track_budget_progress(
                     'exceeded': units_used > target_units
                 }
 
-        # Appliance-wise recommendations when over budget / weekly target exceeded
+        # Appliance-wise recommendations when over budget OR we're on a trend to exceed
         appliance_recommendations = []
-        if progress['current_status']['status'] == 'over_budget':
-            appliances = db.query(HouseholdAppliance).filter(
-                HouseholdAppliance.account_number == bill.account_number,
-                HouseholdAppliance.is_active == True
-            ).all()
+        # Get appliances linked to this specific user OR this account
+        appliances_query = db.query(HouseholdAppliance).filter(
+            HouseholdAppliance.is_active == True
+        ).filter(
+            (HouseholdAppliance.account_number == bill.account_number) | 
+            (HouseholdAppliance.user_id == plan.user_id)
+        )
+        
+        appliances = appliances_query.all()
 
-            # Prepare appliance data for engine
-            appliances_data = [
-                {
-                    'id': a.id,
-                    'name': a.appliance_name,
-                    'category': a.appliance_category,
-                    'wattage': a.wattage
-                }
-                for a in appliances
-            ]
-            
-            # Use AI Recommendation Engine
+        # Prepare appliance data for engine
+        appliances_data = [
+            {
+                'id': a.id,
+                'name': a.appliance_name,
+                'category': a.appliance_category,
+                'wattage': a.wattage
+            }
+            for a in appliances
+        ]
+
+        # Use AI Recommendation Engine if status is not 'under_budget'
+        if progress['current_status']['status'] != 'under_budget' and appliances_data:
             appliance_recommendations = recommendation_engine.generate_recommendations(
                 current_status=progress['current_status'],
                 projection=progress['projection'],
@@ -612,8 +639,10 @@ def track_budget_progress(
         
         reading_record = MeterReading(
             budget_plan_id=request.plan_id,
+            bill_id=bill.id,
             reading_value=request.current_reading,
             reading_date=request.reading_date,
+            reading_time=request.reading_date.strftime("%H:%M:%S"),
             units_consumed_so_far=progress['current_status']['units_used'],
             days_elapsed=progress['current_status']['days_elapsed'],
             actual_cost_so_far=progress['current_status']['actual_cost'],
