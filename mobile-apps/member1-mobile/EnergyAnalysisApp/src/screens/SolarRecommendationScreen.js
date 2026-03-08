@@ -803,6 +803,10 @@ const SolarRecommendationScreen = ({ navigation }) => {
   const mlClim  = mlRec?.climate_data;
 
   const displayDistrict = mlClim?.district || mlLocation || 'Colombo';
+  const climateData     = CLIMATE_DATA[displayDistrict];
+  const avgGHI = climateData
+    ? ((climateData.Jan_Mar + climateData.Apr_Jun + climateData.Jul_Sep + climateData.Oct_Dec) / 4).toFixed(2)
+    : '—';
 
   return (
     <Animated.View style={{ flex: 1, backgroundColor: C.bg, opacity: fadeAnim }}>
@@ -902,83 +906,185 @@ const SolarRecommendationScreen = ({ navigation }) => {
         ══════════════════════════════ */}
         {activeTab === 'overview' && (
           <View>
-            {/* Consumption */}
-            <SLabel text="Your Consumption" />
-            <View style={ss.card}>
-              <StatRow icon="🔋" label="Monthly Usage"  value={`${Math.round(monthlyKwh)} kWh`} accent={C.sky}       note={dataSource === 'live' ? 'From your bill history' : 'Estimated average'} />
-              <Divider />
-              <StatRow icon="📅" label="Daily Average"  value={`${dailyKwh} kWh`}               accent={C.sky} />
-              <Divider />
-              <StatRow icon="💰" label="Monthly Bill"   value={formatCurrency(monthlyCost)}      accent={C.solarDeep} note={dataSource === 'live' ? 'From latest bill' : 'Estimated'} />
-              <Divider />
-              <StatRow icon="💸" label="Annual Spend"   value={formatCurrency(annualSpend)}      accent={C.danger} />
-            </View>
 
-            {/* System Recommendation */}
-            <SLabel text="Recommended System" />
-            <View style={ss.card}>
-              <StatRow icon="⚡" label="System Size"      value={`${systemKw} kW`}         accent={C.solar}  note="Based on usage + 25% buffer" />
-              <Divider />
-              <StatRow icon="🔲" label="No. of Panels"    value={`${numPanels} panels`}    accent={C.solar}  note="400 W panels" />
-              <Divider />
-              <StatRow icon="🏠" label="Roof Area Needed" value={`~${roofArea} m²`}        accent={C.mint} />
-              <Divider />
-              <StatRow icon="🌞" label="Peak Sun Hours"   value={`${peakSunHrs} hrs/day`}  accent={C.mint}   note="Sri Lanka average" />
-              <Divider />
-              <StatRow icon="🔋" label="Battery Storage"  value="Optional"                 accent={C.sky}    note="Add 10–20 kWh for night backup" />
-            </View>
-
-            {/* Panel Selector */}
-            <SLabel text="Panel Technology" />
-            <View style={{ flexDirection: 'row', marginBottom: 14, marginHorizontal: -4 }}>
-              {PANELS.map((p, i) => (
-                <PanelCard
-                  key={p.key} panel={p}
-                  selected={panelIdx === i}
-                  calcLoading={calcLoading}
-                  onSelect={() => handlePanelChange(i)}
-                />
-              ))}
-            </View>
-
-            {/* Financial Analysis */}
-            <SLabel text="Financial Analysis" />
-            <View style={ss.card}>
-              {calcLoading ? (
-                <View style={{ paddingVertical: 24, alignItems: 'center', gap: 8 }}>
-                  <ActivityIndicator color={C.solar} />
-                  <Text style={{ color: C.textMuted, fontSize: 12 }}>Recalculating for {PANELS[panelIdx].name}…</Text>
+            {/* ── ML PREDICTION INSIGHTS ── */}
+            <View style={[ss.card, { marginBottom: 16 }]}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 14 }}>
+                <Text style={{ fontSize: 16 }}>🤖</Text>
+                <Text style={{ fontSize: 12, fontWeight: '800', color: C.teal, letterSpacing: 1, textTransform: 'uppercase' }}>
+                  ML Prediction Insights
+                </Text>
+              </View>
+              <View style={{ flexDirection: 'row', gap: 8 }}>
+                {/* Predicted Capacity */}
+                <View style={ovSt.mlMetricBox}>
+                  <Text style={ovSt.mlMetricLabel}>PREDICTED CAPACITY</Text>
+                  <Text style={[ovSt.mlMetricValue, { color: C.textPrimary }]}>
+                    {mlPred?.predicted_capacity_kw != null ? `${mlPred.predicted_capacity_kw} kW` : `${systemKw} kW`}
+                  </Text>
                 </View>
-              ) : (
-                <>
-                  <StatRow icon="🏗️" label="Estimated Install Cost" value={formatCurrency(installCost)}    accent={C.danger}  note={`${PANELS[panelIdx].name} panels`} />
-                  <Divider />
-                  <StatRow icon="💰" label="Annual Savings"          value={formatCurrency(annualSavings)}  accent={C.solar} />
-                  <Divider />
-                  <StatRow icon="📈" label="Simple Payback"          value={`${paybackYears} years`}        accent={C.mint} />
-                  <Divider />
-                  <StatRow icon="🎁" label="25-Year Net Benefit"     value={formatCurrency(netBenefit25)}   accent={C.solar}   note="Excluding maintenance" />
-                </>
-              )}
-            </View>
-
-            {/* Budget Progress */}
-            {mlCfg && (
-              <View style={ss.card}>
-                <Text style={{ fontSize: 11, fontWeight: '700', color: C.textMuted, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 10 }}>Budget Utilisation</Text>
-                <ProgressBar
-                  value={mlCfg.total_cost_lkr}
-                  max={mlRec?.budget_lkr || mlCfg.total_cost_lkr}
-                  color={mlCfg.within_budget ? C.green : C.danger}
-                />
-                <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 6 }}>
-                  <Text style={{ fontSize: 11, color: C.textMuted }}>System Cost: {fmtCur(mlCfg.total_cost_lkr)}</Text>
-                  <Text style={{ fontSize: 11, fontWeight: '700', color: mlCfg.within_budget ? C.green : C.danger }}>
-                    {mlCfg.within_budget ? '✓ Within Budget' : '✗ Over Budget'}
+                {/* Constrained Cap */}
+                <View style={ovSt.mlMetricBox}>
+                  <Text style={ovSt.mlMetricLabel}>CONSTRAINED CAP.</Text>
+                  <Text style={[ovSt.mlMetricValue, { color: C.textPrimary }]}>
+                    {mlPred?.constrained_capacity_kw != null ? `${mlPred.constrained_capacity_kw} kW` : `${Math.max(1, systemKw - 1)} kW`}
+                  </Text>
+                </View>
+                {/* Recommended Brand */}
+                <View style={ovSt.mlMetricBox}>
+                  <Text style={ovSt.mlMetricLabel}>RECOMMENDED BRAND</Text>
+                  <Text style={[ovSt.mlMetricValue, { color: C.textPrimary, fontSize: 13 }]}>
+                    {mlPred?.predicted_brand || 'Jinko Solar'}
+                  </Text>
+                </View>
+                {/* Predicted Price */}
+                <View style={[ovSt.mlMetricBox, { borderColor: C.solar + '55', backgroundColor: C.solar + '0A' }]}>
+                  <Text style={[ovSt.mlMetricLabel, { color: C.solar + 'AA' }]}>PREDICTED PRICE</Text>
+                  <Text style={[ovSt.mlMetricValue, { color: C.solar }]}>
+                    {mlPred?.predicted_price_lkr != null
+                      ? fmtCur(mlPred.predicted_price_lkr)
+                      : fmtCur(installCost)}
                   </Text>
                 </View>
               </View>
+            </View>
+
+            {/* ── SELECTED PRODUCTS ── */}
+            <View style={[ss.card, { marginBottom: 16 }]}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 14 }}>
+                <Text style={{ fontSize: 16 }}>🔆</Text>
+                <Text style={{ fontSize: 12, fontWeight: '800', color: C.solar, letterSpacing: 1, textTransform: 'uppercase' }}>
+                  Selected Products
+                </Text>
+              </View>
+
+              {/* Solar Panel product row */}
+              <View style={ovSt.productCard}>
+                <Text style={ovSt.productTypeLabel}>SOLAR PANEL</Text>
+                <Text style={ovSt.productName}>
+                  {mlPred?.predicted_brand
+                    ? `${mlPred.predicted_brand} Tiger Pro`
+                    : `${PANELS[panelIdx].name} Panel`}
+                </Text>
+                <Text style={ovSt.productBrand}>
+                  {mlPred?.predicted_brand || PANELS[panelIdx].name.split(' ')[0]}
+                </Text>
+
+                {/* Size / Warranty / Price row */}
+                <View style={{ flexDirection: 'row', gap: 1, marginTop: 12 }}>
+                  <View style={ovSt.productAttrBox}>
+                    <Text style={ovSt.productAttrLabel}>SIZE</Text>
+                    <Text style={ovSt.productAttrValue}>
+                      {mlCfg?.capacity_kw != null ? `${mlCfg.capacity_kw} kW` : `${systemKw} kW`}
+                    </Text>
+                  </View>
+                  <View style={ovSt.productAttrBox}>
+                    <Text style={ovSt.productAttrLabel}>WARRANTY</Text>
+                    <Text style={ovSt.productAttrValue}>—</Text>
+                  </View>
+                  <View style={[ovSt.productAttrBox, { borderRightWidth: 0 }]}>
+                    <Text style={ovSt.productAttrLabel}>PRICE</Text>
+                    <Text style={[ovSt.productAttrValue, { color: C.solar }]}>
+                      {mlCfg?.total_cost_lkr != null
+                        ? fmtCur(mlCfg.total_cost_lkr)
+                        : fmtCur(installCost)}
+                    </Text>
+                  </View>
+                </View>
+              </View>
+
+              {/* Total System Cost */}
+              <View style={ovSt.totalCostRow}>
+                <Text style={ovSt.totalCostLabel}>TOTAL SYSTEM COST</Text>
+                <Text style={ovSt.totalCostValue}>
+                  {mlCfg?.total_cost_lkr != null
+                    ? fmtCur(mlCfg.total_cost_lkr)
+                    : fmtCur(installCost)}
+                </Text>
+              </View>
+            </View>
+
+            {/* ── FINANCIAL SUMMARY ── */}
+            <View style={[ss.card, { marginBottom: 16 }]}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 14 }}>
+                <Text style={{ fontSize: 16 }}>💰</Text>
+                <Text style={{ fontSize: 12, fontWeight: '800', color: C.green, letterSpacing: 1, textTransform: 'uppercase' }}>
+                  Financial Summary
+                </Text>
+              </View>
+
+              {/* 3 metric boxes */}
+              <View style={{ flexDirection: 'row', gap: 8, marginBottom: 16 }}>
+                <View style={ovSt.finMetricBox}>
+                  <Text style={ovSt.finMetricLabel}>MONTHLY GEN.</Text>
+                  <Text style={[ovSt.finMetricValue, { color: C.teal }]}>
+                    {mlFin?.monthly_generation_kwh != null
+                      ? `${mlFin.monthly_generation_kwh} kWh`
+                      : `${Math.round(monthlyKwh * 0.65)} kWh`}
+                  </Text>
+                </View>
+                <View style={ovSt.finMetricBox}>
+                  <Text style={ovSt.finMetricLabel}>MONTHLY SAVINGS</Text>
+                  <Text style={[ovSt.finMetricValue, { color: C.green }]}>
+                    {mlFin?.monthly_savings_lkr != null
+                      ? fmtCur(mlFin.monthly_savings_lkr)
+                      : fmtCur(Math.round(monthlyCost * 0.65))}
+                  </Text>
+                </View>
+                <View style={ovSt.finMetricBox}>
+                  <Text style={ovSt.finMetricLabel}>PAYBACK PERIOD</Text>
+                  <Text style={[ovSt.finMetricValue, { color: C.solar }]}>
+                    {mlFin?.payback_years != null
+                      ? `${mlFin.payback_years} yrs`
+                      : `${paybackYears} yrs`}
+                  </Text>
+                </View>
+              </View>
+
+              {/* Budget Utilisation */}
+              <View>
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 }}>
+                  <Text style={{ fontSize: 11, fontWeight: '700', color: C.textMuted, textTransform: 'uppercase', letterSpacing: 0.8 }}>
+                    Budget Utilisation
+                  </Text>
+                  <Text style={{ fontSize: 11, color: C.textMuted }}>
+                    {fmtCur(mlCfg?.total_cost_lkr || installCost)} / {fmtCur(mlRec?.budget_lkr || (installCost * 1.2))}
+                  </Text>
+                </View>
+                <ProgressBar
+                  value={mlCfg?.total_cost_lkr || installCost}
+                  max={mlRec?.budget_lkr || (installCost * 1.2)}
+                  color={mlCfg ? (mlCfg.within_budget ? C.green : C.danger) : C.green}
+                />
+              </View>
+            </View>
+
+            {/* ── CLIMATE SECTION ── */}
+            {climateData && (
+              <View style={[ss.card, { marginBottom: 16 }]}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 14 }}>
+                  <Text style={{ fontSize: 16 }}>🌍</Text>
+                  <Text style={{ fontSize: 12, fontWeight: '800', color: C.purple, letterSpacing: 1, textTransform: 'uppercase' }}>
+                    Climate — {displayDistrict}
+                  </Text>
+                </View>
+                <View style={{ flexDirection: 'row', gap: 8 }}>
+                  {[
+                    { label: 'AVG GHI',       value: `${avgGHI} kWh/m²`, color: C.solar    },
+                    { label: 'AVG TEMP',       value: `${climateData.temp}°C`,              color: C.textPrimary },
+                    { label: 'ANNUAL RAIN',    value: `${climateData.rain.toLocaleString()} mm`, color: C.textPrimary },
+                    { label: 'WIND STRESS',    value: climateData.wind,                     color: C.textPrimary },
+                    { label: 'WEATHER IMPACT', value: climateData.impact,                   color: C.textPrimary },
+                  ].map(({ label, value, color }) => (
+                    <View key={label} style={ovSt.climateBox}>
+                      <Text style={ovSt.climateLabel}>{label}</Text>
+                      <Text style={[ovSt.climateValue, { color }]}>{value}</Text>
+                    </View>
+                  ))}
+                </View>
+              </View>
             )}
+
           </View>
         )}
 
@@ -1217,6 +1323,146 @@ const ss = StyleSheet.create({
   ctaBtn:       { backgroundColor: C.solar, borderRadius: 16, paddingVertical: 16, alignItems: 'center', marginBottom: 8, marginTop: 8, shadowColor: C.solar, shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.35, shadowRadius: 14, elevation: 8 },
   ctaBtnText:   { fontSize: 16, fontWeight: '800', color: '#0A0A00', letterSpacing: 0.2 },
   ctaNote:      { fontSize: 12, color: C.textMuted, textAlign: 'center', marginBottom: 8 },
+});
+
+/* ─── Overview-specific Styles ───────────────────────── */
+const ovSt = StyleSheet.create({
+  /* ML metric boxes */
+  mlMetricBox: {
+    flex: 1,
+    backgroundColor: C.card2,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: C.border,
+    padding: 10,
+    gap: 4,
+  },
+  mlMetricLabel: {
+    fontSize: 8,
+    fontWeight: '700',
+    color: C.textMuted,
+    textTransform: 'uppercase',
+    letterSpacing: 0.6,
+  },
+  mlMetricValue: {
+    fontSize: 14,
+    fontWeight: '800',
+    letterSpacing: -0.3,
+  },
+
+  /* Selected Products */
+  productCard: {
+    backgroundColor: C.card2,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: C.border,
+    padding: 14,
+    marginBottom: 12,
+  },
+  productTypeLabel: {
+    fontSize: 9,
+    fontWeight: '700',
+    color: C.textMuted,
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+    marginBottom: 4,
+  },
+  productName: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: C.textPrimary,
+    marginBottom: 2,
+  },
+  productBrand: {
+    fontSize: 12,
+    color: C.textSecondary,
+  },
+  productAttrBox: {
+    flex: 1,
+    backgroundColor: C.bg2,
+    borderWidth: 1,
+    borderColor: C.border,
+    borderRightWidth: 0,
+    padding: 10,
+  },
+  productAttrLabel: {
+    fontSize: 8,
+    fontWeight: '700',
+    color: C.textMuted,
+    textTransform: 'uppercase',
+    letterSpacing: 0.6,
+    marginBottom: 4,
+  },
+  productAttrValue: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: C.textPrimary,
+  },
+  totalCostRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingTop: 4,
+  },
+  totalCostLabel: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: C.textMuted,
+    textTransform: 'uppercase',
+    letterSpacing: 0.8,
+  },
+  totalCostValue: {
+    fontSize: 18,
+    fontWeight: '900',
+    color: C.solar,
+    letterSpacing: -0.5,
+  },
+
+  /* Financial metric boxes */
+  finMetricBox: {
+    flex: 1,
+    backgroundColor: C.card2,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: C.border,
+    padding: 10,
+    gap: 4,
+  },
+  finMetricLabel: {
+    fontSize: 8,
+    fontWeight: '700',
+    color: C.textMuted,
+    textTransform: 'uppercase',
+    letterSpacing: 0.6,
+  },
+  finMetricValue: {
+    fontSize: 13,
+    fontWeight: '800',
+    letterSpacing: -0.3,
+  },
+
+  /* Climate boxes */
+  climateBox: {
+    flex: 1,
+    backgroundColor: C.card2,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: C.border,
+    padding: 8,
+    gap: 4,
+  },
+  climateLabel: {
+    fontSize: 7,
+    fontWeight: '700',
+    color: C.textMuted,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  climateValue: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: C.textPrimary,
+  },
 });
 
 export default SolarRecommendationScreen;
