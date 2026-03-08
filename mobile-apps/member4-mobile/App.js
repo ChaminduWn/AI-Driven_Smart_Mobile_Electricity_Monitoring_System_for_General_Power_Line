@@ -1,4 +1,5 @@
 import React from 'react';
+import { View } from 'react-native';
 import { Provider as PaperProvider, MD3LightTheme as DefaultTheme } from 'react-native-paper';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
@@ -29,18 +30,20 @@ export default function App() {
   return (
     <PaperProvider theme={theme}>
       <NavigationContainer>
-        <Stack.Navigator screenOptions={{ headerShown: false }}>
-          <Stack.Screen name="Onboarding1" component={Onboarding1} />
-          <Stack.Screen name="Onboarding2" component={Onboarding2} />
-          <Stack.Screen name="Onboarding3" component={Onboarding3} />
-          <Stack.Screen name="Home" component={HomeScreen} />
-          <Stack.Screen name="Weather" component={WeatherScreen} />
-          <Stack.Screen name="SafetyTips" component={SafetyTipsScreen} />
-          <Stack.Screen name="Emergency" component={EmergencyScreen} />
-          <Stack.Screen name="Appliances" component={AppliancesScreen} />
-          <Stack.Screen name="Assistant" component={AssistantScreen} />
-        </Stack.Navigator>
-        <BottomNav />
+        <View style={{ flex: 1 }}>
+          <Stack.Navigator screenOptions={{ headerShown: false }}>
+            <Stack.Screen name="Onboarding1" component={Onboarding1} />
+            <Stack.Screen name="Onboarding2" component={Onboarding2} />
+            <Stack.Screen name="Onboarding3" component={Onboarding3} />
+            <Stack.Screen name="Home" component={HomeScreen} />
+            <Stack.Screen name="Weather" component={WeatherScreen} />
+            <Stack.Screen name="SafetyTips" component={SafetyTipsScreen} />
+            <Stack.Screen name="Emergency" component={EmergencyScreen} />
+            <Stack.Screen name="Appliances" component={AppliancesScreen} />
+            <Stack.Screen name="Assistant" component={AssistantScreen} />
+          </Stack.Navigator>
+          <BottomNav />
+        </View>
       </NavigationContainer>
     </PaperProvider>
   );
