@@ -21,6 +21,59 @@ analysis_service = BillAnalysisService()
 recommendation_engine = RecommendationEngine()
 
 
+def _get_appliance_recommendations(db: Session, plan, current_status, projection, days_elapsed):
+    """Internal helper to generate appliance-wise recommendations"""
+    # ── AI Appliance Recommendations ──────────────────────────────────────
+    appliance_recommendations = []
+    is_over = (
+        current_status.get('status') == 'over_budget' or
+        projection.get('budget_variance', 0) > 0
+    )
+
+    if is_over:
+        try:
+            # 1. Fetch relevant appliances
+            user_appliances_raw = db.query(HouseholdAppliance).filter(
+                HouseholdAppliance.is_active == True
+            ).filter(
+                (HouseholdAppliance.account_number == plan.account_number) |
+                (HouseholdAppliance.user_id == plan.user_id)
+            ).all()
+
+            if not user_appliances_raw and plan.user_id:
+                user_appliances_raw = db.query(HouseholdAppliance).filter(
+                    HouseholdAppliance.user_id == plan.user_id,
+                    HouseholdAppliance.is_active == True
+                ).all()
+
+            user_appliances = [
+                {
+                    'id': a.id, 'name': a.appliance_name, 'category': a.appliance_category,
+                    'wattage': a.wattage, 'daily_kwh': a.daily_kwh or 0,
+                    'monthly_kwh': a.monthly_kwh or 0,
+                }
+                for a in user_appliances_raw
+            ]
+
+            if user_appliances:
+                projection_for_rec = {
+                    'days_remaining': max(1, plan.planning_days - int(days_elapsed)),
+                    'budget_variance': projection.get('budget_variance', 0),
+                    'projected_total_cost': projection.get('projected_total_cost', 0),
+                }
+                appliance_recommendations = recommendation_engine.generate_recommendations(
+                    current_status=current_status,
+                    projection=projection_for_rec,
+                    user_appliances=user_appliances,
+                    account_number=plan.account_number
+                )
+        except Exception as e:
+            import logging
+            logging.getLogger(__name__).warning(f"Recommendation engine error: {e}")
+    
+    return appliance_recommendations
+
+
 # ========== REQUEST/RESPONSE MODELS ==========
 
 class BudgetPlanRequest(BaseModel):
@@ -448,7 +501,13 @@ def update_meter_reading(
     reading.projected_total_units = progress['projection']['projected_total_units']
     reading.projected_total_cost = progress['projection']['projected_total_cost']
     reading.projected_budget_variance = progress['projection']['budget_variance']
-    reading.analysis_data = progress
+    reading.analysis_data = {
+        **progress['current_status'],
+        'projection': progress['projection'],
+        'appliance_recommendations': _get_appliance_recommendations(
+            db, plan, progress['current_status'], progress['projection'], progress['current_status']['days_elapsed']
+        )
+    }
 
     db.commit()
     
@@ -470,7 +529,9 @@ def update_meter_reading(
             'expected_cost': reading.expected_cost_so_far,
             'variance_cost': reading.variance_cost,
             'status': reading.status,
-            'projected_total_cost': reading.projected_total_cost
+            'projected_total_units': reading.projected_total_units,
+            'projected_total_cost': reading.projected_total_cost,
+            'analysis_data': reading.analysis_data
         }
     }
 
@@ -662,57 +723,10 @@ def track_budget_progress(
             }
 
         # ── AI Appliance Recommendations ──────────────────────────────────────
-        # KEY FIX: call RecommendationEngine and inject into analysis_data BEFORE saving to DB
-        appliance_recommendations = []
-        is_over = (
-            current_status.get('status') == 'over_budget' or
-            projection.get('budget_variance', 0) > 0
+        days_elapsed = current_status.get('days_elapsed', 0)
+        appliance_recommendations = _get_appliance_recommendations(
+            db, plan, current_status, projection, days_elapsed
         )
-
-        if is_over:
-            try:
-                user_appliances_raw = db.query(HouseholdAppliance).filter(
-                    HouseholdAppliance.is_active == True
-                ).filter(
-                    (HouseholdAppliance.account_number == plan.account_number) |
-                    (HouseholdAppliance.user_id == plan.user_id)
-                ).all()
-
-                # Fallback: check any appliances for this user
-                if not user_appliances_raw and plan.user_id:
-                    user_appliances_raw = db.query(HouseholdAppliance).filter(
-                        HouseholdAppliance.user_id == plan.user_id,
-                        HouseholdAppliance.is_active == True
-                    ).all()
-
-                user_appliances = [
-                    {
-                        'id': a.id,
-                        'name': a.appliance_name,
-                        'category': a.appliance_category,
-                        'wattage': a.wattage,
-                        'daily_kwh': a.daily_kwh or 0,
-                        'monthly_kwh': a.monthly_kwh or 0,
-                    }
-                    for a in user_appliances_raw
-                ]
-
-                if user_appliances:
-                    projection_for_rec = {
-                        'days_remaining': max(1, plan.planning_days - days_elapsed),
-                        'budget_variance': projection.get('budget_variance', 0),
-                        'projected_total_cost': projection.get('projected_total_cost', 0),
-                    }
-                    appliance_recommendations = recommendation_engine.generate_recommendations(
-                        current_status=current_status,
-                        projection=projection_for_rec,
-                        user_appliances=user_appliances,
-                        account_number=bill.account_number
-                    )
-            except Exception as e:
-                import logging
-                logging.getLogger(__name__).warning(f"Recommendation engine error: {e}")
-                appliance_recommendations = []
 
         # ── Build analysis_data with appliance_recommendations included ───────
         analysis_data = {
@@ -720,13 +734,14 @@ def track_budget_progress(
             'projection': projection,
             'weekly_status': weekly_status,
             'recommendations': progress.get('recommendations', []),
-            # KEY: store appliance recommendations so frontend can display them
             'appliance_recommendations': appliance_recommendations,
         }
 
         # Attach helper data for frontend on the progress dict too
         progress['weekly_status'] = weekly_status
         progress['appliance_recommendations'] = appliance_recommendations
+        progress['current_status'] = current_status # Ensure we use the local ref
+        progress['projection'] = projection
 
         # Save meter reading to database
         variance_percentage = 0
@@ -834,7 +849,17 @@ def get_plan_details(
             'recommendations': plan.recommendations
         },
         'readings_count': len(readings),
-        'latest_reading': readings[-1].reading_value if readings else None,
+        'latest_reading': {
+            'id': readings[-1].id,
+            'reading_value': readings[-1].reading_value,
+            'reading_date': readings[-1].reading_date,
+            'units_consumed_so_far': readings[-1].units_consumed_so_far,
+            'days_elapsed': readings[-1].days_elapsed,
+            'status': readings[-1].status,
+            'projected_total_units': readings[-1].projected_total_units,
+            'projected_total_cost': readings[-1].projected_total_cost,
+            'analysis_data': readings[-1].analysis_data
+        } if readings else None,
         'last_check_date': plan.last_check_date
     }
 
@@ -905,7 +930,9 @@ def get_plan_readings(
                 'expected_cost_so_far': r.expected_cost_so_far,
                 'variance_cost': r.variance_cost,
                 'status': r.status,
+                'projected_total_units': r.projected_total_units,
                 'projected_total_cost': r.projected_total_cost,
+                'analysis_data': r.analysis_data,
                 'notes': r.notes
             }
             for r in readings

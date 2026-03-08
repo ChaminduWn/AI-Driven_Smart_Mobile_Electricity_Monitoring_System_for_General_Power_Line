@@ -127,6 +127,26 @@ class RecommendationEngine:
                     'actionable_tip': self._get_actionable_tip(item.get('appliance_name'), reduction_hours)
                 })
         
+        if not recommendations and reduction_target_cost > 0:
+            # Fallback to general tips if no appliance-specific ones found
+            general_tips = [
+                {"appliance_name": "General", "category": "lighting", "actionable_tip": "Switch off unused lights and use energy-efficient LED bulbs."},
+                {"appliance_name": "General", "category": "vampire_load", "actionable_tip": "Unplug electronics like chargers and TVs when not in use to stop 'vampire' power drain."},
+                {"appliance_name": "General", "category": "other", "actionable_tip": "Shift heavy appliance usage (irons, washing machines) to off-peak hours if possible."},
+                {"appliance_name": "General", "category": "cooking", "actionable_tip": "Use a lid while cooking and utilize residual heat to finish your meals."}
+            ]
+            for tip in general_tips:
+                recommendations.append({
+                    'appliance_id': None,
+                    'appliance_name': tip['appliance_name'],
+                    'category': tip['category'],
+                    'impact_percentage': 0,
+                    'suggested_reduction_kwh': 0,
+                    'suggested_reduction_hours': 0,
+                    'potential_monthly_saving': 0,
+                    'actionable_tip': tip['actionable_tip']
+                })
+
         return recommendations[:4] # Return top 4 most impactful recommendations
 
     def _get_actionable_tip(self, appliance_name: str, reduction_hours: float) -> str:
