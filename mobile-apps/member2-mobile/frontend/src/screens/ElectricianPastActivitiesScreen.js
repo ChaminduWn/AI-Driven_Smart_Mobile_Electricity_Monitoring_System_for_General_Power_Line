@@ -4,6 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { theme } from '../theme';
 import { Card } from '../components/Card';
 import Ionicons from 'react-native-vector-icons/Ionicons';
+import { useTranslation } from 'react-i18next';
 
 const MOCK_PAST = [
     { id: '1', type: 'Power Supply Issues', sub: 'Complete Power Outage', client: 'Amara Fernando', amount: 'LKR 1,500', date: '2025-02-24', rating: 5, feedback: 'Excellent work! Very professional.' },
@@ -12,6 +13,7 @@ const MOCK_PAST = [
 ];
 
 export const ElectricianPastActivitiesScreen = () => {
+    const { t } = useTranslation();
     const renderItem = ({ item }) => (
         <Card style={styles.card}>
             <View style={styles.cardTop}>
@@ -43,8 +45,8 @@ export const ElectricianPastActivitiesScreen = () => {
     return (
         <SafeAreaView style={styles.container}>
             <View style={styles.header}>
-                <Text style={styles.headerTitle}>Past Activities</Text>
-                <Text style={styles.headerSubtitle}>Your completed jobs</Text>
+                <Text style={styles.headerTitle}>{t('pastActivities.title')}</Text>
+                <Text style={styles.headerSubtitle}>{t('pastActivities.subtitle')}</Text>
             </View>
             <FlatList
                 data={MOCK_PAST}

@@ -4,27 +4,34 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { theme } from '../theme';
 import { useAuth } from '../context/AuthContext';
 import Ionicons from 'react-native-vector-icons/Ionicons';
+import { useTranslation } from 'react-i18next';
 
 export const AccountScreen = ({ navigation }) => {
     const { user, logout } = useAuth();
+    const { t, i18n } = useTranslation();
 
     const menuItems = [
-        { id: 'profile', title: 'Profile Settings', icon: 'person-outline', screen: 'ProfileSettings' },
-        { id: 'about', title: 'About Us', icon: 'information-circle-outline', screen: 'AboutUs' },
-        { id: 'help', title: 'Help & Support', icon: 'headset-outline', screen: 'HelpSupport' },
+        { id: 'profile', title: t('account.profileSettings'), icon: 'person-outline', screen: 'ProfileSettings' },
+        { id: 'about', title: t('account.aboutUs'), icon: 'information-circle-outline', screen: 'AboutUs' },
+        { id: 'help', title: t('account.helpSupport'), icon: 'headset-outline', screen: 'HelpSupport' },
     ];
 
+    const toggleLanguage = () => {
+        const newLang = i18n.language === 'en' ? 'si' : 'en';
+        i18n.changeLanguage(newLang);
+    };
+
     const handleLogout = () => {
-        Alert.alert('Logout', 'Are you sure you want to logout?', [
-            { text: 'Cancel', style: 'cancel' },
-            { text: 'Logout', style: 'destructive', onPress: logout },
+        Alert.alert(t('account.logout'), t('account.logoutConfirmMsg'), [
+            { text: t('account.cancel'), style: 'cancel' },
+            { text: t('account.logout'), style: 'destructive', onPress: logout },
         ]);
     };
 
     return (
         <SafeAreaView style={styles.container}>
             <View style={styles.header}>
-                <Text style={styles.headerTitle}>Account</Text>
+                <Text style={styles.headerTitle}>{t('account.title')}</Text>
             </View>
 
             {/* User Card */}
@@ -37,7 +44,7 @@ export const AccountScreen = ({ navigation }) => {
                     <Text style={styles.userEmail}>{user?.email}</Text>
                     <View style={styles.idBadge}>
                         <Text style={styles.idText}>
-                            {user?.role === 'Electrician' ? '00E' : '00H'}#{user?.displayId || '1'}
+                            {user?.role === 'Electrician' ? t('account.electricianId') : t('account.householderId')}#{user?.displayId || '1'}
                         </Text>
                     </View>
                 </View>
@@ -48,21 +55,21 @@ export const AccountScreen = ({ navigation }) => {
                 <View style={styles.documentCard}>
                     <View style={styles.documentHeader}>
                         <Ionicons name="document-text-outline" size={20} color={theme.colors.text} />
-                        <Text style={styles.documentTitle}>KYC Document</Text>
+                        <Text style={styles.documentTitle}>{t('account.kycDocument')}</Text>
                         <View style={[styles.statusBadge, { backgroundColor: user?.isVerified ? theme.colors.success + '20' : theme.colors.warning + '20' }]}>
                             <Text style={[styles.statusText, { color: user?.isVerified ? theme.colors.success : theme.colors.warning }]}>
-                                {user?.isVerified ? 'Verified' : 'Pending Review'}
+                                {user?.isVerified ? t('account.verified') : t('account.pendingReview')}
                             </Text>
                         </View>
                     </View>
                     {user?.nvqCertificateUrl ? (
                         <Image
-                            source={{ uri: `http://192.168.8.101:8003${user.nvqCertificateUrl}` }}
+                            source={{ uri: `http://10.48.201.167:8003${user.nvqCertificateUrl}` }}
                             style={styles.documentImage}
                             resizeMode="cover"
                         />
                     ) : (
-                        <Text style={styles.noDocText}>No document uploaded.</Text>
+                        <Text style={styles.noDocText}>{t('account.noDocument')}</Text>
                     )}
                 </View>
             )}
@@ -84,6 +91,19 @@ export const AccountScreen = ({ navigation }) => {
                     </TouchableOpacity>
                 ))}
 
+                {/* Language Toggle */}
+                <TouchableOpacity
+                    style={styles.menuItem}
+                    onPress={toggleLanguage}
+                    activeOpacity={0.7}
+                >
+                    <View style={styles.menuIconContainer}>
+                        <Ionicons name="language-outline" size={22} color={theme.colors.primary} />
+                    </View>
+                    <Text style={styles.menuTitle}>{t('account.language')}</Text>
+                    <Ionicons name="sync-outline" size={20} color={theme.colors.textMuted} />
+                </TouchableOpacity>
+
                 {/* Logout */}
                 <TouchableOpacity
                     style={[styles.menuItem, styles.logoutItem]}
@@ -93,13 +113,13 @@ export const AccountScreen = ({ navigation }) => {
                     <View style={[styles.menuIconContainer, { backgroundColor: theme.colors.danger + '15' }]}>
                         <Ionicons name="log-out-outline" size={22} color={theme.colors.danger} />
                     </View>
-                    <Text style={[styles.menuTitle, { color: theme.colors.danger }]}>Logout</Text>
+                    <Text style={[styles.menuTitle, { color: theme.colors.danger }]}>{t('account.logout')}</Text>
                     <Ionicons name="chevron-forward" size={20} color={theme.colors.danger} />
                 </TouchableOpacity>
             </View>
 
             {/* App Version */}
-            <Text style={styles.version}>PowerLink v1.0.0</Text>
+            <Text style={styles.version}>{t('account.version')} v1.0.0</Text>
         </SafeAreaView>
     );
 };

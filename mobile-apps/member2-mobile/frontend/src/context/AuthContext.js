@@ -4,7 +4,7 @@ import axios from 'axios';
 
 // Set the API URL to localhost because traffic is being routed over the USB cable via ADB.
 // This 100% bypasses Windows Firewall and Wi-Fi issues.
-const API_URL = 'http://192.168.8.101:8003/api/auth';
+const API_URL = 'http://10.48.201.167:8003/api/auth';
 
 // Bypass localtunnel interstitial page (kept for safety if tunneling is used later)
 axios.defaults.headers.common['bypass-tunnel-reminder'] = 'true';

@@ -165,6 +165,9 @@ const ElectricianTabs = () => (
     </Tab.Navigator>
 );
 
+// Voice Commander
+import { VoiceCommander } from '../components/VoiceCommander';
+
 // ==================
 // Root Navigator
 // ==================
@@ -188,6 +191,7 @@ export const RootNavigator = () => {
                     </>
                 )}
             </Stack.Navigator>
+            {user?.role === 'Householder' && <VoiceCommander />}
         </NavigationContainer>
     );
 };

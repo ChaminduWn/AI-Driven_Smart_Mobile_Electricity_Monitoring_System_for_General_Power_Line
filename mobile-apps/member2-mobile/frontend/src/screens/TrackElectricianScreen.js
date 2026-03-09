@@ -1,16 +1,19 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Animated, Linking, Platform } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Animated, Linking, Platform, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { theme } from '../theme';
 import { Button } from '../components/Button';
 import { MapView, Marker, Polyline } from '../components/MapWrapper';
 import Ionicons from 'react-native-vector-icons/Ionicons';
+import { useTranslation } from 'react-i18next';
 
 export const TrackElectricianScreen = ({ route, navigation }) => {
+    const { t } = useTranslation();
     const { electrician, location, job } = route.params;
     const [eta, setEta] = useState(8);
-    const [status, setStatus] = useState('On the way');
+    const [status, setStatus] = useState(t('trackElectrician.statusOnTheWay'));
     const [jobStartTime] = useState(job?.createdAt ? new Date(job.createdAt) : new Date());
+    const [canceling, setCanceling] = useState(false);
     const pulseAnim = useRef(new Animated.Value(1)).current;
 
     useEffect(() => {
@@ -28,7 +31,7 @@ export const TrackElectricianScreen = ({ route, navigation }) => {
             setEta((prev) => {
                 if (prev <= 1) {
                     clearInterval(interval);
-                    setStatus('Arrived');
+                    setStatus(t('trackElectrician.statusArrived'));
                     return 0;
                 }
                 return prev - 1;
@@ -47,38 +50,38 @@ export const TrackElectricianScreen = ({ route, navigation }) => {
         const diffInMs = now - jobStartTime;
         const diffInMinutes = Math.floor(diffInMs / 60000);
 
-        let cancelTitle = 'Cancel Request';
-        let cancelMessage = 'Are you sure you want to cancel?';
+        let cancelTitle = t('trackElectrician.cancelTitleFree');
+        let cancelMessage = '';
         let isFree = true;
 
         if (diffInMinutes > 5) {
-            cancelTitle = 'Travel Fee Applies';
-            cancelMessage = 'You are cancelling after the 5-minute free window. A small travel fee will be deducted to compensate the electrician.';
+            cancelTitle = t('trackElectrician.cancelTitleFee');
+            cancelMessage = t('trackElectrician.cancelMsgFee');
             isFree = false;
         } else {
             const timeLeft = 5 - diffInMinutes;
-            cancelMessage = `Are you sure? You have ${timeLeft} minute(s) left to cancel for free.`;
+            cancelMessage = `${t('trackElectrician.cancelMsgFree1')}${timeLeft}${t('trackElectrician.cancelMsgFree2')}`;
         }
 
         Alert.alert(
             cancelTitle,
             cancelMessage,
             [
-                { text: 'Keep Job', style: 'cancel' },
+                { text: t('trackElectrician.keepJobBtn'), style: 'cancel' },
                 {
-                    text: isFree ? 'Cancel Job' : 'Accept Fee & Cancel',
+                    text: isFree ? t('trackElectrician.cancelJobBtnFree') : t('trackElectrician.cancelJobBtnFee'),
                     style: 'destructive',
                     // Here we send the cancellation to the backend
                     onPress: async () => {
                         try {
                             setCanceling(true);
                             if (job?.id) {
-                                await fetch(`http://192.168.8.101:8003/api/jobs/${job.id}/cancel`, {
+                                await fetch(`http://10.48.201.167:8003/api/jobs/${job.id}/cancel`, {
                                     method: 'POST',
                                     headers: {
                                         'Content-Type': 'application/json',
                                     },
-                                    body: JSON.stringify({ reason: 'Householder cancelled from UI' }),
+                                    body: JSON.stringify({ reason: t('trackElectrician.cancelReason') }),
                                 });
                             }
                         } catch (err) {
@@ -139,7 +142,7 @@ export const TrackElectricianScreen = ({ route, navigation }) => {
                 <View style={styles.etaOverlay}>
                     <View style={styles.etaBadge}>
                         <Ionicons name="time" size={16} color={theme.colors.secondary} />
-                        <Text style={styles.etaText}>{eta > 0 ? `${eta} min` : 'Arrived!'}</Text>
+                        <Text style={styles.etaText}>{eta > 0 ? `${eta}${t('trackElectrician.etaMinutes')}` : t('trackElectrician.arrived')}</Text>
                     </View>
                 </View>
             </View>
@@ -174,7 +177,7 @@ export const TrackElectricianScreen = ({ route, navigation }) => {
                     <View style={styles.startCodeContainer}>
                         <View style={styles.startCodeLeft}>
                             <Ionicons name="key" size={20} color={theme.colors.secondary} />
-                            <Text style={styles.startCodeLabel}>Provide this code to start the job:</Text>
+                            <Text style={styles.startCodeLabel}>{t('trackElectrician.provideCode')}</Text>
                         </View>
                         <View style={styles.startCodeValueBox}>
                             <Text style={styles.startCodeValue}>{job.startCode}</Text>
@@ -186,7 +189,7 @@ export const TrackElectricianScreen = ({ route, navigation }) => {
                 <View style={styles.actionRow}>
                     <TouchableOpacity style={styles.callButton} onPress={handleCall}>
                         <Ionicons name="call" size={20} color={theme.colors.success} />
-                        <Text style={styles.callText}>Call</Text>
+                        <Text style={styles.callText}>{t('trackElectrician.call')}</Text>
                     </TouchableOpacity>
 
                     <TouchableOpacity
@@ -196,16 +199,16 @@ export const TrackElectricianScreen = ({ route, navigation }) => {
                         <Ionicons name="chatbubble-ellipses" size={20} color={theme.colors.primary} />
                     </TouchableOpacity>
 
-                    {status === 'Arrived' ? (
+                    {status === t('trackElectrician.statusArrived') ? (
                         <Button
-                            title="Complete Job"
+                            title={t('trackElectrician.completeJob')}
                             variant="success"
                             onPress={handleComplete}
                             style={{ flex: 1, marginLeft: 12 }}
                         />
                     ) : (
                         <Button
-                            title="Cancel"
+                            title={t('trackElectrician.cancelJob')}
                             variant="danger"
                             onPress={handleCancel}
                             style={{ flex: 1, marginLeft: 12 }}

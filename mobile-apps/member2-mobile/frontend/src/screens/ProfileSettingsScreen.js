@@ -6,9 +6,11 @@ import { Input } from '../components/Input';
 import { Button } from '../components/Button';
 import { useAuth } from '../context/AuthContext';
 import Ionicons from 'react-native-vector-icons/Ionicons';
+import { useTranslation } from 'react-i18next';
 
 export const ProfileSettingsScreen = ({ navigation }) => {
     const { user, updateUser } = useAuth();
+    const { t } = useTranslation();
     const [loading, setLoading] = useState(false);
     const [firstName, setFirstName] = useState(user?.firstName || '');
     const [lastName, setLastName] = useState(user?.lastName || '');
@@ -20,12 +22,12 @@ export const ProfileSettingsScreen = ({ navigation }) => {
 
     const validate = () => {
         const newErrors = {};
-        if (!firstName.trim()) newErrors.firstName = 'Required';
-        if (!lastName.trim()) newErrors.lastName = 'Required';
+        if (!firstName.trim()) newErrors.firstName = t('validation.required');
+        if (!lastName.trim()) newErrors.lastName = t('validation.required');
         const phoneRegex = /^0\d{9}$/;
-        if (phone && !phoneRegex.test(phone)) newErrors.phone = 'Invalid phone format';
+        if (phone && !phoneRegex.test(phone)) newErrors.phone = t('validation.invalidPhone');
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        if (email && !emailRegex.test(email)) newErrors.email = 'Invalid email format';
+        if (email && !emailRegex.test(email)) newErrors.email = t('validation.invalidEmail');
         setErrors(newErrors);
         return Object.keys(newErrors).length === 0;
     };
@@ -35,7 +37,7 @@ export const ProfileSettingsScreen = ({ navigation }) => {
         setLoading(true);
 
         try {
-            const response = await fetch(`http://192.168.8.101:8003/api/users/${user.id}`, {
+            const response = await fetch(`http://10.48.201.167:8003/api/users/${user.id}`, {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json'
@@ -78,7 +80,7 @@ export const ProfileSettingsScreen = ({ navigation }) => {
                 <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
                     <Ionicons name="arrow-back" size={24} color={theme.colors.text} />
                 </TouchableOpacity>
-                <Text style={styles.headerTitle}>Profile Settings</Text>
+                <Text style={styles.headerTitle}>{t('profile.title')}</Text>
             </View>
 
             <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
@@ -90,14 +92,14 @@ export const ProfileSettingsScreen = ({ navigation }) => {
                     <Text style={styles.avatarName}>{firstName} {lastName}</Text>
                 </View>
 
-                <Input label="First Name" value={firstName} onChangeText={(t) => { setFirstName(t); setErrors(e => ({ ...e, firstName: '' })); }} error={errors.firstName} />
-                <Input label="Last Name" value={lastName} onChangeText={(t) => { setLastName(t); setErrors(e => ({ ...e, lastName: '' })); }} error={errors.lastName} />
-                <Input label="Location" value={location} onChangeText={setLocation} placeholder="District" />
-                <Input label="Phone Number" value={phone} onChangeText={(t) => { setPhone(t); setErrors(e => ({ ...e, phone: '' })); }} keyboardType="phone-pad" error={errors.phone} />
-                <Input label="Email" value={email} onChangeText={(t) => { setEmail(t); setErrors(e => ({ ...e, email: '' })); }} keyboardType="email-address" autoCapitalize="none" error={errors.email} />
+                <Input label={t('profile.firstName')} value={firstName} onChangeText={(tInput) => { setFirstName(tInput); setErrors(e => ({ ...e, firstName: '' })); }} error={errors.firstName} />
+                <Input label={t('profile.lastName')} value={lastName} onChangeText={(tInput) => { setLastName(tInput); setErrors(e => ({ ...e, lastName: '' })); }} error={errors.lastName} />
+                <Input label={t('profile.location')} value={location} onChangeText={setLocation} placeholder={t('profile.location')} />
+                <Input label={t('profile.phone')} value={phone} onChangeText={(tInput) => { setPhone(tInput); setErrors(e => ({ ...e, phone: '' })); }} keyboardType="phone-pad" error={errors.phone} />
+                <Input label={t('profile.email')} value={email} onChangeText={(tInput) => { setEmail(tInput); setErrors(e => ({ ...e, email: '' })); }} keyboardType="email-address" autoCapitalize="none" error={errors.email} />
 
                 <Button
-                    title={loading ? 'Saving...' : saved ? '✓ Saved!' : 'Save Changes'}
+                    title={loading ? t('profile.saving') : saved ? t('profile.saved') : t('profile.saveChanges')}
                     variant={saved ? 'success' : 'primary'}
                     onPress={handleSave}
                     disabled={loading}

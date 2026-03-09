@@ -4,6 +4,7 @@ import { AuthProvider } from './src/context/AuthContext';
 import { RootNavigator } from './src/navigation';
 import { StatusBar } from 'react-native';
 import { theme } from './src/theme';
+import './src/i18n';
 
 export default function App() {
     return (

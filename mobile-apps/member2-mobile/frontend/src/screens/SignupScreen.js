@@ -11,6 +11,7 @@ import Ionicons from 'react-native-vector-icons/Ionicons';
 import * as Location from 'expo-location';
 import * as ImagePicker from 'expo-image-picker';
 import * as FileSystem from 'expo-file-system/legacy';
+import { useTranslation } from 'react-i18next';
 
 const DISTRICTS = [
     'Colombo', 'Gampaha', 'Kalutara', 'Kandy', 'Matale',
@@ -21,6 +22,7 @@ const DISTRICTS = [
 ];
 
 export const SignupScreen = ({ navigation }) => {
+    const { t } = useTranslation();
     const [firstName, setFirstName] = useState('');
     const [lastName, setLastName] = useState('');
     const [address, setAddress] = useState('');
@@ -43,44 +45,44 @@ export const SignupScreen = ({ navigation }) => {
     const validate = () => {
         const newErrors = {};
 
-        if (!firstName.trim()) newErrors.firstName = 'First name is required';
-        if (!lastName.trim()) newErrors.lastName = 'Last name is required';
-        if (!address.trim()) newErrors.address = 'Address is required';
-        if (!district) newErrors.district = 'Please select a district';
+        if (!firstName.trim()) newErrors.firstName = t('validation.firstNameReq');
+        if (!lastName.trim()) newErrors.lastName = t('validation.lastNameReq');
+        if (!address.trim()) newErrors.address = t('validation.addressReq');
+        if (!district) newErrors.district = t('validation.districtReq');
 
         // Phone validation (Sri Lankan format)
         const phoneRegex = /^0\d{9}$/;
         if (!phone.trim()) {
-            newErrors.phone = 'Phone number is required';
+            newErrors.phone = t('validation.phoneReq');
         } else if (!phoneRegex.test(phone)) {
-            newErrors.phone = 'Enter valid 10-digit phone (e.g., 0771234567)';
+            newErrors.phone = t('validation.phoneFormat');
         }
 
         // Email validation
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         if (!email.trim()) {
-            newErrors.email = 'Email is required';
+            newErrors.email = t('validation.emailReq');
         } else if (!emailRegex.test(email)) {
-            newErrors.email = 'Enter a valid email address';
+            newErrors.email = t('validation.emailFormat');
         }
 
         // Password validation
         if (!password) {
-            newErrors.password = 'Password is required';
+            newErrors.password = t('validation.passwordReq');
         } else if (password.length < 6) {
-            newErrors.password = 'Password must be at least 6 characters';
+            newErrors.password = t('validation.passwordLength');
         }
 
         // Confirm password
         if (!confirmPassword) {
-            newErrors.confirmPassword = 'Please confirm your password';
+            newErrors.confirmPassword = t('validation.confirmPasswordReq');
         } else if (password !== confirmPassword) {
-            newErrors.confirmPassword = 'Passwords do not match';
+            newErrors.confirmPassword = t('validation.passwordMismatch');
         }
 
         // Electrician specific validation
         if (role === 'Electrician' && !nvqImage) {
-            newErrors.nvqImage = 'NVQ Certificate/NIC upload is required for Electricians';
+            newErrors.nvqImage = t('validation.nvqReq');
         }
 
         setErrors(newErrors);
@@ -99,7 +101,7 @@ export const SignupScreen = ({ navigation }) => {
         if (role === 'Electrician' && nvqImage) {
             try {
                 const uploadResponse = await FileSystem.uploadAsync(
-                    'http://192.168.8.101:8003/api/upload',
+                    'http://10.48.201.167:8003/api/upload',
                     nvqImage.uri,
                     {
                         fieldName: 'image',
@@ -188,7 +190,7 @@ export const SignupScreen = ({ navigation }) => {
                         <Text style={{ fontWeight: '300' }}>Power</Text>
                         <Text style={{ fontWeight: '800' }}>Link</Text>
                     </Text>
-                    <Text style={styles.subtitle}>Create your account</Text>
+                    <Text style={styles.subtitle}>{t('auth.createAccount')}</Text>
                 </View>
 
                 {/* Role Toggle */}
@@ -204,7 +206,7 @@ export const SignupScreen = ({ navigation }) => {
                             style={{ marginRight: 6 }}
                         />
                         <Text style={[styles.roleText, role === 'Householder' && styles.activeRoleText]}>
-                            Householder
+                            {t('auth.householder')}
                         </Text>
                     </TouchableOpacity>
                     <TouchableOpacity
@@ -218,37 +220,37 @@ export const SignupScreen = ({ navigation }) => {
                             style={{ marginRight: 6 }}
                         />
                         <Text style={[styles.roleText, role === 'Electrician' && styles.activeRoleText]}>
-                            Electrician
+                            {t('auth.electrician')}
                         </Text>
                     </TouchableOpacity>
                 </View>
 
                 {/* Form Fields */}
                 <Input
-                    label="First Name"
+                    label={t('profile.firstName')}
                     value={firstName}
-                    onChangeText={(t) => { setFirstName(t); setErrors(e => ({ ...e, firstName: '' })); }}
-                    placeholder="First Name"
+                    onChangeText={(tInput) => { setFirstName(tInput); setErrors(e => ({ ...e, firstName: '' })); }}
+                    placeholder={t('profile.firstName')}
                     error={errors.firstName}
                 />
                 <Input
-                    label="Last Name"
+                    label={t('profile.lastName')}
                     value={lastName}
-                    onChangeText={(t) => { setLastName(t); setErrors(e => ({ ...e, lastName: '' })); }}
-                    placeholder="Last Name"
+                    onChangeText={(tInput) => { setLastName(tInput); setErrors(e => ({ ...e, lastName: '' })); }}
+                    placeholder={t('profile.lastName')}
                     error={errors.lastName}
                 />
                 <Input
-                    label="Address"
+                    label={t('auth.address')}
                     value={address}
-                    onChangeText={(t) => { setAddress(t); setErrors(e => ({ ...e, address: '' })); }}
-                    placeholder="Address"
+                    onChangeText={(tInput) => { setAddress(tInput); setErrors(e => ({ ...e, address: '' })); }}
+                    placeholder={t('auth.address')}
                     error={errors.address}
                 />
 
                 {/* District Dropdown */}
                 <View style={{ marginBottom: theme.spacing.md }}>
-                    <Text style={styles.fieldLabel}>District</Text>
+                    <Text style={styles.fieldLabel}>{t('auth.district')}</Text>
                     <TouchableOpacity
                         style={[
                             styles.districtButton,
@@ -260,7 +262,7 @@ export const SignupScreen = ({ navigation }) => {
                             styles.districtText,
                             !district && { color: theme.colors.textMuted },
                         ]}>
-                            {district || 'Select District'}
+                            {district || t('auth.selectDistrict')}
                         </Text>
                         <Ionicons
                             name={showDistrictPicker ? 'chevron-up' : 'chevron-down'}
@@ -301,37 +303,37 @@ export const SignupScreen = ({ navigation }) => {
                 </View>
 
                 <Input
-                    label="Phone Number"
+                    label={t('profile.phone')}
                     value={phone}
-                    onChangeText={(t) => { setPhone(t); setErrors(e => ({ ...e, phone: '' })); }}
+                    onChangeText={(tInput) => { setPhone(tInput); setErrors(e => ({ ...e, phone: '' })); }}
                     keyboardType="phone-pad"
                     placeholder="0771234567"
                     error={errors.phone}
                 />
                 <Input
-                    label="Email"
+                    label={t('profile.email')}
                     value={email}
-                    onChangeText={(t) => { setEmail(t); setErrors(e => ({ ...e, email: '' })); }}
+                    onChangeText={(tInput) => { setEmail(tInput); setErrors(e => ({ ...e, email: '' })); }}
                     keyboardType="email-address"
                     autoCapitalize="none"
                     placeholder="john@example.com"
                     error={errors.email}
                 />
                 <Input
-                    label="Password"
+                    label={t('auth.password')}
                     value={password}
-                    onChangeText={(t) => { setPassword(t); setErrors(e => ({ ...e, password: '' })); }}
+                    onChangeText={(tInput) => { setPassword(tInput); setErrors(e => ({ ...e, password: '' })); }}
                     secureTextEntry
-                    placeholder="Password"
+                    placeholder={t('auth.password')}
                     prefix={prefix}
                     error={errors.password}
                 />
                 <Input
-                    label="Confirm Password"
+                    label={t('auth.confirmPassword')}
                     value={confirmPassword}
-                    onChangeText={(t) => { setConfirmPassword(t); setErrors(e => ({ ...e, confirmPassword: '' })); }}
+                    onChangeText={(tInput) => { setConfirmPassword(tInput); setErrors(e => ({ ...e, confirmPassword: '' })); }}
                     secureTextEntry
-                    placeholder="Confirm Password"
+                    placeholder={t('auth.confirmPassword')}
                     prefix={prefix}
                     error={errors.confirmPassword}
                 />
@@ -339,7 +341,7 @@ export const SignupScreen = ({ navigation }) => {
                 {/* Electrician NVQ Upload */}
                 {role === 'Electrician' && (
                     <View style={styles.uploadContainer}>
-                        <Text style={styles.fieldLabel}>NVQ Certificate or NIC <Text style={{ color: theme.colors.danger }}>*</Text></Text>
+                        <Text style={styles.fieldLabel}>{t('auth.nvqRequired')} <Text style={{ color: theme.colors.danger }}>*</Text></Text>
                         <TouchableOpacity
                             style={[
                                 styles.uploadButton,
@@ -354,17 +356,17 @@ export const SignupScreen = ({ navigation }) => {
                                 color={nvqImage ? theme.colors.success : theme.colors.textMuted}
                             />
                             <Text style={[styles.uploadText, nvqImage && { color: theme.colors.success }]}>
-                                {nvqImage ? 'Document Selected' : 'Tap to upload picture'}
+                                {nvqImage ? t('auth.documentSelected') : t('auth.tapToUpload')}
                             </Text>
                         </TouchableOpacity>
                         {errors.nvqImage && <Text style={styles.errorText}>{errors.nvqImage}</Text>}
-                        <Text style={styles.uploadHint}>Admin will verify this document before you can accept jobs.</Text>
+                        <Text style={styles.uploadHint}>{t('auth.adminVerifyHint')}</Text>
                     </View>
                 )}
 
                 {/* Create Account Button */}
                 <GradientButton
-                    title="Create Account"
+                    title={t('auth.createAccountBtn')}
                     icon="sparkles"
                     onPress={handleSignup}
                     loading={loading}
@@ -373,7 +375,7 @@ export const SignupScreen = ({ navigation }) => {
 
                 {/* Google Sign Up */}
                 <Button
-                    title="Sign up with Google"
+                    title={t('auth.signupWithGoogle')}
                     variant="surface"
                     icon="logo-google"
                     onPress={() => Alert.alert('Google Auth', 'Coming soon')}
@@ -382,9 +384,9 @@ export const SignupScreen = ({ navigation }) => {
 
                 {/* Footer */}
                 <View style={styles.footer}>
-                    <Text style={styles.footerText}>Already have an account? </Text>
+                    <Text style={styles.footerText}>{t('auth.alreadyHaveAccount')}</Text>
                     <TouchableOpacity onPress={() => navigation.navigate('Login')}>
-                        <Text style={styles.loginText}>Login</Text>
+                        <Text style={styles.loginText}>{t('auth.login')}</Text>
                     </TouchableOpacity>
                 </View>
             </ScrollView>

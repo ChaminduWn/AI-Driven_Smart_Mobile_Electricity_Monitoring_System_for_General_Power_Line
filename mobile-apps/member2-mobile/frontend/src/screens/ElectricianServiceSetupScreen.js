@@ -6,24 +6,26 @@ import { Card } from '../components/Card';
 import { Input } from '../components/Input';
 import { Button } from '../components/Button';
 import Ionicons from 'react-native-vector-icons/Ionicons';
+import { useTranslation } from 'react-i18next';
 
 const CATEGORIES = [
-    { id: 'power', title: 'Power Supply Issues', icon: 'flash', color: theme.colors.categoryAmber },
-    { id: 'voltage', title: 'Voltage & Technical', icon: 'pulse', color: theme.colors.categoryBlue },
-    { id: 'safety', title: 'Safety-Related', icon: 'warning', color: theme.colors.categoryRed },
-    { id: 'infrastructure', title: 'Infrastructure', icon: 'construct', color: theme.colors.categoryOrange },
-    { id: 'monitoring', title: 'Monitoring & Device', icon: 'analytics', color: theme.colors.categoryGreen },
+    { id: 'power', key: 'power', icon: 'flash', color: theme.colors.categoryAmber },
+    { id: 'voltage', key: 'voltage', icon: 'pulse', color: theme.colors.categoryBlue },
+    { id: 'safety', key: 'safety', icon: 'warning', color: theme.colors.categoryRed },
+    { id: 'infrastructure', key: 'infrastructure', icon: 'construct', color: theme.colors.categoryOrange },
+    { id: 'monitoring', key: 'monitoring', icon: 'analytics', color: theme.colors.categoryGreen },
 ];
 
 const SUBCATEGORIES = {
-    power: ['Complete Power Outage', 'Partial Power Outage', 'Intermittent Supply'],
-    voltage: ['Low Voltage', 'High Voltage', 'Fluctuating Voltage'],
-    safety: ['Sparks from Meter', 'Burning Smell', 'Exposed Wiring'],
-    infrastructure: ['Damaged Power Lines', 'Fallen Pole', 'Broken Meter Box'],
-    monitoring: ['Faulty Meter Reading', 'Smart Meter Issue', 'Device Connectivity'],
+    power: ['complete', 'partial', 'intermittent'],
+    voltage: ['low', 'high', 'fluctuating'],
+    safety: ['sparks', 'burning', 'exposed'],
+    infrastructure: ['damagedLines', 'fallenPole', 'brokenBox'],
+    monitoring: ['faultyReading', 'smartMeter', 'connectivity'],
 };
 
 export const ElectricianServiceSetupScreen = ({ navigation }) => {
+    const { t } = useTranslation();
     const [selectedCategory, setSelectedCategory] = useState(null);
     const [selectedSubcategory, setSelectedSubcategory] = useState(null);
     const [amount, setAmount] = useState('');
@@ -32,10 +34,10 @@ export const ElectricianServiceSetupScreen = ({ navigation }) => {
 
     const validate = () => {
         const newErrors = {};
-        if (!selectedCategory) newErrors.category = 'Select a category';
-        if (!selectedSubcategory) newErrors.subcategory = 'Select a subcategory';
-        if (!amount.trim()) newErrors.amount = 'Enter service amount';
-        else if (isNaN(Number(amount)) || Number(amount) <= 0) newErrors.amount = 'Enter a valid amount';
+        if (!selectedCategory) newErrors.category = t('serviceSetup.catRequired');
+        if (!selectedSubcategory) newErrors.subcategory = t('serviceSetup.subRequired');
+        if (!amount.trim()) newErrors.amount = t('serviceSetup.amountRequired');
+        else if (isNaN(Number(amount)) || Number(amount) <= 0) newErrors.amount = t('serviceSetup.amountInvalid');
         setErrors(newErrors);
         return Object.keys(newErrors).length === 0;
     };
@@ -52,12 +54,12 @@ export const ElectricianServiceSetupScreen = ({ navigation }) => {
                 <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
                     <Ionicons name="arrow-back" size={24} color={theme.colors.text} />
                 </TouchableOpacity>
-                <Text style={styles.headerTitle}>Service Setup</Text>
+                <Text style={styles.headerTitle}>{t('serviceSetup.title')}</Text>
             </View>
 
             <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
                 {/* Category Selection */}
-                <Text style={styles.sectionTitle}>Select Category</Text>
+                <Text style={styles.sectionTitle}>{t('serviceSetup.selectCategory')}</Text>
                 {errors.category && <Text style={styles.errorText}>{errors.category}</Text>}
                 {CATEGORIES.map((cat) => (
                     <TouchableOpacity
@@ -68,7 +70,7 @@ export const ElectricianServiceSetupScreen = ({ navigation }) => {
                         <View style={[styles.catIcon, { backgroundColor: cat.color + '15' }]}>
                             <Ionicons name={cat.icon} size={20} color={cat.color} />
                         </View>
-                        <Text style={[styles.catTitle, selectedCategory === cat.id && { color: cat.color }]}>{cat.title}</Text>
+                        <Text style={[styles.catTitle, selectedCategory === cat.id && { color: cat.color }]}>{t(`householder.categories.${cat.key}.title`)}</Text>
                         {selectedCategory === cat.id && <Ionicons name="checkmark-circle" size={20} color={cat.color} />}
                     </TouchableOpacity>
                 ))}
@@ -76,7 +78,7 @@ export const ElectricianServiceSetupScreen = ({ navigation }) => {
                 {/* Subcategory Selection */}
                 {selectedCategory && (
                     <>
-                        <Text style={styles.sectionTitle}>Select Subcategory</Text>
+                        <Text style={styles.sectionTitle}>{t('serviceSetup.selectSubcategory')}</Text>
                         {errors.subcategory && <Text style={styles.errorText}>{errors.subcategory}</Text>}
                         {(SUBCATEGORIES[selectedCategory] || []).map((sub, i) => (
                             <TouchableOpacity
@@ -84,7 +86,7 @@ export const ElectricianServiceSetupScreen = ({ navigation }) => {
                                 style={[styles.subCard, selectedSubcategory === sub && { borderColor: theme.colors.primary, backgroundColor: theme.colors.primary + '10' }]}
                                 onPress={() => { setSelectedSubcategory(sub); setErrors(e => ({ ...e, subcategory: '' })); }}
                             >
-                                <Text style={[styles.subText, selectedSubcategory === sub && { color: theme.colors.primary, fontWeight: '700' }]}>{sub}</Text>
+                                <Text style={[styles.subText, selectedSubcategory === sub && { color: theme.colors.primary, fontWeight: '700' }]}>{t(`subCategory.${selectedCategory}.${sub}`)}</Text>
                                 {selectedSubcategory === sub && <Ionicons name="checkmark-circle" size={18} color={theme.colors.primary} />}
                             </TouchableOpacity>
                         ))}
@@ -94,18 +96,18 @@ export const ElectricianServiceSetupScreen = ({ navigation }) => {
                 {/* Amount */}
                 {selectedSubcategory && (
                     <>
-                        <Text style={styles.sectionTitle}>Service Amount</Text>
+                        <Text style={styles.sectionTitle}>{t('serviceSetup.serviceAmount')}</Text>
                         <Input
-                            label="Amount (LKR)"
+                            label={t('serviceSetup.amountLabel')}
                             value={amount}
                             onChangeText={(t) => { setAmount(t); setErrors(e => ({ ...e, amount: '' })); }}
                             keyboardType="numeric"
-                            placeholder="e.g., 1500"
-                            prefix="LKR "
+                            placeholder={t('serviceSetup.amountPlaceholder')}
+                            prefix={t('serviceSetup.currencyPrefix')}
                             error={errors.amount}
                         />
                         <Button
-                            title={saved ? '✓ Saved!' : 'Save Service'}
+                            title={saved ? t('serviceSetup.saved') : t('serviceSetup.saveService')}
                             variant={saved ? 'success' : 'primary'}
                             onPress={handleSave}
                             style={{ marginTop: theme.spacing.sm }}

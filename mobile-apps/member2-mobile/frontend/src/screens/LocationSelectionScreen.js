@@ -6,9 +6,11 @@ import { GradientButton } from '../components/GradientButton';
 import { MapView, Marker, PROVIDER_GOOGLE } from '../components/MapWrapper';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import * as Location from 'expo-location';
+import { useTranslation } from 'react-i18next';
 
 export const LocationSelectionScreen = ({ route, navigation }) => {
     const { category, subCategory, description } = route.params;
+    const { t } = useTranslation();
     const [region, setRegion] = useState({
         latitude: 6.9271,
         longitude: 79.8612,
@@ -68,7 +70,7 @@ export const LocationSelectionScreen = ({ route, navigation }) => {
             {loading ? (
                 <View style={styles.loadingContainer}>
                     <ActivityIndicator size="large" color={theme.colors.primary} />
-                    <Text style={styles.loadingText}>Getting your location...</Text>
+                    <Text style={styles.loadingText}>{t('locationSelection.gettingLocation')}</Text>
                 </View>
             ) : (
                 <View style={styles.mapContainer}>
@@ -82,7 +84,7 @@ export const LocationSelectionScreen = ({ route, navigation }) => {
                                 latitude: region.latitude,
                                 longitude: region.longitude,
                             }}
-                            title="Your Location"
+                            title={t('locationSelection.yourLocation')}
                         />
                     </MapView>
 
@@ -97,10 +99,10 @@ export const LocationSelectionScreen = ({ route, navigation }) => {
             <View style={styles.bottomPanel}>
                 <View style={styles.locationInfo}>
                     <Ionicons name="location" size={20} color={theme.colors.primary} />
-                    <Text style={styles.locationText}>Drag the map to adjust location</Text>
+                    <Text style={styles.locationText}>{t('locationSelection.dragMapHint')}</Text>
                 </View>
                 <GradientButton
-                    title="Confirm Location"
+                    title={t('locationSelection.confirmBtn')}
                     icon="checkmark-circle"
                     onPress={handleConfirm}
                 />

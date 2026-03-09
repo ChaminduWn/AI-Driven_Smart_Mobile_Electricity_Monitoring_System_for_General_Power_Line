@@ -1,0 +1,347 @@
+{
+    "auth": {
+        "login": "Login",
+        "signup": "Sign Up",
+        "email": "Email",
+        "password": "Password",
+        "forgotPassword": "Forgot Password?",
+        "noAccount": "Don't have an account? ",
+        "alreadyHaveAccount": "Already have an account? ",
+        "hiThere": "Hi there 👋",
+        "welcomeBack": "Welcome back to ",
+        "powerLink": "PowerLink",
+        "emailOrPhone": "Email or Phone",
+        "enterEmailOrPhone": "Enter your email or phone",
+        "enterPassword": "Enter password",
+        "or": "or",
+        "continueWithGoogle": "Continue with Google",
+        "createAccount": "Create your account",
+        "householder": "Householder",
+        "electrician": "Electrician",
+        "address": "Address",
+        "district": "District",
+        "selectDistrict": "Select District",
+        "confirmPassword": "Confirm Password",
+        "nvqRequired": "NVQ Certificate or NIC",
+        "documentSelected": "Document Selected",
+        "tapToUpload": "Tap to upload picture",
+        "adminVerifyHint": "Admin will verify this document before you can accept jobs.",
+        "createAccountBtn": "Create Account",
+        "signupWithGoogle": "Sign up with Google"
+    },
+    "settings": {
+        "language": "Language",
+        "english": "English",
+        "sinhala": "Sinhala (සිංහල)"
+    },
+    "profile": {
+        "title": "Profile Settings",
+        "firstName": "First Name",
+        "lastName": "Last Name",
+        "location": "District",
+        "phone": "Phone Number",
+        "email": "Email",
+        "saveChanges": "Save Changes",
+        "saving": "Saving...",
+        "saved": "✓ Saved!"
+    },
+    "account": {
+        "title": "Account",
+        "electricianId": "00E",
+        "householderId": "00H",
+        "kycDocument": "KYC Document",
+        "verified": "Verified",
+        "pendingReview": "Pending Review",
+        "noDocument": "No document uploaded.",
+        "profileSettings": "Profile Settings",
+        "aboutUs": "About Us",
+        "helpSupport": "Help & Support",
+        "language": "Language: English",
+        "logout": "Logout",
+        "logoutConfirmMsg": "Are you sure you want to logout?",
+        "cancel": "Cancel",
+        "version": "PowerLink"
+    },
+    "validation": {
+        "required": "Required",
+        "invalidPhone": "Invalid phone format",
+        "invalidEmail": "Invalid email format",
+        "emailOrPhoneReq": "Email or phone is required",
+        "passwordReq": "Password is required",
+        "firstNameReq": "First name is required",
+        "lastNameReq": "Last name is required",
+        "addressReq": "Address is required",
+        "districtReq": "Please select a district",
+        "phoneReq": "Phone number is required",
+        "phoneFormat": "Enter valid 10-digit phone (e.g., 0771234567)",
+        "emailReq": "Email is required",
+        "emailFormat": "Enter a valid email address",
+        "passwordLength": "Password must be at least 6 characters",
+        "confirmPasswordReq": "Please confirm your password",
+        "passwordMismatch": "Passwords do not match",
+        "nvqReq": "NVQ Certificate/NIC upload is required for Electricians"
+    },
+    "dashboard": {
+        "hello": "Hello, ",
+        "electrician": "Electrician",
+        "location": "Location",
+        "available": "Available for Jobs",
+        "unavailable": "Unavailable",
+        "pendingVerifTitle": "Account Pending Verification",
+        "pendingVerifDesc": "Your NVQ Certificate or NIC is currently being reviewed by an admin. You will be able to see and accept jobs once your account is verified.",
+        "refreshStatus": "Refresh Status",
+        "stillUnderReview": "Still under review. Check back later.",
+        "rating": "Rating",
+        "jobs": "Jobs",
+        "earned": "Earned",
+        "serviceSetup": "Service Setup",
+        "serviceSetupDesc": "Configure your categories & pricing",
+        "availableJobsNearby": "Available Jobs Nearby",
+        "acceptJob": "Accept Job"
+    },
+    "activities": {
+        "title": "Activities",
+        "subtitle": "Your service history",
+        "fetchError": "Failed to fetch history",
+        "networkError": "Could not connect to the server",
+        "generalService": "General Service",
+        "clientId": "Client ID: ",
+        "techId": "Tech ID: ",
+        "pending": "Pending",
+        "noActivities": "No past activities found."
+    },
+    "householder": {
+        "user": "User",
+        "location": "Location",
+        "needQuickHelp": "Need quick help?",
+        "helpSubtitle": "Select a category below to report an issue",
+        "quickActions": "⚡ Quick Actions",
+        "categories": {
+            "power": {
+                "title": "Report Power Outage & Supply Issues",
+                "subtitle": "Outages, interruptions & supply problems"
+            },
+            "voltage": {
+                "title": "Voltage & Technical Issues",
+                "subtitle": "Voltage fluctuation & technical faults"
+            },
+            "safety": {
+                "title": "Safety-Related Issues",
+                "subtitle": "Sparks, fire hazards & safety risks"
+            },
+            "infrastructure": {
+                "title": "Infrastructure Issues",
+                "subtitle": "Damaged poles, wires & equipment"
+            },
+            "monitoring": {
+                "title": "Monitoring & Device Issues",
+                "subtitle": "Meter faults & device monitoring"
+            }
+        }
+    },
+    "activityDetail": {
+        "title": "Activity Details",
+        "issueInfo": "Issue Information",
+        "category": "Category",
+        "subType": "Sub-type",
+        "status": "Status",
+        "electrician": "Electrician",
+        "payment": "Payment",
+        "amount": "Amount",
+        "date": "Date",
+        "timeline": "Timeline",
+        "timelineSteps": {
+            "requestCreated": "Request Created",
+            "electricianAccepted": "Electrician Accepted",
+            "electricianArrived": "Electrician Arrived",
+            "jobCompleted": "Job Completed"
+        }
+    },
+    "subCategory": {
+        "power": {
+            "complete": "Complete Power Outage",
+            "partial": "Partial Power Outage",
+            "intermittent": "Intermittent Supply",
+            "scheduled": "Scheduled Power Cut",
+            "sudden": "Sudden Power Loss"
+        },
+        "voltage": {
+            "low": "Low Voltage",
+            "high": "High Voltage",
+            "fluctuating": "Fluctuating Voltage",
+            "dim": "Dim Lights"
+        },
+        "safety": {
+            "sparks": "Sparks from Meter",
+            "burning": "Burning Smell",
+            "exposed": "Exposed Wiring",
+            "shock": "Electric Shock Risk"
+        },
+        "infrastructure": {
+            "damagedLines": "Damaged Power Lines",
+            "fallenPole": "Fallen Pole",
+            "brokenBox": "Broken Meter Box"
+        },
+        "monitoring": {
+            "faultyReading": "Faulty Meter Reading",
+            "smartMeter": "Smart Meter Issue",
+            "connectivity": "Device Connectivity"
+        },
+        "general": {
+            "generalIssue": "General Issue",
+            "other": "Other"
+        },
+        "validation": {
+            "describeIssue": "Please describe the issue",
+            "limitReachedTitle": "Limit Reached",
+            "limitReachedMsg": "You can only upload up to 3 photos.",
+            "uploadFailedTitle": "Upload Failed",
+            "uploadFailedMsg": "Failed to upload photo",
+            "uploadErrorTitle": "Upload Error",
+            "uploadErrorMsg": "Could not reach server to upload the photo"
+        },
+        "ui": {
+            "selectIssue": "Select specific issue",
+            "describeLabel": "Describe the Issue",
+            "describePlaceholder": "Tell us more about the problem...",
+            "addPhotos": "Add Photos (Optional)",
+            "photoHint": "A picture of a burnt socket or tripped breaker helps the electrician.",
+            "addPhotoBtn": "Add Photo",
+            "continueBtn": "Continue to Location"
+        }
+    },
+    "locationSelection": {
+        "gettingLocation": "Getting your location...",
+        "yourLocation": "Your Location",
+        "dragMapHint": "Drag the map to adjust location",
+        "confirmBtn": "Confirm Location"
+    },
+    "availableElectricians": {
+        "title": "Nearby Electricians",
+        "emptyTitle": "No Electricians Available",
+        "emptyDesc": "We couldn't find any available electricians near your location at this moment.",
+        "callCebTitle": "Call CEB Hotline",
+        "callCebDesc": "Ceylon Electricity Board 24/7 Support",
+        "callCebBtn": "Call 1987 Now",
+        "acceptBtn": "Accept",
+        "confirmTitle": "Confirm Request",
+        "confirmDesc1": "Request ",
+        "confirmDesc2": " for ",
+        "cancel": "Cancel",
+        "confirm": "Confirm",
+        "errorTitle": "Error",
+        "errorMsg": "Failed to create job request.",
+        "networkErrorTitle": "Network Error",
+        "networkErrorMsg": "Could not connect to the server to create the job."
+    },
+    "trackElectrician": {
+        "statusOnTheWay": "On the way",
+        "statusArrived": "Arrived",
+        "etaMinutes": " min",
+        "arrived": "Arrived!",
+        "yourLocation": "Your Location",
+        "provideCode": "Provide this code to start the job:",
+        "call": "Call",
+        "completeJob": "Complete Job",
+        "cancelJob": "Cancel",
+        "cancelTitleFree": "Cancel Request",
+        "cancelMsgFree1": "Are you sure? You have ",
+        "cancelMsgFree2": " minute(s) left to cancel for free.",
+        "cancelTitleFee": "Travel Fee Applies",
+        "cancelMsgFee": "You are cancelling after the 5-minute free window. A small travel fee will be deducted to compensate the electrician.",
+        "keepJobBtn": "Keep Job",
+        "cancelJobBtnFree": "Cancel Job",
+        "cancelJobBtnFee": "Accept Fee & Cancel",
+        "cancelReason": "Householder cancelled from UI"
+    },
+    "rating": {
+        "thankYou": "Thank You! 🎉",
+        "thankYouSubtitle": "Your feedback helps us improve",
+        "title": "Rate Your Experience",
+        "subtitle1": "How was ",
+        "subtitle2": "?",
+        "tapToRate": "Tap to rate",
+        "rating1_2": "Could be better",
+        "rating3": "Good",
+        "rating4": "Great!",
+        "rating5": "Excellent! ⭐",
+        "feedbackLabel": "Feedback (Optional)",
+        "feedbackPlaceholder": "Share your experience...",
+        "submitBtn": "Submit Rating"
+    },
+    "chat": {
+        "title": "Chat",
+        "activeJob": "Active Job #",
+        "emptyState": "Send a message to provide directions or details.",
+        "placeholder": "Type a message..."
+    },
+    "serviceSetup": {
+        "title": "Service Setup",
+        "selectCategory": "Select Category",
+        "catRequired": "Select a category",
+        "selectSubcategory": "Select Subcategory",
+        "subRequired": "Select a subcategory",
+        "serviceAmount": "Service Amount",
+        "amountRequired": "Enter service amount",
+        "amountInvalid": "Enter a valid amount",
+        "amountLabel": "Amount (LKR)",
+        "amountPlaceholder": "e.g., 1500",
+        "currencyPrefix": "LKR ",
+        "saved": "✓ Saved!",
+        "saveService": "Save Service"
+    },
+    "earnings": {
+        "title": "Earnings",
+        "subtitle": "Track your income",
+        "totalNet": "Total Net Earnings",
+        "cashInHand": "Cash in Hand",
+        "digital": "Digital",
+        "commissionOwed": "Commission Owed: LKR ",
+        "settleCommission": "Please settle this amount to avoid account suspension.",
+        "weeklyEarnings": "Weekly Earnings",
+        "recentTransactions": "Recent Transactions",
+        "noTransactions": "No recent transactions found.",
+        "errorTitle": "Error",
+        "errorMsg": "Failed to fetch earnings.",
+        "networkErrorTitle": "Network Error",
+        "networkErrorMsg": "Could not connect to the server."
+    },
+    "pastActivities": {
+        "title": "Past Activities",
+        "subtitle": "Your completed jobs"
+    },
+    "aboutUs": {
+        "title": "About Us",
+        "tagline": "Smart Electricity Monitoring System",
+        "missionTitle": "Our Mission",
+        "missionText": "PowerLink is an AI-driven smart mobile electricity monitoring system designed to bridge the gap between households and certified electricians. We aim to make electrical services accessible, transparent, and efficient for everyone.",
+        "whyTitle": "Why PowerLink?",
+        "footer": "© 2025 PowerLink. All rights reserved.",
+        "features": {
+            "reliable": {
+                "title": "Reliable Support",
+                "desc": "Connect with verified electricians in your area anytime."
+            },
+            "fast": {
+                "title": "Fast Emergency Response",
+                "desc": "Get immediate help during power emergencies."
+            },
+            "certified": {
+                "title": "Certified Electricians",
+                "desc": "All electricians are certified and background-checked."
+            },
+            "tech": {
+                "title": "Tech-Driven Service",
+                "desc": "AI-powered matching and real-time tracking."
+            }
+        }
+    },
+    "helpSupport": {
+        "title": "Help & Support",
+        "subtitle": "We're here to help",
+        "desc": "Our support team is available 24/7 to assist you with any issues.",
+        "emailSupport": "Email Support",
+        "callUs": "Call Us",
+        "sendSms": "Send SMS"
+    }
+}

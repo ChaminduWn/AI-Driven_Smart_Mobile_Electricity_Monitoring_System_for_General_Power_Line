@@ -9,8 +9,10 @@ import Ionicons from 'react-native-vector-icons/Ionicons';
 import * as ImagePicker from 'expo-image-picker';
 import { Alert, ActivityIndicator, Image } from 'react-native';
 import * as FileSystem from 'expo-file-system/legacy';
+import { useTranslation } from 'react-i18next';
 
 export const SubCategoryScreen = ({ route, navigation }) => {
+    const { t } = useTranslation();
     const { category } = route.params || { category: { title: 'Unknown', id: 'unknown', color: theme.colors.primary } };
     const [selectedSub, setSelectedSub] = useState(null);
     const [description, setDescription] = useState('');
@@ -22,42 +24,42 @@ export const SubCategoryScreen = ({ route, navigation }) => {
         switch (catId) {
             case 'power':
                 return [
-                    { name: 'Complete Power Outage', icon: 'flash-off' },
-                    { name: 'Partial Power Outage', icon: 'flash' },
-                    { name: 'Intermittent Supply', icon: 'swap-horizontal' },
-                    { name: 'Scheduled Power Cut', icon: 'calendar' },
-                    { name: 'Sudden Power Loss', icon: 'thunderstorm' },
+                    { name: t('subCategory.power.complete'), icon: 'flash-off' },
+                    { name: t('subCategory.power.partial'), icon: 'flash' },
+                    { name: t('subCategory.power.intermittent'), icon: 'swap-horizontal' },
+                    { name: t('subCategory.power.scheduled'), icon: 'calendar' },
+                    { name: t('subCategory.power.sudden'), icon: 'thunderstorm' },
                 ];
             case 'voltage':
                 return [
-                    { name: 'Low Voltage', icon: 'trending-down' },
-                    { name: 'High Voltage', icon: 'trending-up' },
-                    { name: 'Fluctuating Voltage', icon: 'pulse' },
-                    { name: 'Dim Lights', icon: 'bulb' },
+                    { name: t('subCategory.voltage.low'), icon: 'trending-down' },
+                    { name: t('subCategory.voltage.high'), icon: 'trending-up' },
+                    { name: t('subCategory.voltage.fluctuating'), icon: 'pulse' },
+                    { name: t('subCategory.voltage.dim'), icon: 'bulb' },
                 ];
             case 'safety':
                 return [
-                    { name: 'Sparks from Meter', icon: 'flame' },
-                    { name: 'Burning Smell', icon: 'alert-circle' },
-                    { name: 'Exposed Wiring', icon: 'warning' },
-                    { name: 'Electric Shock Risk', icon: 'skull' },
+                    { name: t('subCategory.safety.sparks'), icon: 'flame' },
+                    { name: t('subCategory.safety.burning'), icon: 'alert-circle' },
+                    { name: t('subCategory.safety.exposed'), icon: 'warning' },
+                    { name: t('subCategory.safety.shock'), icon: 'skull' },
                 ];
             case 'infrastructure':
                 return [
-                    { name: 'Damaged Power Lines', icon: 'git-branch' },
-                    { name: 'Fallen Pole', icon: 'arrow-down-circle' },
-                    { name: 'Broken Meter Box', icon: 'cube' },
+                    { name: t('subCategory.infrastructure.damagedLines'), icon: 'git-branch' },
+                    { name: t('subCategory.infrastructure.fallenPole'), icon: 'arrow-down-circle' },
+                    { name: t('subCategory.infrastructure.brokenBox'), icon: 'cube' },
                 ];
             case 'monitoring':
                 return [
-                    { name: 'Faulty Meter Reading', icon: 'speedometer' },
-                    { name: 'Smart Meter Issue', icon: 'phone-portrait' },
-                    { name: 'Device Connectivity', icon: 'wifi' },
+                    { name: t('subCategory.monitoring.faultyReading'), icon: 'speedometer' },
+                    { name: t('subCategory.monitoring.smartMeter'), icon: 'phone-portrait' },
+                    { name: t('subCategory.monitoring.connectivity'), icon: 'wifi' },
                 ];
             default:
                 return [
-                    { name: 'General Issue', icon: 'help-circle' },
-                    { name: 'Other', icon: 'ellipsis-horizontal' },
+                    { name: t('subCategory.general.generalIssue'), icon: 'help-circle' },
+                    { name: t('subCategory.general.other'), icon: 'ellipsis-horizontal' },
                 ];
         }
     };
@@ -66,7 +68,7 @@ export const SubCategoryScreen = ({ route, navigation }) => {
 
     const handleNext = () => {
         if (!description.trim()) {
-            setDescError('Please describe the issue');
+            setDescError(t('subCategory.validation.describeIssue'));
             return;
         }
         navigation.navigate('LocationSelection', {
@@ -79,7 +81,7 @@ export const SubCategoryScreen = ({ route, navigation }) => {
 
     const pickImage = async () => {
         if (issuePhotos.length >= 3) {
-            return Alert.alert('Limit Reached', 'You can only upload up to 3 photos.');
+            return Alert.alert(t('subCategory.validation.limitReachedTitle'), t('subCategory.validation.limitReachedMsg'));
         }
 
         const result = await ImagePicker.launchImageLibraryAsync({
@@ -92,7 +94,7 @@ export const SubCategoryScreen = ({ route, navigation }) => {
             setUploadingImage(true);
             try {
                 const uploadResponse = await FileSystem.uploadAsync(
-                    'http://192.168.8.101:8003/api/upload',
+                    'http://10.48.201.167:8003/api/upload',
                     result.assets[0].uri,
                     {
                         fieldName: 'image',
@@ -106,10 +108,10 @@ export const SubCategoryScreen = ({ route, navigation }) => {
                 if (uploadData.success && uploadData.url) {
                     setIssuePhotos([...issuePhotos, uploadData.url]);
                 } else {
-                    Alert.alert('Upload Failed', uploadData.message || 'Failed to upload photo');
+                    Alert.alert(t('subCategory.validation.uploadFailedTitle'), uploadData.message || t('subCategory.validation.uploadFailedMsg'));
                 }
             } catch (err) {
-                Alert.alert('Upload Error', `Could not reach server to upload the photo: ${err.message || 'Unknown network error'}`);
+                Alert.alert(t('subCategory.validation.uploadErrorTitle'), `${t('subCategory.validation.uploadErrorMsg')}: ${err.message || 'Unknown network error'}`);
             } finally {
                 setUploadingImage(false);
             }
@@ -125,7 +127,7 @@ export const SubCategoryScreen = ({ route, navigation }) => {
                 </TouchableOpacity>
                 <View style={styles.headerInfo}>
                     <Text style={styles.headerTitle}>{category.title}</Text>
-                    <Text style={styles.headerSubtitle}>Select specific issue</Text>
+                    <Text style={styles.headerSubtitle}>{t('subCategory.ui.selectIssue')}</Text>
                 </View>
             </View>
 
@@ -172,24 +174,24 @@ export const SubCategoryScreen = ({ route, navigation }) => {
                 {/* Description & CTA */}
                 {selectedSub && (
                     <View style={styles.detailsContainer}>
-                        <Text style={styles.descLabel}>Describe the Issue</Text>
+                        <Text style={styles.descLabel}>{t('subCategory.ui.describeLabel')}</Text>
                         <Input
-                            placeholder="Tell us more about the problem..."
+                            placeholder={t('subCategory.ui.describePlaceholder')}
                             value={description}
-                            onChangeText={(t) => { setDescription(t); setDescError(''); }}
+                            onChangeText={(tInput) => { setDescription(tInput); setDescError(''); }}
                             multiline
                             numberOfLines={4}
                             error={descError}
                         />
 
                         {/* Photo Upload Section */}
-                        <Text style={[styles.descLabel, { marginTop: theme.spacing.md }]}>Add Photos (Optional)</Text>
-                        <Text style={styles.photoHint}>A picture of a burnt socket or tripped breaker helps the electrician.</Text>
+                        <Text style={[styles.descLabel, { marginTop: theme.spacing.md }]}>{t('subCategory.ui.addPhotos')}</Text>
+                        <Text style={styles.photoHint}>{t('subCategory.ui.photoHint')}</Text>
 
                         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.photoScroll}>
                             {issuePhotos.map((photoUrl, index) => (
                                 <View key={index} style={styles.photoThumbnailContainer}>
-                                    <Image source={{ uri: `http://192.168.8.101:8003${photoUrl}` }} style={styles.photoThumbnail} />
+                                    <Image source={{ uri: `http://10.48.201.167:8003${photoUrl}` }} style={styles.photoThumbnail} />
                                     <TouchableOpacity
                                         style={styles.removePhotoBtn}
                                         onPress={() => setIssuePhotos(issuePhotos.filter((_, i) => i !== index))}
@@ -210,7 +212,7 @@ export const SubCategoryScreen = ({ route, navigation }) => {
                                     ) : (
                                         <>
                                             <Ionicons name="camera" size={28} color={theme.colors.primary} />
-                                            <Text style={styles.addPhotoText}>Add Photo</Text>
+                                            <Text style={styles.addPhotoText}>{t('subCategory.ui.addPhotoBtn')}</Text>
                                         </>
                                     )}
                                 </TouchableOpacity>
@@ -218,7 +220,7 @@ export const SubCategoryScreen = ({ route, navigation }) => {
                         </ScrollView>
 
                         <GradientButton
-                            title="Continue to Location"
+                            title={t('subCategory.ui.continueBtn')}
                             icon="search"
                             onPress={handleNext}
                             style={{ marginTop: theme.spacing.sm }}

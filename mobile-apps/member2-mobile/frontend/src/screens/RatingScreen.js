@@ -5,8 +5,10 @@ import { theme } from '../theme';
 import { GradientButton } from '../components/GradientButton';
 import { Input } from '../components/Input';
 import Ionicons from 'react-native-vector-icons/Ionicons';
+import { useTranslation } from 'react-i18next';
 
 export const RatingScreen = ({ route, navigation }) => {
+    const { t } = useTranslation();
     const { electrician } = route.params;
     const [rating, setRating] = useState(0);
     const [feedback, setFeedback] = useState('');
@@ -53,10 +55,10 @@ export const RatingScreen = ({ route, navigation }) => {
                         </View>
                     </Animated.View>
                     <Animated.Text style={[styles.thankYouTitle, { opacity: opacityAnim }]}>
-                        Thank You! 🎉
+                        {t('rating.thankYou')}
                     </Animated.Text>
                     <Animated.Text style={[styles.thankYouSubtitle, { opacity: opacityAnim }]}>
-                        Your feedback helps us improve
+                        {t('rating.thankYouSubtitle')}
                     </Animated.Text>
                 </View>
             </SafeAreaView>
@@ -71,8 +73,8 @@ export const RatingScreen = ({ route, navigation }) => {
                     <View style={styles.avatarLarge}>
                         <Ionicons name="person" size={32} color={theme.colors.primary} />
                     </View>
-                    <Text style={styles.title}>Rate Your Experience</Text>
-                    <Text style={styles.subtitle}>How was {electrician.name}?</Text>
+                    <Text style={styles.title}>{t('rating.title')}</Text>
+                    <Text style={styles.subtitle}>{t('rating.subtitle1')}{electrician.name}{t('rating.subtitle2')}</Text>
                 </View>
 
                 {/* Star Rating */}
@@ -92,16 +94,16 @@ export const RatingScreen = ({ route, navigation }) => {
                     ))}
                 </View>
                 <Text style={styles.ratingLabel}>
-                    {rating === 0 ? 'Tap to rate' :
-                        rating <= 2 ? 'Could be better' :
-                            rating <= 3 ? 'Good' :
-                                rating <= 4 ? 'Great!' : 'Excellent! ⭐'}
+                    {rating === 0 ? t('rating.tapToRate') :
+                        rating <= 2 ? t('rating.rating1_2') :
+                            rating <= 3 ? t('rating.rating3') :
+                                rating <= 4 ? t('rating.rating4') : t('rating.rating5')}
                 </Text>
 
                 {/* Feedback Input */}
                 <Input
-                    label="Feedback (Optional)"
-                    placeholder="Share your experience..."
+                    label={t('rating.feedbackLabel')}
+                    placeholder={t('rating.feedbackPlaceholder')}
                     value={feedback}
                     onChangeText={setFeedback}
                     multiline
@@ -110,7 +112,7 @@ export const RatingScreen = ({ route, navigation }) => {
 
                 {/* Submit */}
                 <GradientButton
-                    title="Submit Rating"
+                    title={t('rating.submitBtn')}
                     icon="send"
                     onPress={handleSubmit}
                     disabled={rating === 0}

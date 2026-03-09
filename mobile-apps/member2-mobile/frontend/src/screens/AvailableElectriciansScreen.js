@@ -6,10 +6,12 @@ import { Card } from '../components/Card';
 import { GradientButton } from '../components/GradientButton';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { useAuth } from '../context/AuthContext';
+import { useTranslation } from 'react-i18next';
 
 export const AvailableElectriciansScreen = ({ route, navigation }) => {
     const { category, subCategory, description, location, issuePhotos } = route.params;
     const { user } = useAuth();
+    const { t } = useTranslation();
 
     const [electricians] = useState([
         { id: '1', name: 'Roshan Perera', rating: 4.8, distance: '1.2 km', vehicle: 'WP CAB-1234', amount: 'LKR 1,500', reviews: 48 },
@@ -19,12 +21,12 @@ export const AvailableElectriciansScreen = ({ route, navigation }) => {
 
     const handleAccept = (electrician) => {
         Alert.alert(
-            'Confirm Request',
-            `Request ${electrician.name} for ${electrician.amount}?`,
+            t('availableElectricians.confirmTitle'),
+            `${t('availableElectricians.confirmDesc1')}${electrician.name}${t('availableElectricians.confirmDesc2')}${electrician.amount}?`,
             [
-                { text: 'Cancel', style: 'cancel' },
+                { text: t('availableElectricians.cancel'), style: 'cancel' },
                 {
-                    text: 'Confirm',
+                    text: t('availableElectricians.confirm'),
                     onPress: async () => {
                         try {
                             const payload = {
@@ -40,7 +42,7 @@ export const AvailableElectriciansScreen = ({ route, navigation }) => {
                                 issuePhotos: issuePhotos || [],
                             };
 
-                            const response = await fetch('http://192.168.8.101:8003/api/jobs', {
+                            const response = await fetch('http://10.48.201.167:8003/api/jobs', {
                                 method: 'POST',
                                 headers: {
                                     'Content-Type': 'application/json',
@@ -57,10 +59,10 @@ export const AvailableElectriciansScreen = ({ route, navigation }) => {
                                     job: data.job
                                 });
                             } else {
-                                Alert.alert('Error', data.message || 'Failed to create job request.');
+                                Alert.alert(t('availableElectricians.errorTitle'), data.message || t('availableElectricians.errorMsg'));
                             }
                         } catch (err) {
-                            Alert.alert('Network Error', 'Could not connect to the server to create the job.');
+                            Alert.alert(t('availableElectricians.networkErrorTitle'), t('availableElectricians.networkErrorMsg'));
                         }
                     },
                 },
@@ -116,7 +118,7 @@ export const AvailableElectriciansScreen = ({ route, navigation }) => {
             </View>
 
             <GradientButton
-                title="Accept"
+                title={t('availableElectricians.acceptBtn')}
                 onPress={() => handleAccept(item)}
                 style={styles.acceptButton}
             />
@@ -130,7 +132,7 @@ export const AvailableElectriciansScreen = ({ route, navigation }) => {
                     <Ionicons name="arrow-back" size={24} color={theme.colors.text} />
                 </TouchableOpacity>
                 <View>
-                    <Text style={styles.headerTitle}>Nearby Electricians</Text>
+                    <Text style={styles.headerTitle}>{t('availableElectricians.title')}</Text>
                     <Text style={styles.headerSubtitle}>{category.title} • {subCategory}</Text>
                 </View>
             </View>
@@ -140,21 +142,21 @@ export const AvailableElectriciansScreen = ({ route, navigation }) => {
                     <View style={styles.emptyIconContainer}>
                         <Ionicons name="sad-outline" size={64} color={theme.colors.textMuted} />
                     </View>
-                    <Text style={styles.emptyTitle}>No Electricians Available</Text>
+                    <Text style={styles.emptyTitle}>{t('availableElectricians.emptyTitle')}</Text>
                     <Text style={styles.emptyDesc}>
-                        We couldn't find any available electricians near your location at this moment.
+                        {t('availableElectricians.emptyDesc')}
                     </Text>
 
                     <View style={styles.cebBox}>
                         <Ionicons name="call" size={24} color={theme.colors.primary} />
                         <View style={styles.cebInfo}>
-                            <Text style={styles.cebTitle}>Call CEB Hotline</Text>
-                            <Text style={styles.cebDesc}>Ceylon Electricity Board 24/7 Support</Text>
+                            <Text style={styles.cebTitle}>{t('availableElectricians.callCebTitle')}</Text>
+                            <Text style={styles.cebDesc}>{t('availableElectricians.callCebDesc')}</Text>
                         </View>
                     </View>
 
                     <GradientButton
-                        title="Call 1987 Now"
+                        title={t('availableElectricians.callCebBtn')}
                         icon="call"
                         onPress={() => Linking.openURL('tel:1987')}
                         style={{ marginTop: theme.spacing.lg }}

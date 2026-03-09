@@ -7,9 +7,11 @@ import Ionicons from 'react-native-vector-icons/Ionicons';
 
 import { useAuth } from '../context/AuthContext';
 import { ActivityIndicator, Alert } from 'react-native';
+import { useTranslation } from 'react-i18next';
 
 export const ActivitiesScreen = ({ navigation }) => {
     const { user } = useAuth();
+    const { t } = useTranslation();
     const [activities, setActivities] = React.useState([]);
     const [loading, setLoading] = React.useState(true);
 
@@ -18,16 +20,16 @@ export const ActivitiesScreen = ({ navigation }) => {
             if (!user?.id) return;
             try {
                 // Must ensure API URL targets standard localhost for ADB forwarding hook
-                const response = await fetch(`http://192.168.8.101:8003/api/jobs/history/${user.id}`);
+                const response = await fetch(`http://10.48.201.167:8003/api/jobs/history/${user.id}`);
                 const data = await response.json();
                 if (data.success) {
                     setActivities(data.jobs);
                 } else {
-                    Alert.alert('Error', data.message || 'Failed to fetch history');
+                    Alert.alert('Error', data.message || t('activities.fetchError'));
                 }
             } catch (error) {
                 console.error('Fetch history error', error);
-                Alert.alert('Error', 'Could not connect to the server');
+                Alert.alert('Error', t('activities.networkError'));
             } finally {
                 setLoading(false);
             }
@@ -66,7 +68,7 @@ export const ActivitiesScreen = ({ navigation }) => {
             <View style={styles.cardTop}>
                 <View style={styles.typeInfo}>
                     <Text style={styles.issueType}>{item.category || item.title}</Text>
-                    <Text style={styles.subType}>{item.subCategory || 'General Service'}</Text>
+                    <Text style={styles.subType}>{item.subCategory || t('activities.generalService')}</Text>
                 </View>
                 <View style={[styles.statusBadge, { backgroundColor: getStatusColor(item.status) + '15' }]}>
                     <Ionicons name={getStatusIcon(item.status)} size={14} color={getStatusColor(item.status)} />
@@ -77,7 +79,7 @@ export const ActivitiesScreen = ({ navigation }) => {
             <View style={styles.cardBottom}>
                 <View style={styles.detailItem}>
                     <Ionicons name="person-outline" size={14} color={theme.colors.textMuted} />
-                    <Text style={styles.detailText}>{user?.role === 'Electrician' ? 'Client ID: ' + item.householderId.substring(0, 4) : 'Tech ID: ' + (item.electricianId ? item.electricianId.substring(0, 4) : 'Pending')}</Text>
+                    <Text style={styles.detailText}>{user?.role === 'Electrician' ? t('activities.clientId') + item.householderId.substring(0, 4) : t('activities.techId') + (item.electricianId ? item.electricianId.substring(0, 4) : t('activities.pending'))}</Text>
                 </View>
                 <View style={styles.detailItem}>
                     <Ionicons name="calendar-outline" size={14} color={theme.colors.textMuted} />
@@ -102,8 +104,8 @@ export const ActivitiesScreen = ({ navigation }) => {
     return (
         <SafeAreaView style={styles.container}>
             <View style={styles.header}>
-                <Text style={styles.headerTitle}>Activities</Text>
-                <Text style={styles.headerSubtitle}>Your service history</Text>
+                <Text style={styles.headerTitle}>{t('activities.title')}</Text>
+                <Text style={styles.headerSubtitle}>{t('activities.subtitle')}</Text>
             </View>
             {loading ? (
                 <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
@@ -120,7 +122,7 @@ export const ActivitiesScreen = ({ navigation }) => {
             ) : (
                 <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
                     <Ionicons name="document-text-outline" size={64} color={theme.colors.textMuted} style={{ marginBottom: 16 }} />
-                    <Text style={{ ...theme.typography.body, color: theme.colors.textSecondary }}>No past activities found.</Text>
+                    <Text style={{ ...theme.typography.body, color: theme.colors.textSecondary }}>{t('activities.noActivities')}</Text>
                 </View>
             )}
         </SafeAreaView>

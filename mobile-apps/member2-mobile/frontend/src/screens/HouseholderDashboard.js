@@ -4,19 +4,20 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { theme } from '../theme';
 import { useAuth } from '../context/AuthContext';
 import { Card } from '../components/Card';
-import { LanguageToggle } from '../components/LanguageToggle';
 import Ionicons from 'react-native-vector-icons/Ionicons';
+import { useTranslation } from 'react-i18next';
+import { VoiceCommander } from '../components/VoiceCommander';
 
 export const HouseholderDashboard = ({ navigation }) => {
     const { user } = useAuth();
-    const [language, setLanguage] = useState('EN');
+    const { t } = useTranslation();
 
     const categories = [
-        { id: 'power', title: 'Power Supply Issues', subtitle: 'Outages, interruptions & supply problems', icon: 'flash', color: theme.colors.categoryAmber },
-        { id: 'voltage', title: 'Voltage & Technical Issues', subtitle: 'Voltage fluctuation & technical faults', icon: 'pulse', color: theme.colors.categoryBlue },
-        { id: 'safety', title: 'Safety-Related Issues', subtitle: 'Sparks, fire hazards & safety risks', icon: 'warning', color: theme.colors.categoryRed },
-        { id: 'infrastructure', title: 'Infrastructure Issues', subtitle: 'Damaged poles, wires & equipment', icon: 'construct', color: theme.colors.categoryOrange },
-        { id: 'monitoring', title: 'Monitoring & Device Issues', subtitle: 'Meter faults & device monitoring', icon: 'analytics', color: theme.colors.categoryGreen },
+        { id: 'power', title: t('householder.categories.power.title'), subtitle: t('householder.categories.power.subtitle'), icon: 'flash', color: theme.colors.categoryAmber },
+        { id: 'voltage', title: t('householder.categories.voltage.title'), subtitle: t('householder.categories.voltage.subtitle'), icon: 'pulse', color: theme.colors.categoryBlue },
+        { id: 'safety', title: t('householder.categories.safety.title'), subtitle: t('householder.categories.safety.subtitle'), icon: 'warning', color: theme.colors.categoryRed },
+        { id: 'infrastructure', title: t('householder.categories.infrastructure.title'), subtitle: t('householder.categories.infrastructure.subtitle'), icon: 'construct', color: theme.colors.categoryOrange },
+        { id: 'monitoring', title: t('householder.categories.monitoring.title'), subtitle: t('householder.categories.monitoring.subtitle'), icon: 'analytics', color: theme.colors.categoryGreen },
     ];
 
     return (
@@ -26,16 +27,15 @@ export const HouseholderDashboard = ({ navigation }) => {
             {/* Header */}
             <View style={styles.header}>
                 <View style={styles.headerLeft}>
-                    <Text style={styles.userName}>{user?.firstName || 'User'}</Text>
+                    <Text style={styles.userName}>{t('dashboard.hello')}{user?.firstName || t('householder.user')}</Text>
                     <Text style={styles.userInfo}>
-                        📍 {user?.district || 'Location'}
+                        📍 {user?.district || t('householder.location')}
                     </Text>
                 </View>
                 <View style={styles.headerRight}>
                     <View style={styles.idBadge}>
                         <Text style={styles.idText}>00H#{user?.displayId || '1'}</Text>
                     </View>
-                    <LanguageToggle language={language} onToggle={setLanguage} />
                 </View>
             </View>
 
@@ -43,6 +43,8 @@ export const HouseholderDashboard = ({ navigation }) => {
                 contentContainerStyle={styles.scrollContent}
                 showsVerticalScrollIndicator={false}
             >
+                {/* Voice Command Section (Research Component) - Moved to Global Navbar */}
+
                 {/* Quick Help Banner */}
                 <Card style={styles.helpBanner} glowColor={theme.colors.secondary}>
                     <View style={styles.helpContent}>
@@ -50,8 +52,8 @@ export const HouseholderDashboard = ({ navigation }) => {
                             <Ionicons name="headset" size={24} color={theme.colors.secondary} />
                         </View>
                         <View style={{ flex: 1 }}>
-                            <Text style={styles.helpTitle}>Need quick help?</Text>
-                            <Text style={styles.helpSubtitle}>Select a category below to report an issue</Text>
+                            <Text style={styles.helpTitle}>{t('householder.needQuickHelp')}</Text>
+                            <Text style={styles.helpSubtitle}>{t('householder.helpSubtitle')}</Text>
                         </View>
                         <Ionicons name="arrow-forward-circle" size={24} color={theme.colors.secondary} />
                     </View>
@@ -60,7 +62,7 @@ export const HouseholderDashboard = ({ navigation }) => {
                 {/* Quick Actions Section */}
                 <View style={styles.sectionHeader}>
                     <Text style={styles.sectionTitle}>
-                        ⚡ Quick Actions
+                        {t('householder.quickActions')}
                     </Text>
                 </View>
 

@@ -5,12 +5,12 @@ import { theme } from '../theme';
 import { useAuth } from '../context/AuthContext';
 import { Card } from '../components/Card';
 import { Button } from '../components/Button';
-import { LanguageToggle } from '../components/LanguageToggle';
 import Ionicons from 'react-native-vector-icons/Ionicons';
+import { useTranslation } from 'react-i18next';
 
 export const ElectricianDashboard = ({ navigation }) => {
     const { user } = useAuth();
-    const [language, setLanguage] = useState('EN');
+    const { t } = useTranslation();
     const [isAvailable, setIsAvailable] = useState(true);
 
     const pendingJobs = [
@@ -26,14 +26,13 @@ export const ElectricianDashboard = ({ navigation }) => {
             {/* Header */}
             <View style={styles.header}>
                 <View style={styles.headerLeft}>
-                    <Text style={styles.userName}>Hello, {user?.firstName || 'Electrician'}</Text>
-                    <Text style={styles.userInfo}>📍 {user?.district || 'Location'}</Text>
+                    <Text style={styles.userName}>{t('dashboard.hello')}{user?.firstName || t('dashboard.electrician')}</Text>
+                    <Text style={styles.userInfo}>📍 {user?.district || t('dashboard.location')}</Text>
                 </View>
                 <View style={styles.headerRight}>
                     <View style={styles.idBadge}>
                         <Text style={styles.idText}>00E#{user?.displayId || '1'}</Text>
                     </View>
-                    <LanguageToggle language={language} onToggle={setLanguage} />
                 </View>
             </View>
 
@@ -44,7 +43,7 @@ export const ElectricianDashboard = ({ navigation }) => {
                         <View style={styles.statusInfo}>
                             <View style={[styles.statusDot, { backgroundColor: isAvailable ? theme.colors.success : theme.colors.textMuted }]} />
                             <Text style={styles.statusText}>
-                                {isAvailable ? 'Available for Jobs' : 'Unavailable'}
+                                {isAvailable ? t('dashboard.available') : t('dashboard.unavailable')}
                             </Text>
                         </View>
                         <TouchableOpacity
@@ -62,14 +61,14 @@ export const ElectricianDashboard = ({ navigation }) => {
                         <View style={styles.verificationIcon}>
                             <Ionicons name="time-outline" size={48} color={theme.colors.warning} />
                         </View>
-                        <Text style={styles.verificationTitle}>Account Pending Verification</Text>
+                        <Text style={styles.verificationTitle}>{t('dashboard.pendingVerifTitle')}</Text>
                         <Text style={styles.verificationDesc}>
-                            Your NVQ Certificate or NIC is currently being reviewed by an admin. You will be able to see and accept jobs once your account is verified.
+                            {t('dashboard.pendingVerifDesc')}
                         </Text>
                         <Button
-                            title="Refresh Status"
+                            title={t('dashboard.refreshStatus')}
                             variant="outline"
-                            onPress={() => Alert.alert('Status', 'Still under review. Check back later.')}
+                            onPress={() => Alert.alert('Status', t('dashboard.stillUnderReview'))}
                             style={{ marginTop: theme.spacing.md }}
                         />
                     </View>
@@ -80,17 +79,17 @@ export const ElectricianDashboard = ({ navigation }) => {
                             <Card style={styles.statCard}>
                                 <Ionicons name="star" size={20} color={theme.colors.warning} />
                                 <Text style={styles.statVal}>4.8</Text>
-                                <Text style={styles.statLabel}>Rating</Text>
+                                <Text style={styles.statLabel}>{t('dashboard.rating')}</Text>
                             </Card>
                             <Card style={styles.statCard}>
                                 <Ionicons name="checkmark-done" size={20} color={theme.colors.success} />
                                 <Text style={styles.statVal}>12</Text>
-                                <Text style={styles.statLabel}>Jobs</Text>
+                                <Text style={styles.statLabel}>{t('dashboard.jobs')}</Text>
                             </Card>
                             <Card style={styles.statCard}>
                                 <Ionicons name="wallet" size={20} color={theme.colors.secondary} />
                                 <Text style={styles.statVal}>8.5k</Text>
-                                <Text style={styles.statLabel}>Earned</Text>
+                                <Text style={styles.statLabel}>{t('dashboard.earned')}</Text>
                             </Card>
                         </View>
 
@@ -104,14 +103,14 @@ export const ElectricianDashboard = ({ navigation }) => {
                                 <Ionicons name="settings" size={22} color={theme.colors.primary} />
                             </View>
                             <View style={{ flex: 1 }}>
-                                <Text style={styles.setupTitle}>Service Setup</Text>
-                                <Text style={styles.setupDesc}>Configure your categories & pricing</Text>
+                                <Text style={styles.setupTitle}>{t('dashboard.serviceSetup')}</Text>
+                                <Text style={styles.setupDesc}>{t('dashboard.serviceSetupDesc')}</Text>
                             </View>
                             <Ionicons name="chevron-forward" size={20} color={theme.colors.textMuted} />
                         </TouchableOpacity>
 
                         {/* Available Jobs */}
-                        <Text style={styles.sectionTitle}>Available Jobs Nearby</Text>
+                        <Text style={styles.sectionTitle}>{t('dashboard.availableJobsNearby')}</Text>
                         {pendingJobs.map((job) => (
                             <Card key={job.id} style={styles.jobCard}>
                                 <View style={styles.jobHeader}>
@@ -129,7 +128,7 @@ export const ElectricianDashboard = ({ navigation }) => {
                                     <Text style={styles.jobTime}>{job.time}</Text>
                                 </View>
                                 <Button
-                                    title="Accept Job"
+                                    title={t('dashboard.acceptJob')}
                                     variant="primary"
                                     onPress={() => { }}
                                     style={styles.acceptBtn}
