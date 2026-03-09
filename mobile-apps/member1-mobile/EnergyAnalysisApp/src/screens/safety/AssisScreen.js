@@ -8,17 +8,30 @@ import {
   ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
+  SafeAreaView,
 } from 'react-native';
 import { Text } from 'react-native-paper';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import api from '../../services/safety/api';
+
+// Design Tokens (Original Safety Patterns)
+const C = {
+  bg: '#1a1a2e',
+  card: '#16213e',
+  surface: '#2a2a4e',
+  accent: '#FFD700',
+  textPrimary: '#ffffff',
+  textSecondary: '#aaaaaa',
+  textMuted: '#999999',
+  border: '#FFD700',
+};
 
 const AssistantScreen = () => {
   const [question, setQuestion] = useState('');
   const [messages, setMessages] = useState([
     {
       type: 'bot',
-      text: '⚡ Welcome to the Electricity Safety Assistant!\n\nPUCSL Electricity Guidelines\n\nI can help you with:\n• Electrical hazards\n• Safety procedures\n• Emergency response',
+      text: '⚡ Welcome to the Electricity Safety Assistant!\n\nI can help you with electrical hazards, safety procedures, and emergency response. How can I assist you today?',
       timestamp: new Date(),
     },
   ]);
@@ -29,13 +42,13 @@ const AssistantScreen = () => {
     scrollViewRef.current?.scrollToEnd({ animated: true });
   }, [messages]);
 
-  const askQuestion = async () => {
-    if (!question.trim()) return;
+  const askQuestion = async (q = null) => {
+    const query = q || question;
+    if (!query.trim()) return;
 
-    // Add user message to chat
     const userMessage = {
       type: 'user',
-      text: question,
+      text: query,
       timestamp: new Date(),
     };
     setMessages((prev) => [...prev, userMessage]);
@@ -43,18 +56,22 @@ const AssistantScreen = () => {
     setLoading(true);
 
     try {
-      const data = await api.fetchAssistant(question.trim());
-
-      // Format bot response
+      const data = await api.fetchAssistant(query.trim());
       let botResponse = `${data.answer}`;
+
       if (data.hazard_type && data.hazard_type !== 'Unknown') {
         botResponse += `\n\n🚨 Hazard Type: ${data.hazard_type}`;
       }
       if (data.source && data.source !== 'Unknown' && data.source !== 'N/A') {
-        botResponse += `\n📚 Source: ${data.source}`;
+        botResponse += `\n🗺️ Source: ${data.source}`;
       }
-      if (data.confidence) {
-        botResponse += `\n✅ Confidence: ${(data.confidence * 100).toFixed(0)}%`;
+
+      const confScore = data.confidence ?? data.confidence_score;
+      if (confScore !== undefined && confScore !== null) {
+        const conf = typeof confScore === 'number' ? confScore : parseFloat(confScore);
+        if (!isNaN(conf)) {
+          botResponse += `\n✅ Confidence: ${(conf * 100).toFixed(0)}%`;
+        }
       }
 
       const botMessage = {
@@ -68,7 +85,7 @@ const AssistantScreen = () => {
       console.error('Connection Error:', error);
       const errorMessage = {
         type: 'bot',
-        text: `⚠️ Connection Error\n\n${error.message}\n\nMake sure the API is running:\n\ncd d:\\AI-Driven_Smart_Mobile_Electricity_Monitoring_System_for_General_Power_Line\\backend\\member4-safety-assistant\\safety_model\n\npython -m uvicorn app:app --reload --port 8000`,
+        text: `⚠️ Connection Error\n\nPlease ensure the backend is running and try again.`,
         timestamp: new Date(),
       };
       setMessages((prev) => [...prev, errorMessage]);
@@ -77,323 +94,272 @@ const AssistantScreen = () => {
     }
   };
 
-  const handleQuickQuestion = (quickQ) => {
-    setQuestion(quickQ);
+  const clearChat = () => {
+    setMessages([
+      {
+        type: 'bot',
+        text: '⚡ Chat cleared. How can I help you now?',
+        timestamp: new Date(),
+      },
+    ]);
   };
 
-  return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      style={styles.container}
+  const QuickChip = ({ label, icon, q }) => (
+    <TouchableOpacity
+      style={styles.quickChip}
+      onPress={() => askQuestion(q)}
     >
-      {/* Header */}
-      <View style={styles.header}>
-        <View style={styles.headerContent}>
-          <Icon name="lightning-bolt" size={28} color="#FFD700" />
-          <View style={styles.headerText}>
-            <Text style={styles.headerTitle}>Safety Assistant</Text>
-            <Text style={styles.headerSubtitle}>PUCSL Electricity Guidelines</Text>
-          </View>
-        </View>
-        <TouchableOpacity style={styles.clearButton}>
-          <Text style={styles.clearText}>Clear</Text>
-        </TouchableOpacity>
-      </View>
+      <Text style={styles.quickChipIcon}>{icon}</Text>
+      <Text style={styles.quickChipText}>{label}</Text>
+    </TouchableOpacity>
+  );
 
-      {/* Chat Messages */}
-      <ScrollView
-        ref={scrollViewRef}
-        style={styles.chatContainer}
-        onContentSizeChange={() =>
-          scrollViewRef.current?.scrollToEnd({ animated: true })
-        }
+  return (
+    <SafeAreaView style={styles.container}>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={styles.container}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
       >
-        {messages.map((msg, index) => (
-          <View
-            key={index}
-            style={[
-              styles.messageBubble,
-              msg.type === 'user' ? styles.userBubble : styles.botBubble,
-            ]}
-          >
-            {msg.type === 'bot' && (
-              <Icon
-                name="lightning-bolt"
-                size={20}
-                color="#FFD700"
-                style={styles.botIcon}
-              />
-            )}
-            <View
-              style={[
-                styles.bubble,
-                msg.type === 'user' ? styles.userMessageStyle : styles.botMessageStyle,
-              ]}
-            >
-              <Text
-                style={[
-                  styles.messageText,
-                  msg.type === 'user' ? styles.userText : styles.botText,
-                ]}
-              >
-                {msg.text}
-              </Text>
-              <Text
-                style={[
-                  styles.timestamp,
-                  msg.type === 'user' ? styles.userTimestamp : styles.botTimestamp,
-                ]}
-              >
-                {msg.timestamp.toLocaleTimeString([], {
-                  hour: '2-digit',
-                  minute: '2-digit',
-                })}
-              </Text>
+        {/* Header */}
+        <View style={styles.header}>
+          <View style={styles.headerTitleRow}>
+            <View style={styles.headerIconBg}>
+              <Icon name="lightning-bolt" size={20} color={C.accent} />
+            </View>
+            <View>
+              <Text style={styles.headerTitle}>Safety AI</Text>
+              <Text style={styles.headerStatus}>Online · PUCSL Guidelines</Text>
             </View>
           </View>
-        ))}
-        {loading && (
-          <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color="#FFD700" />
-            <Text style={styles.loadingText}>Analyzing your question...</Text>
-          </View>
-        )}
-      </ScrollView>
-
-      {/* Quick Questions */}
-      {messages.length <= 1 && !loading && (
-        <ScrollView
-          horizontal
-          style={styles.quickQuestionsContainer}
-          showsHorizontalScrollIndicator={false}
-        >
-          <TouchableOpacity
-            style={styles.quickButton}
-            onPress={() => handleQuickQuestion('What to do if someone is electrocuted?')}
-          >
-            <Text style={styles.quickButtonText}>⚡ Electrocution</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.quickButton}
-            onPress={() =>
-              handleQuickQuestion('How do I stay safe around power lines?')
-            }
-          >
-            <Text style={styles.quickButtonText}>🔌 Power Lines</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.quickButton}
-            onPress={() =>
-              handleQuickQuestion('What are the main electrical hazards?')
-            }
-          >
-            <Text style={styles.quickButtonText}>⚠️ Hazards</Text>
-          </TouchableOpacity>
-        </ScrollView>
-      )}
-
-      {/* Input Area */}
-      <View style={styles.inputContainer}>
-        <View style={styles.inputWrapper}>
-          <TextInput
-            style={styles.input}
-            placeholder="Ask a safety question..."
-            placeholderTextColor="#999"
-            value={question}
-            onChangeText={setQuestion}
-            multiline
-            maxHeight={100}
-            editable={!loading}
-          />
-          <TouchableOpacity
-            style={[styles.sendButton, loading && styles.sendButtonDisabled]}
-            onPress={askQuestion}
-            disabled={loading || !question.trim()}
-          >
-            <Icon name="send" size={24} color="#FFF" />
+          <TouchableOpacity onPress={clearChat} style={styles.clearBtn}>
+            <Icon name="delete-sweep-outline" size={22} color={C.accent} />
           </TouchableOpacity>
         </View>
-        <Text style={styles.disclaimer}>
-          💡 For guidance, consult a licensed electrician
-        </Text>
-      </View>
-    </KeyboardAvoidingView>
+
+        {/* Chat Area */}
+        <ScrollView
+          ref={scrollViewRef}
+          style={styles.chatArea}
+          contentContainerStyle={styles.chatContent}
+          onContentSizeChange={() => scrollViewRef.current?.scrollToEnd({ animated: true })}
+        >
+          {messages.map((msg, index) => (
+            <View
+              key={index}
+              style={[
+                styles.messageRow,
+                msg.type === 'user' ? styles.userRow : styles.botRow,
+              ]}
+            >
+              {msg.type === 'bot' && (
+                <View style={styles.botAvatar}>
+                  <Icon name="robot" size={14} color={C.bg} />
+                </View>
+              )}
+              <View
+                style={[
+                  styles.bubble,
+                  msg.type === 'user' ? styles.userBubble : styles.botBubble,
+                ]}
+              >
+                <Text style={[
+                  styles.messageText,
+                  msg.type === 'user' ? styles.userText : styles.botText,
+                ]}>
+                  {msg.text}
+                </Text>
+                <Text style={[
+                  styles.timestamp,
+                  msg.type === 'user' ? styles.userTimestamp : styles.botTimestamp,
+                ]}>
+                  {msg.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                </Text>
+              </View>
+            </View>
+          ))}
+          {loading && (
+            <View style={styles.loadingRow}>
+              <ActivityIndicator size="small" color={C.accent} />
+              <Text style={styles.loadingText}>AI is thinking...</Text>
+            </View>
+          )}
+        </ScrollView>
+
+        {/* Input & Suggestions */}
+        <View style={styles.footer}>
+          {!loading && messages.length < 5 && (
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.suggestions}>
+              <QuickChip icon="⚡" label="Electrocution" q="What to do if someone is electrocuted?" />
+              <QuickChip icon="🔌" label="Power Lines" q="How do I stay safe around power lines?" />
+              <QuickChip icon="⚠️" label="Main Hazards" q="What are the main electrical hazards?" />
+              <QuickChip icon="🔥" label="Fire Safety" q="How to handle an electrical fire?" />
+            </ScrollView>
+          )}
+
+          <View style={styles.inputContainer}>
+            <TextInput
+              style={styles.input}
+              placeholder="Ask a safety question..."
+              placeholderTextColor={C.textMuted}
+              value={question}
+              onChangeText={setQuestion}
+              multiline
+              maxHeight={80}
+              editable={!loading}
+              underlineColorAndroid="transparent"
+              selectionColor={C.accent}
+              outlineStyle="none"
+            />
+            <TouchableOpacity
+              style={[styles.sendButton, (!question.trim() || loading) && styles.sendButtonDisabled]}
+              onPress={() => askQuestion()}
+              disabled={!question.trim() || loading}
+            >
+              <Icon name="send" size={20} color={C.bg} />
+            </TouchableOpacity>
+          </View>
+          <Text style={styles.disclaimer}>⚡ Consult a licensed electrician for technical repairs</Text>
+        </View>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#1a1a2e',
-  },
+  container: { flex: 1, backgroundColor: C.bg },
+
+  // Header
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingVertical: 16,
-    paddingHorizontal: 16,
-    backgroundColor: '#16213e',
-    borderBottomWidth: 1,
-    borderBottomColor: '#FFD700',
-    paddingTop: 20,
-  },
-  headerContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
-  },
-  headerText: {
-    marginLeft: 12,
-  },
-  headerTitle: {
-    fontSize: 22,
-    fontWeight: '700',
-    color: '#FFD700',
-  },
-  headerSubtitle: {
-    fontSize: 12,
-    color: '#aaa',
-    marginTop: 2,
-  },
-  clearButton: {
-    backgroundColor: '#FFD700',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 12,
-  },
-  clearText: {
-    color: '#000',
-    fontWeight: '600',
-    fontSize: 12,
-  },
-  chatContainer: {
-    flex: 1,
-    paddingHorizontal: 12,
+    paddingHorizontal: 20,
     paddingVertical: 12,
-    backgroundColor: '#1a1a2e',
+    borderBottomWidth: 1,
+    borderBottomColor: C.accent,
+    backgroundColor: C.card,
   },
-  messageBubble: {
-    flexDirection: 'row',
-    marginVertical: 8,
-    alignItems: 'flex-end',
+  headerTitleRow: { flexDirection: 'row', alignItems: 'center' },
+  headerIconBg: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: C.accent + '20',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  headerTitle: { color: C.accent, fontSize: 18, fontWeight: '800' },
+  headerStatus: { color: C.textSecondary, fontSize: 11, marginTop: -2 },
+  clearBtn: { padding: 4 },
+
+  // Chat Area
+  chatArea: { flex: 1 },
+  chatContent: { padding: 20 },
+  messageRow: { flexDirection: 'row', marginBottom: 16, maxWidth: '85%' },
+  userRow: { alignSelf: 'flex-end', justifyContent: 'flex-end' },
+  botRow: { alignSelf: 'flex-start' },
+
+  botAvatar: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: C.accent,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 8,
+    marginTop: 4,
+  },
+
+  bubble: {
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 20,
   },
   userBubble: {
-    justifyContent: 'flex-end',
-  },
-  botBubble: {
-    justifyContent: 'flex-start',
-  },
-  botIcon: {
-    marginRight: 8,
-  },
-  bubble: {
-    maxWidth: '85%',
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    borderRadius: 12,
-  },
-  userMessageStyle: {
-    backgroundColor: '#FFD700',
+    backgroundColor: C.accent,
     borderBottomRightRadius: 4,
   },
-  botMessageStyle: {
-    backgroundColor: '#2a2a4e',
+  botBubble: {
+    backgroundColor: C.surface,
     borderWidth: 1,
-    borderColor: '#FFD700',
+    borderColor: C.accent,
     borderBottomLeftRadius: 4,
   },
-  messageText: {
-    fontSize: 15,
-    lineHeight: 22,
-  },
-  userText: {
-    color: '#000',
-    fontWeight: '500',
-  },
-  botText: {
-    color: '#fff',
-  },
-  timestamp: {
-    fontSize: 11,
-    marginTop: 6,
-  },
-  userTimestamp: {
-    color: 'rgba(0,0,0,0.5)',
-    textAlign: 'right',
-  },
-  botTimestamp: {
-    color: '#999',
-  },
-  loadingContainer: {
+
+  messageText: { fontSize: 15, lineHeight: 22, color: C.textPrimary },
+  userText: { color: '#000', fontWeight: '600' },
+  botText: { color: C.textPrimary },
+
+  timestamp: { fontSize: 10, marginTop: 4 },
+  userTimestamp: { color: 'rgba(0,0,0,0.5)', textAlign: 'right' },
+  botTimestamp: { color: C.textSecondary },
+
+  loadingRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 20 },
+  loadingText: { color: C.textSecondary, fontSize: 13, marginLeft: 10 },
+
+  // Suggestions
+  suggestions: { marginBottom: 12, paddingLeft: 20 },
+  quickChip: {
+    flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 20,
-  },
-  loadingText: {
-    marginTop: 10,
-    color: '#aaa',
-    fontSize: 14,
-  },
-  quickQuestionsContainer: {
-    paddingHorizontal: 12,
-    paddingVertical: 12,
-    backgroundColor: '#16213e',
-    borderTopWidth: 1,
-    borderTopColor: '#FFD700',
-  },
-  quickButton: {
-    backgroundColor: '#2a2a4e',
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    borderRadius: 20,
-    marginRight: 10,
+    backgroundColor: C.surface,
     borderWidth: 1,
-    borderColor: '#FFD700',
+    borderColor: C.accent,
+    borderRadius: 20,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    marginRight: 10,
   },
-  quickButtonText: {
-    color: '#FFD700',
-    fontSize: 13,
-    fontWeight: '600',
+  quickChipIcon: { marginRight: 6, fontSize: 14 },
+  quickChipText: { color: C.accent, fontSize: 12, fontWeight: '700' },
+
+  // Footer
+  footer: {
+    paddingBottom: Platform.OS === 'ios' ? 0 : 12,
+    backgroundColor: C.bg,
+    borderTopWidth: 1,
+    borderTopColor: C.accent,
+    paddingTop: 12,
   },
   inputContainer: {
-    paddingHorizontal: 12,
-    paddingVertical: 12,
-    backgroundColor: '#16213e',
-    borderTopWidth: 1,
-    borderTopColor: '#FFD700',
-  },
-  inputWrapper: {
     flexDirection: 'row',
     alignItems: 'flex-end',
-    backgroundColor: '#2a2a4e',
-    borderRadius: 20,
-    paddingHorizontal: 12,
-    marginBottom: 8,
+    backgroundColor: C.surface,
+    marginHorizontal: 20,
+    borderRadius: 24,
+    paddingHorizontal: 16,
+    paddingVertical: 4,
     borderWidth: 1,
-    borderColor: '#FFD700',
+    borderColor: C.accent,
   },
   input: {
     flex: 1,
-    paddingVertical: 12,
+    color: C.textPrimary,
     fontSize: 15,
-    color: '#fff',
+    paddingVertical: 10,
+    maxHeight: 100,
+    borderWidth: 0,
+    backgroundColor: 'transparent',
   },
   sendButton: {
-    backgroundColor: '#FFD700',
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: C.accent,
     justifyContent: 'center',
     alignItems: 'center',
+    marginBottom: 6,
     marginLeft: 8,
   },
-  sendButtonDisabled: {
-    opacity: 0.5,
-  },
+  sendButtonDisabled: { opacity: 0.5 },
   disclaimer: {
+    color: C.textMuted,
+    fontSize: 10,
     textAlign: 'center',
-    fontSize: 12,
-    color: '#999',
-    fontStyle: 'italic',
+    marginTop: 8,
+    marginBottom: 4,
   },
 });
 

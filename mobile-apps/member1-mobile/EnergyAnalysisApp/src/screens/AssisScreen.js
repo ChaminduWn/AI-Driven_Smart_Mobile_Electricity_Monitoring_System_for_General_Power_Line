@@ -42,7 +42,7 @@ const AssistantScreen = () => {
     setLoading(true);
 
     try {
-      const response = await fetch('http://172.20.10.2:8001/ask', {
+      const response = await fetch('http://192.168.90.242:8001/ask', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -62,10 +62,15 @@ const AssistantScreen = () => {
         botResponse += `\n\n🚨 Hazard Type: ${data.hazard_type}`;
       }
       if (data.source && data.source !== 'Unknown' && data.source !== 'N/A') {
-        botResponse += `\n📚 Source: ${data.source}`;
+        botResponse += `\n�️ Source: ${data.source}`;
       }
-      if (data.confidence) {
-        botResponse += `\n✅ Confidence: ${(data.confidence * 100).toFixed(0)}%`;
+
+      const confScore = data.confidence ?? data.confidence_score;
+      if (confScore !== undefined && confScore !== null) {
+        const conf = typeof confScore === 'number' ? confScore : parseFloat(confScore);
+        if (!isNaN(conf)) {
+          botResponse += `\n✅ Confidence: ${(conf * 100).toFixed(0)}%`;
+        }
       }
 
       const botMessage = {

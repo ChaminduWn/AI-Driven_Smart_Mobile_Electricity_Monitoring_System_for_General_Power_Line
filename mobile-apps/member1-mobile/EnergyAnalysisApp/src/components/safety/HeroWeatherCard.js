@@ -7,6 +7,15 @@ import GlassCard from './GlassCard';
 import PulsingDot from './PulsingDot';
 import PropTypes from 'prop-types';
 
+const C = {
+  card: '#16213e',
+  surface: '#2a2a4e',
+  accent: '#FFD700',
+  text: '#ffffff',
+  textSecondary: '#dddddd',
+  textMuted: '#bbbbbb',
+};
+
 export default function HeroWeatherCard({ temperature = 28, condition = 'Light Rain', location = 'Colombo', weatherType = 'rainy', lastUpdate = new Date(), lottieSource = null }) {
   const colors = COLORS.weather[weatherType] || COLORS.weather.sunny;
   const locationStr = typeof location === 'object' && location !== null
@@ -14,18 +23,19 @@ export default function HeroWeatherCard({ temperature = 28, condition = 'Light R
     : location;
 
   return (
-    <GlassCard style={[styles.card, { backgroundColor: 'rgba(255,255,255,0.6)' }]}>
+    <GlassCard tint="dark" intensity={30} style={[styles.card]}>
       <View style={[styles.row, { justifyContent: 'space-between' }]}>
         <View>
-          <Text style={[TYPOGRAPHY.display, { color: COLORS.text.primary }]}>{typeof temperature === 'number' ? Math.round(temperature) : (temperature?.value ?? '--')}°</Text>
-          <Text style={{ marginTop: 6, fontWeight: '600', color: COLORS.text.secondary }}>{condition}</Text>
-          <Text style={{ marginTop: 2, color: COLORS.text.tertiary }}>{locationStr} • {formatRelative(lastUpdate)}</Text>
+          <Text style={[TYPOGRAPHY.display, { color: C.text, fontSize: 64, fontWeight: '800' }]}>{typeof temperature === 'number' ? Math.round(temperature) : (temperature?.value ?? '--')}°</Text>
+          <Text style={{ marginTop: 2, fontWeight: '800', color: C.accent, fontSize: 18 }}>{condition}</Text>
+          <Text style={{ marginTop: 4, color: C.textSecondary, fontSize: 13 }}>{locationStr} • {formatRelative(lastUpdate)}</Text>
         </View>
-        <View style={{ alignItems: 'center' }}>
-          {/* Lottie animation (falls back to emoji if no source) */}
-          <LottiePlayer source={lottieSource} style={styles.iconPlaceholder} />
-          <View style={{ marginTop: 8 }}>
-            <PulsingDot color={colors[0]} />
+        <View style={{ alignItems: 'center', justifyContent: 'center' }}>
+          <View style={styles.iconContainer}>
+            <LottiePlayer source={lottieSource} style={styles.lottie} />
+          </View>
+          <View style={{ marginTop: 12 }}>
+            <PulsingDot color={C.accent} />
           </View>
         </View>
       </View>
@@ -51,8 +61,25 @@ function formatRelative(date) {
 }
 
 const styles = StyleSheet.create({
-  card: { padding: 18, borderRadius: 16 },
-  row: { flexDirection: 'row' },
-  iconPlaceholder: { width: 96, height: 96, borderRadius: 48, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(255,255,255,0.6)' },
+  card: {
+    padding: 20,
+    borderRadius: 24,
+    borderWidth: 1.5,
+    borderColor: 'rgba(255,215,0,0.3)',
+    backgroundColor: '#16213e',
+    marginVertical: 8
+  },
+  row: { flexDirection: 'row', alignItems: 'center' },
+  iconContainer: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: 'rgba(255,255,255,0.03)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.05)'
+  },
+  lottie: { width: 120, height: 120 },
 });
 

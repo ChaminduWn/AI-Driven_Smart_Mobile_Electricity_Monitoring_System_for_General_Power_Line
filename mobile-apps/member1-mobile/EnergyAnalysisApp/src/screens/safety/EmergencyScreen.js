@@ -1,3 +1,4 @@
+import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import React, { useEffect, useState } from 'react';
 import { View, StyleSheet, ScrollView, Linking, Alert } from 'react-native';
 import { Text, Button, ActivityIndicator } from 'react-native-paper';
@@ -8,16 +9,27 @@ import ProtocolPhase from '../../components/safety/ProtocolPhase';
 
 const DISASTERS = ['flood', 'thunderstorm', 'heavy_rain', 'cyclone'];
 
+const C = {
+  bg: '#1a1a2e',
+  card: '#16213e',
+  surface: '#2a2a4e',
+  accent: '#FFD700',
+  textPrimary: '#ffffff',
+  textSecondary: '#dddddd',
+  textMuted: '#bbbbbb',
+  border: '#FFD700',
+};
+
 export default function EmergencyScreen({ navigation }) {
   const [selected, setSelected] = useState('flood');
   const [protocol, setProtocol] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  // Confirmation will use a native Alert to avoid Dialog/Portal hook incompat issues.
 
   useEffect(() => {
     (async () => {
       setLoading(true);
+      setError(null);
       try {
         const res = await api.fetchEmergencyProtocol(selected);
         if (res.status !== 'success') throw new Error(res.message || 'Failed to load');
@@ -53,7 +65,6 @@ export default function EmergencyScreen({ navigation }) {
     ]);
   };
 
-  // Determine whether the fetched protocol actually has visible content
   const hasProtocolContent = Boolean(
     protocol &&
     (
@@ -65,15 +76,25 @@ export default function EmergencyScreen({ navigation }) {
   );
 
   return (
-    <View style={{ flex: 1 }}>
-      <Header title="Emergency Protocols" leftAction={<Button icon="arrow-left" onPress={() => navigation.goBack()} />} />
-      <ScrollView contentContainerStyle={styles.container}>
-        <SimpleCard style={styles.selectorCard}>
+    <View style={styles.container}>
+      <View style={styles.header}>
+        <View style={styles.headerTitleRow}>
+          <View style={styles.headerIconBg}>
+            <Icon name="alert-circle" size={20} color={C.accent} />
+          </View>
+          <View>
+            <Text style={styles.headerTitle}>Emergency Protocols</Text>
+            <Text style={styles.headerStatus}>Immediate Safety Actions</Text>
+          </View>
+        </View>
+      </View>
+
+      <ScrollView contentContainerStyle={styles.scrollContent}>
+        <View style={styles.selectorWrapper}>
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
-            nestedScrollEnabled
-            contentContainerStyle={{ paddingHorizontal: 8, alignItems: 'center' }}
+            contentContainerStyle={{ paddingHorizontal: 4, alignItems: 'center' }}
           >
             {DISASTERS.map(d => (
               <Button
@@ -81,47 +102,40 @@ export default function EmergencyScreen({ navigation }) {
                 mode={selected === d ? 'contained' : 'outlined'}
                 onPress={() => setSelected(d)}
                 style={[styles.selectorButton, selected === d && styles.selectorButtonActive]}
+                buttonColor={selected === d ? C.accent : 'transparent'}
+                textColor={selected === d ? C.bg : C.accent}
+                borderColor={C.accent}
                 compact
               >
                 {d.replace('_', ' ').toUpperCase()}
               </Button>
             ))}
           </ScrollView>
-        </SimpleCard>
+        </View>
 
-        {loading && <ActivityIndicator animating size={40} />}
-        {error && <Text style={{ color: 'red' }}>{error}</Text>}
+        {loading && <ActivityIndicator animating color={C.accent} size="large" style={{ marginTop: 20 }} />}
+        {error && <Text style={{ color: '#ff4444', textAlign: 'center', marginTop: 20 }}>{error}</Text>}
 
         {protocol && (
           <>
-            {/* protocol title & phases - only render when there's meaningful content */}
             {hasProtocolContent && (
               <>
-                {/* {(protocol.title || protocol.overview || protocol.short) && (
-                  <SimpleCard style={{ marginBottom: 8 }} {...(protocol.title ? { title: protocol.title, leftIcon: 'alert-circle-outline' } : {})}>
-                    {protocol.overview ? <Text style={{ fontWeight: '600' }}>{protocol.overview}</Text> : null}
-                    {protocol.short ? <Text style={{ marginTop: 8 }}>{protocol.short}</Text> : null}
-                  </SimpleCard>
-                )} */}
-
                 {(protocol.before && protocol.before.length > 0) && <ProtocolPhase phase={1} title="Preparation" items={protocol.before} open />}
                 {(protocol.during && protocol.during.length > 0) && <ProtocolPhase phase={2} title="During Event" items={protocol.during} />}
                 {(protocol.after && protocol.after.length > 0) && <ProtocolPhase phase={3} title="Recovery" items={protocol.after} />}
               </>
             )}
 
-            {/* If no protocol content AND no contacts, show a small info line */}
             {!hasProtocolContent && !protocol.emergencyContacts && (
-              <Text style={{ color: '#666', marginTop: 8 }}>No emergency protocol available for {selected.replace('_', ' ')}.</Text>
+              <Text style={{ color: C.textSecondary, textAlign: 'center', marginTop: 20 }}>No emergency protocol available for {selected.replace('_', ' ')}.</Text>
             )}
 
-            {/* Emergency contacts (shown even if protocol content is missing) */}
             {protocol.emergencyContacts && (
-              <SimpleCard style={{ marginTop: 12 }} title="Emergency Contacts" leftIcon="phone">
+              <SimpleCard style={{ marginTop: 12 }} title="Emergency Contacts" leftIcon="phone-outline">
                 <View style={{ gap: 8 }}>
                   {protocol.emergencyContacts.sriLanka && (
                     <>
-                      <Text style={{ fontWeight: '600', marginTop: 6 }}>Sri Lanka</Text>
+                      <Text style={{ fontWeight: '800', marginTop: 6, color: C.accent }}>Sri Lanka</Text>
                       {Object.entries(protocol.emergencyContacts.sriLanka).map(([k, v]) => {
                         const label = k.replace(/([A-Z])/g, ' $1').trim();
                         const isPhone = typeof v === 'string' && /\d/.test(v);
@@ -131,7 +145,7 @@ export default function EmergencyScreen({ navigation }) {
                             <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                               <Text style={styles.contactNumber}>{v}</Text>
                               {isPhone && (
-                                <Button mode="text" compact onPress={() => showConfirm(v, label)}>Call</Button>
+                                <Button mode="text" labelStyle={{ color: C.accent }} compact onPress={() => showConfirm(v, label)}>Call</Button>
                               )}
                             </View>
                           </View>
@@ -139,45 +153,27 @@ export default function EmergencyScreen({ navigation }) {
                       })}
                     </>
                   )}
-
-                  {Array.isArray(protocol.emergencyContacts.electricalEmergency) && (
-                    <>
-                      <Text style={{ fontWeight: '600', marginTop: 8 }}>Electrical Emergency</Text>
-                      {protocol.emergencyContacts.electricalEmergency.map((m, i) => (
-                        <Text key={i} style={{ marginTop: 4 }}>• {m}</Text>
-                      ))}
-                    </>
-                  )}
                 </View>
               </SimpleCard>
             )}
 
-            <View style={{ marginTop: 12 }}>
+            <View style={{ marginTop: 16 }}>
               <Button
                 mode="contained"
                 buttonColor="#DC2626"
                 textColor="#fff"
-                style={{ paddingVertical: 12, borderRadius: 12 }}
+                icon="phone"
+                style={{ paddingVertical: 8, borderRadius: 12 }}
                 onPress={() => {
-                  const primary = protocol?.emergencyContacts?.sriLanka?.emergencyServices
-                    ?? protocol?.emergencyContacts?.sriLanka?.ambulance
-                    ?? null;
-                  if (primary) {
-                    showConfirm(primary, 'Emergency Services');
-                  } else {
-                    // fallback: find any first numeric contact in Sri Lanka list
-                    const sri = protocol?.emergencyContacts?.sriLanka ?? {};
-                    const any = Object.values(sri).find(v => typeof v === 'string' && /\d/.test(v));
-                    if (any) showConfirm(any, 'Emergency Contact');
-                  }
+                  const primary = protocol?.emergencyContacts?.sriLanka?.emergencyServices ?? '119';
+                  showConfirm(primary, 'Emergency Services');
                 }}
-                disabled={!protocol?.emergencyContacts}
               >
-                CALL EMERGENCY
+                CALL EMERGENCY NOW
               </Button>
             </View>
 
-            <View style={{ height: 60 }} />
+            <View style={{ height: 100 }} />
           </>
         )}
       </ScrollView>
@@ -186,12 +182,33 @@ export default function EmergencyScreen({ navigation }) {
 }
 
 const styles = StyleSheet.create({
-  container: { padding: 16 },
-  selectorCard: { marginBottom: 12, borderRadius: 8 },
-  selectorButton: { borderRadius: 20, marginRight: 8, paddingHorizontal: 12, minWidth: 120, justifyContent: 'center' },
-  selectorButtonActive: {},
-  card: { borderRadius: 8 },
+  container: { flex: 1, backgroundColor: '#1a1a2e' },
+  scrollContent: { padding: 16 },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#FFD700',
+    backgroundColor: '#16213e',
+  },
+  headerTitleRow: { flexDirection: 'row', alignItems: 'center' },
+  headerIconBg: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: 'rgba(255, 215, 0, 0.15)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  headerTitle: { color: '#FFD700', fontSize: 18, fontWeight: '800' },
+  headerStatus: { color: '#aaaaaa', fontSize: 11, marginTop: -2 },
+  selectorWrapper: { marginBottom: 16, backgroundColor: '#16213e', paddingVertical: 10, borderRadius: 12, borderWidth: 1, borderColor: 'rgba(255,215,0,0.1)' },
+  selectorButton: { borderRadius: 20, marginRight: 8, paddingHorizontal: 4, minWidth: 110 },
+  selectorButtonActive: { elevation: 4 },
   contactRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 6 },
-  contactLabel: { flex: 1, fontSize: 14 },
-  contactNumber: { marginRight: 8, color: '#1E88E5', fontWeight: '600' }
+  contactLabel: { flex: 1, fontSize: 14, color: '#ffffff' },
+  contactNumber: { marginRight: 8, color: '#FFD700', fontWeight: '700' }
 });

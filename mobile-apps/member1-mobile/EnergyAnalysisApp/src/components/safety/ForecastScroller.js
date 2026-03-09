@@ -6,17 +6,17 @@ export default function ForecastScroller({ items = [] }) {
   return (
     <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.container}>
       {items.map((it, i) => (
-        <Surface key={i} style={styles.pill}>
-          <Text style={{ fontWeight: '700' }}>{it.label}</Text>
-          <Text style={{ marginTop: 6 }}>{it.temp}°</Text>
-          <Text style={{ color: '#666', marginTop: 4 }}>{it.emoji}</Text>
-        </Surface>
+        <View key={i} style={styles.pill}>
+          <Text style={{ fontWeight: '800', color: '#FFD700', fontSize: 13 }}>{it.label}</Text>
+          <Text style={{ marginTop: 6, color: '#ffffff', fontWeight: '700' }}>{it.temp}°</Text>
+          <Text style={{ marginTop: 6, fontSize: 18 }}>{it.emoji}</Text>
+        </View>
       ))}
     </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { paddingVertical: 8, paddingHorizontal: 4 },
-  pill: { width: 84, height: 100, borderRadius: 12, padding: 10, marginHorizontal: 6, justifyContent: 'center', alignItems: 'center', elevation: 2 }
+  container: { paddingVertical: 8, paddingLeft: 0 },
+  pill: { width: 84, height: 100, borderRadius: 16, padding: 10, marginRight: 12, justifyContent: 'center', alignItems: 'center', backgroundColor: '#16213e', borderWidth: 1, borderColor: 'rgba(255,215,0,0.1)' }
 });

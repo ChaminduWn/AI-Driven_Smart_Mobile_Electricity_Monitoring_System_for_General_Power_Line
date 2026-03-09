@@ -47,12 +47,12 @@ const AuthStack = createStackNavigator();
 
 // ─── Tab config ───────────────────────────────────────────────────────────────
 const TAB_CONFIG = [
-  { name: 'Dashboard',     label: 'Home',    icon: '🏠' },
-  { name: 'Bills',         label: 'Bills',   icon: '📄' },
-  { name: 'Appliances',    label: 'Devices', icon: '⚡' },
-  { name: 'Tracking',      label: 'Track',   icon: '🎯' },
-  { name: 'SmartInsights', label: 'AI',      icon: '🤖' },
-  { name: 'SafetyTab',     label: 'Safety',  icon: '🛡️' },
+  { name: 'Dashboard', label: 'Home', icon: '🏠' },
+  { name: 'Bills', label: 'Bills', icon: '📄' },
+  { name: 'Appliances', label: 'Devices', icon: '⚡' },
+  { name: 'Tracking', label: 'Track', icon: '🎯' },
+  { name: 'SmartInsights', label: 'AI', icon: '🤖' },
+  { name: 'SafetyTab', label: 'Safety', icon: '🛡️' },
 ];
 
 // ─── Loading Screen ───────────────────────────────────────────────────────────
@@ -87,13 +87,15 @@ const SafetyTopTabs = () => (
       tabBarActiveTintColor: COLORS.primary,
       tabBarInactiveTintColor: COLORS.textMuted,
       tabBarIndicatorStyle: { backgroundColor: COLORS.primary },
-      tabBarLabelStyle: { fontSize: 11, fontWeight: '600', textTransform: 'capitalize' },
-      tabBarScrollEnabled: true,
+      tabBarLabelStyle: { fontSize: 11, fontWeight: '700', textTransform: 'capitalize' },
+      tabBarScrollEnabled: false,
+      tabBarItemStyle: { paddingHorizontal: 25, width: 'auto', minWidth: 150 },
+      tabBarContentContainerStyle: { justifyContent: 'center' }
     }}
   >
     <TopTab.Screen name="Assistant" component={SafetyAssistantScreen} options={{ title: 'Safety Assistant' }} />
-    <TopTab.Screen name="Weather"   component={SafetyWeatherScreen}    options={{ title: 'Weather' }} />
-    <TopTab.Screen name="Emergency" component={SafetyEmergencyScreen}  options={{ title: 'Emergency' }} />
+    <TopTab.Screen name="Weather" component={SafetyWeatherScreen} options={{ title: 'Weather' }} />
+    <TopTab.Screen name="Emergency" component={SafetyEmergencyScreen} options={{ title: 'Emergency' }} />
   </TopTab.Navigator>
 );
 
@@ -103,39 +105,39 @@ const SafetyStack = () => (
     <Stack.Screen
       name="SafetyHome"
       component={SafetyTopTabs}
-      options={{ title: 'Safety & Disaster' }}
+      options={{ headerShown: false }}
     />
-    <Stack.Screen name="Safety"          component={SafetyManagementScreen} options={{ headerShown: false }} />
-    <Stack.Screen name="SafetyWeather"   component={SafetyWeatherScreen}    options={{ headerShown: false }} />
-    <Stack.Screen name="SafetyTips"      component={SafetyTipsScreen}       options={{ headerShown: false }} />
-    <Stack.Screen name="SafetyEmergency" component={SafetyEmergencyScreen}  options={{ headerShown: false }} />
-    <Stack.Screen name="SafetyAppliances"component={SafetyAppliancesScreen} options={{ headerShown: false }} />
-    <Stack.Screen name="SafetyAssistant" component={SafetyAssistantScreen}  options={{ headerShown: false }} />
-    <Stack.Screen name="Profile"         component={ProfileScreen}           options={{ headerShown: false }} />
-    <Stack.Screen name="Solar"           component={SolarRecommendationScreen} options={{ headerShown: false }} />
+    <Stack.Screen name="Safety" component={SafetyManagementScreen} options={{ headerShown: false }} />
+    <Stack.Screen name="SafetyWeather" component={SafetyWeatherScreen} options={{ headerShown: false }} />
+    <Stack.Screen name="SafetyTips" component={SafetyTipsScreen} options={{ headerShown: false }} />
+    <Stack.Screen name="SafetyEmergency" component={SafetyEmergencyScreen} options={{ headerShown: false }} />
+    <Stack.Screen name="SafetyAppliances" component={SafetyAppliancesScreen} options={{ headerShown: false }} />
+    <Stack.Screen name="SafetyAssistant" component={SafetyAssistantScreen} options={{ headerShown: false }} />
+    <Stack.Screen name="Profile" component={ProfileScreen} options={{ headerShown: false }} />
+    <Stack.Screen name="Solar" component={SolarRecommendationScreen} options={{ headerShown: false }} />
   </Stack.Navigator>
 );
 
 // ─── Dashboard Stack ──────────────────────────────────────────────────────────
 const DashboardStack = () => (
   <Stack.Navigator screenOptions={sharedHeaderOptions}>
-    <Stack.Screen name="DashboardHome" component={DashboardScreen}             options={{ headerShown: false }} />
-    <Stack.Screen name="BillDetail"    component={BillDetailScreen}            options={{ title: 'Bill Analysis' }} />
-    <Stack.Screen name="Analysis"      component={AnalysisScreen}              options={{ title: 'Analysis' }} />
-    <Stack.Screen name="Tariff"        component={TariffScreen}                options={{ headerShown: false }} />
-    <Stack.Screen name="NILM"          component={NILMScreen}                  options={{ title: 'NILM Disaggregation' }} />
-    <Stack.Screen name="Solar"         component={SolarRecommendationScreen}   options={{ headerShown: false }} />
-    <Stack.Screen name="Safety"  component={SafetyManagementScreen}    options={{ headerShown: false }} />
-    <Stack.Screen name="Profile" component={ProfileScreen}             options={{ headerShown: false }} />
+    <Stack.Screen name="DashboardHome" component={DashboardScreen} options={{ headerShown: false }} />
+    <Stack.Screen name="BillDetail" component={BillDetailScreen} options={{ title: 'Bill Analysis' }} />
+    <Stack.Screen name="Analysis" component={AnalysisScreen} options={{ title: 'Analysis' }} />
+    <Stack.Screen name="Tariff" component={TariffScreen} options={{ headerShown: false }} />
+    <Stack.Screen name="NILM" component={NILMScreen} options={{ title: 'NILM Disaggregation' }} />
+    <Stack.Screen name="Solar" component={SolarRecommendationScreen} options={{ headerShown: false }} />
+    <Stack.Screen name="Safety" component={SafetyManagementScreen} options={{ headerShown: false }} />
+    <Stack.Screen name="Profile" component={ProfileScreen} options={{ headerShown: false }} />
   </Stack.Navigator>
 );
 
 // ─── Bills Stack ──────────────────────────────────────────────────────────────
 const BillsStack = () => (
   <Stack.Navigator screenOptions={sharedHeaderOptions}>
-    <Stack.Screen name="BillsList"  component={BillsScreen}      options={{ title: 'My Bills' }} />
+    <Stack.Screen name="BillsList" component={BillsScreen} options={{ title: 'My Bills' }} />
     <Stack.Screen name="BillDetail" component={BillDetailScreen} options={{ title: 'Bill Analysis' }} />
-    <Stack.Screen name="NILM"       component={NILMScreen}       options={{ title: 'NILM Disaggregation' }} />
+    <Stack.Screen name="NILM" component={NILMScreen} options={{ title: 'NILM Disaggregation' }} />
   </Stack.Navigator>
 );
 
@@ -149,12 +151,12 @@ const TrackingStack = () => (
 // ─── Smart Insights Stack ─────────────────────────────────────────────────────
 const SmartInsightsStack = () => (
   <Stack.Navigator screenOptions={sharedHeaderOptions}>
-    <Stack.Screen name="SmartInsightsHome" component={SmartInsightsScreen}      options={{ headerShown: false }} />
-    <Stack.Screen name="LiveMeter"         component={LiveMeterScreen}           options={{ headerShown: false }} />
-    <Stack.Screen name="Analysis"          component={AnalysisScreen}            options={{ title: 'Analysis' }} />
-    <Stack.Screen name="Tariff"            component={TariffScreen}              options={{ headerShown: false }} />
-    <Stack.Screen name="NILM"              component={NILMScreen}                options={{ title: 'NILM Disaggregation' }} />
-    <Stack.Screen name="Safety"            component={SafetyManagementScreen}    options={{ headerShown: false }} />
+    <Stack.Screen name="SmartInsightsHome" component={SmartInsightsScreen} options={{ headerShown: false }} />
+    <Stack.Screen name="LiveMeter" component={LiveMeterScreen} options={{ headerShown: false }} />
+    <Stack.Screen name="Analysis" component={AnalysisScreen} options={{ title: 'Analysis' }} />
+    <Stack.Screen name="Tariff" component={TariffScreen} options={{ headerShown: false }} />
+    <Stack.Screen name="NILM" component={NILMScreen} options={{ title: 'NILM Disaggregation' }} />
+    <Stack.Screen name="Safety" component={SafetyManagementScreen} options={{ headerShown: false }} />
   </Stack.Navigator>
 );
 
@@ -186,8 +188,8 @@ const MainNavigator = () => (
       };
     }}
   >
-    <Tab.Screen name="Dashboard"    component={DashboardStack}   options={{ headerShown: false }} />
-    <Tab.Screen name="Bills"        component={BillsStack}       options={{ headerShown: false }} />
+    <Tab.Screen name="Dashboard" component={DashboardStack} options={{ headerShown: false }} />
+    <Tab.Screen name="Bills" component={BillsStack} options={{ headerShown: false }} />
     <Tab.Screen
       name="Appliances"
       component={AppliancesScreen}
@@ -198,9 +200,9 @@ const MainNavigator = () => (
         headerTitleStyle: { ...FONTS.semiBold, fontSize: 17 },
       }}
     />
-    <Tab.Screen name="Tracking"      component={TrackingStack}      options={{ headerShown: false }} />
+    <Tab.Screen name="Tracking" component={TrackingStack} options={{ headerShown: false }} />
     <Tab.Screen name="SmartInsights" component={SmartInsightsStack} options={{ headerShown: false }} />
-    <Tab.Screen name="SafetyTab"     component={SafetyStack}        options={{ headerShown: false }} />
+    <Tab.Screen name="SafetyTab" component={SafetyStack} options={{ headerShown: false }} />
   </Tab.Navigator>
 );
 

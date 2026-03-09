@@ -24,23 +24,26 @@ export default function SimpleCard({ title, subtitle, leftIcon, rightElement, ch
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: '#ffffff',
+    backgroundColor: '#16213e',
     borderRadius: 10,
     padding: 12,
     shadowColor: '#000',
-    shadowOpacity: 0.05,
+    shadowOpacity: 0.2,
     shadowRadius: 6,
     elevation: 3,
-    marginBottom: 12
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(255,215,0,0.2)'
   },
   headerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 },
   leftHeader: { flexDirection: 'row', alignItems: 'center' },
   rightHeader: { marginLeft: 8 },
   title: {
     fontSize: 16,
-    fontWeight: '700'
+    fontWeight: '700',
+    color: '#ffffff'
   },
-  subtitle: { fontSize: 12, color: '#666' },
+  subtitle: { fontSize: 12, color: '#aaaaaa' },
   content: {
     // content container
   }

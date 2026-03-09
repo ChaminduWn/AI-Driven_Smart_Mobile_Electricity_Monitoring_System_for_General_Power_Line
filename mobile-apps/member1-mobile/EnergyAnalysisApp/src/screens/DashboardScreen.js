@@ -25,30 +25,30 @@ import { Bell, LogOut, User } from 'lucide-react-native';
 ───────────────────────────────────────────── */
 const C = {
   /* backgrounds */
-  bg:   '#07111F',
-  bg2:  '#0D1B2A',
-  bg3:  '#122236',
+  bg: '#07111F',
+  bg2: '#0D1B2A',
+  bg3: '#122236',
   card: '#0F1E30',
 
   /* brand accents */
-  energy:  '#00C8FF',   // electric cyan
-  solar:   '#FFD60A',   // amber-gold
-  outage:  '#FF6B35',   // coral-orange
-  safety:  '#00E5A0',   // mint-green
+  energy: '#00C8FF',   // electric cyan
+  solar: '#FFD60A',   // amber-gold
+  outage: '#FF6B35',   // coral-orange
+  safety: '#00E5A0',   // mint-green
 
   /* semantic */
   success: '#00E5A0',
   warning: '#FFD60A',
-  danger:  '#FF4D6D',
+  danger: '#FF4D6D',
 
   /* text */
-  textPrimary:   '#E8F4FF',
+  textPrimary: '#E8F4FF',
   textSecondary: '#7A9CC0',
-  textMuted:     '#3D5570',
+  textMuted: '#3D5570',
 
   /* structure */
   divider: '#162A40',
-  border:  '#1A3050',
+  border: '#1A3050',
 };
 
 /* ─────────────────────────────────────────────
@@ -144,8 +144,8 @@ const getNotifColor = (type) => {
   switch (type) {
     case 'success': return C.success;
     case 'warning': return C.warning;
-    case 'danger':  return C.danger;
-    default:        return C.energy;
+    case 'danger': return C.danger;
+    default: return C.energy;
   }
 };
 
@@ -156,15 +156,15 @@ const DashboardScreen = ({ navigation }) => {
   const { user, logout } = useAuth();
   const { selectedAccount, accounts, selectAccount, addAccount } = useAccount();
 
-  const [loading, setLoading]                     = useState(true);
-  const [refreshing, setRefreshing]               = useState(false);
-  const [bills, setBills]                         = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [bills, setBills] = useState([]);
   const [applianceAnalysis, setApplianceAnalysis] = useState(null);
-  const [activePlan, setActivePlan]               = useState(null);
-  const [latestBill, setLatestBill]               = useState(null);
+  const [activePlan, setActivePlan] = useState(null);
+  const [latestBill, setLatestBill] = useState(null);
 
   // ── Notification state (from v1) ──
-  const [notifications, setNotifications]   = useState([]);
+  const [notifications, setNotifications] = useState([]);
   const [showNotifModal, setShowNotifModal] = useState(false);
 
   const fetchData = useCallback(async () => {
@@ -186,18 +186,18 @@ const DashboardScreen = ({ navigation }) => {
       try {
         const appRes = await appliancesAPI.analyze(account);
         if (appRes.data.success) setApplianceAnalysis(appRes.data);
-      } catch (_) {}
+      } catch (_) { }
 
       try {
         const planRes = await analysisAPI.getPlansByAccount(account, true);
         setActivePlan((planRes.data?.plans || [])[0] || null);
-      } catch (_) {}
+      } catch (_) { }
 
       // ── Fetch notifications (from v1) ──
       try {
         const notifRes = await notificationsAPI.getAll(true);
         setNotifications(notifRes.data || []);
-      } catch (_) {}
+      } catch (_) { }
 
     } catch (err) {
       console.error('Dashboard fetch error:', err);
@@ -216,18 +216,18 @@ const DashboardScreen = ({ navigation }) => {
     try {
       await notificationsAPI.markAllRead();
       setNotifications([]);
-    } catch (_) {}
+    } catch (_) { }
   };
 
-  const firstName   = user?.full_name?.split(' ')[0] || user?.email?.split('@')[0] || 'User';
+  const firstName = user?.full_name?.split(' ')[0] || user?.email?.split('@')[0] || 'User';
   const allAccounts = extractAccountNumbers(bills);
 
   if (loading) return <LoadingScreen message="Loading dashboard..." />;
 
   const totalAppliances = applianceAnalysis?.summary?.total_appliances ?? null;
-  const monthlyKwh      = applianceAnalysis?.summary?.total_monthly_kwh ?? null;
-  const estimatedCost   = applianceAnalysis?.summary?.estimated_monthly_cost ?? null;
-  const dailyAvg        = applianceAnalysis?.summary?.average_cost_per_day ?? null;
+  const monthlyKwh = applianceAnalysis?.summary?.total_monthly_kwh ?? null;
+  const estimatedCost = applianceAnalysis?.summary?.estimated_monthly_cost ?? null;
+  const dailyAvg = applianceAnalysis?.summary?.average_cost_per_day ?? null;
 
   return (
     <ScrollView
@@ -336,10 +336,10 @@ const DashboardScreen = ({ navigation }) => {
 
           {/* ── METRIC TILES ── */}
           <View style={styles.metricRow}>
-            <MetricTile icon="⚡" value={totalAppliances ?? '—'}                                    label="Appliances"  color={C.energy} />
-            <MetricTile icon="🔋" value={monthlyKwh ? monthlyKwh.toFixed(1) : '—'}                 label="Monthly kWh" color={C.solar}  />
-            <MetricTile icon="💰" value={estimatedCost ? formatCurrency(estimatedCost, 0) : '—'}   label="Est. Cost"   color={C.safety} />
-            <MetricTile icon="📅" value={dailyAvg ? `${dailyAvg.toFixed(0)} Rs` : '—'}             label="Daily Avg"   color={C.outage} />
+            <MetricTile icon="⚡" value={totalAppliances ?? '—'} label="Appliances" color={C.energy} />
+            <MetricTile icon="🔋" value={monthlyKwh ? monthlyKwh.toFixed(1) : '—'} label="Monthly kWh" color={C.solar} />
+            <MetricTile icon="💰" value={estimatedCost ? formatCurrency(estimatedCost, 0) : '—'} label="Est. Cost" color={C.safety} />
+            <MetricTile icon="📅" value={dailyAvg ? `${dailyAvg.toFixed(0)} Rs` : '—'} label="Daily Avg" color={C.outage} />
           </View>
 
           {/* ════════════════════════════════
@@ -384,7 +384,7 @@ const DashboardScreen = ({ navigation }) => {
             accent={C.safety}
             badge="AI"
             badgeColor={C.safety}
-            onPress={() => navigation.navigate('Safety')}
+            onPress={() => navigation.navigate('SafetyTab')}
           />
 
           {/* ── ACTIVE BUDGET PLAN ── */}
@@ -423,7 +423,7 @@ const DashboardScreen = ({ navigation }) => {
                           try {
                             await analysisAPI.endPlan(activePlan.id);
                             fetchData();
-                          } catch (_) {}
+                          } catch (_) { }
                         },
                       },
                     ]);
@@ -439,10 +439,10 @@ const DashboardScreen = ({ navigation }) => {
           {/* ── QUICK ACTIONS ── */}
           <SLabel text="Quick Actions" />
           <View style={styles.qaGrid}>
-            <QA icon="📤" label="Upload Bill"  color={C.energy}  onPress={() => navigation.navigate('Bills')} />
-            <QA icon="⚡" label="Appliances"   color={C.solar}   onPress={() => navigation.navigate('Appliances')} />
-            <QA icon="📊" label="NILM Report"  color={C.safety}  onPress={() => navigation.navigate('NILM')} />
-            <QA icon="🎯" label="Budget Plan"  color={C.outage}  onPress={() => navigation.navigate('Analysis')} />
+            <QA icon="📤" label="Upload Bill" color={C.energy} onPress={() => navigation.navigate('Bills')} />
+            <QA icon="⚡" label="Appliances" color={C.solar} onPress={() => navigation.navigate('Appliances')} />
+            <QA icon="📊" label="NILM Report" color={C.safety} onPress={() => navigation.navigate('NILM')} />
+            <QA icon="🎯" label="Budget Plan" color={C.outage} onPress={() => navigation.navigate('Analysis')} />
           </View>
         </>
       )}
@@ -522,7 +522,7 @@ const QA = ({ icon, label, color, onPress }) => (
    STYLES
 ═══════════════════════════════════════════ */
 const styles = StyleSheet.create({
-  container:     { flex: 1, backgroundColor: C.bg },
+  container: { flex: 1, backgroundColor: C.bg },
   scrollContent: { paddingHorizontal: 18, paddingTop: 52, paddingBottom: 32 },
 
   /* ── header ── */
@@ -531,9 +531,9 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start', marginBottom: 20,
   },
   headerGreeting: { fontSize: 24, fontWeight: '800', color: C.textPrimary, letterSpacing: -0.5 },
-  headerSub:      { fontSize: 12, color: C.textMuted, marginTop: 3, letterSpacing: 0.3 },
-  headerRight:    { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  headerIconBtn:  { padding: 8, position: 'relative' },
+  headerSub: { fontSize: 12, color: C.textMuted, marginTop: 3, letterSpacing: 0.3 },
+  headerRight: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  headerIconBtn: { padding: 8, position: 'relative' },
   logoutBtn: {
     padding: 8, borderRadius: 10,
     backgroundColor: C.bg3, borderWidth: 1, borderColor: C.border,
@@ -555,38 +555,38 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.45, shadowRadius: 18, elevation: 10,
     borderWidth: 1, borderColor: C.border,
   },
-  glowStripe:  { height: 3 },
+  glowStripe: { height: 3 },
   glowContent: { padding: 18 },
 
   /* ── bill hero ── */
-  billHeroTop:     { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 },
-  billHeroMonth:   { fontSize: 18, fontWeight: '700', color: C.textPrimary },
-  billHeroAcct:    { fontSize: 12, color: C.textMuted, marginTop: 2 },
+  billHeroTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 },
+  billHeroMonth: { fontSize: 18, fontWeight: '700', color: C.textPrimary },
+  billHeroAcct: { fontSize: 12, color: C.textMuted, marginTop: 2 },
   billHeroNumbers: { flexDirection: 'row', alignItems: 'center', marginBottom: 16 },
-  billHeroNum:     { flex: 1, alignItems: 'center' },
-  billHeroBig:     { fontSize: 26, fontWeight: '800', letterSpacing: -0.8 },
-  billHeroSmall:   { fontSize: 12, color: C.textMuted, marginTop: 3 },
+  billHeroNum: { flex: 1, alignItems: 'center' },
+  billHeroBig: { fontSize: 26, fontWeight: '800', letterSpacing: -0.8 },
+  billHeroSmall: { fontSize: 12, color: C.textMuted, marginTop: 3 },
   billHeroDivider: { width: 1, height: 44, backgroundColor: C.divider, marginHorizontal: 8 },
-  analyseBtn:      { borderRadius: 12, borderWidth: 1, paddingVertical: 12, alignItems: 'center', marginTop: 2 },
-  analyseBtnText:  { fontSize: 14, fontWeight: '700', letterSpacing: 0.2 },
+  analyseBtn: { borderRadius: 12, borderWidth: 1, paddingVertical: 12, alignItems: 'center', marginTop: 2 },
+  analyseBtnText: { fontSize: 14, fontWeight: '700', letterSpacing: 0.2 },
 
   /* ── metrics ── */
-  metricRow:   { flexDirection: 'row', gap: 8, marginBottom: 24 },
-  metricTile:  {
+  metricRow: { flexDirection: 'row', gap: 8, marginBottom: 24 },
+  metricTile: {
     flex: 1, backgroundColor: C.card, borderRadius: 14, borderWidth: 1,
     paddingVertical: 13, alignItems: 'center',
     shadowColor: '#000', shadowOffset: { width: 0, height: 3 },
     shadowOpacity: 0.3, shadowRadius: 8, elevation: 5,
   },
-  metricIcon:  { fontSize: 20, marginBottom: 5 },
+  metricIcon: { fontSize: 20, marginBottom: 5 },
   metricValue: { fontSize: 14, fontWeight: '800', letterSpacing: -0.3 },
   metricLabel: { fontSize: 10, color: C.textMuted, marginTop: 2, textAlign: 'center' },
 
   /* ── section label ── */
-  sLabel:       { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10, marginTop: 4 },
-  sLabelLeft:   { flexDirection: 'row', alignItems: 'center', gap: 7 },
-  sLabelDot:    { width: 5, height: 5, borderRadius: 3, backgroundColor: C.energy },
-  sLabelText:   { fontSize: 11, fontWeight: '700', color: C.textMuted, letterSpacing: 1.2, textTransform: 'uppercase' },
+  sLabel: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10, marginTop: 4 },
+  sLabelLeft: { flexDirection: 'row', alignItems: 'center', gap: 7 },
+  sLabelDot: { width: 5, height: 5, borderRadius: 3, backgroundColor: C.energy },
+  sLabelText: { fontSize: 11, fontWeight: '700', color: C.textMuted, letterSpacing: 1.2, textTransform: 'uppercase' },
   sLabelAction: { fontSize: 13, fontWeight: '600', color: C.energy },
 
   /* ── module card ── */
@@ -597,26 +597,26 @@ const styles = StyleSheet.create({
     shadowColor: '#00C8FF', shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.08, shadowRadius: 12, elevation: 6,
   },
-  moduleBar:       { width: 4 },
-  moduleBody:      { flex: 1, flexDirection: 'row', alignItems: 'center', padding: 14, gap: 12 },
-  moduleIconWrap:  { width: 48, height: 48, borderRadius: 14, justifyContent: 'center', alignItems: 'center' },
-  moduleIcon:      { fontSize: 22 },
+  moduleBar: { width: 4 },
+  moduleBody: { flex: 1, flexDirection: 'row', alignItems: 'center', padding: 14, gap: 12 },
+  moduleIconWrap: { width: 48, height: 48, borderRadius: 14, justifyContent: 'center', alignItems: 'center' },
+  moduleIcon: { fontSize: 22 },
   moduleTextGroup: { flex: 1 },
-  moduleTitle:     { fontSize: 14, fontWeight: '700', color: C.textPrimary, marginBottom: 3, lineHeight: 18 },
-  moduleSubtitle:  { fontSize: 11, color: C.textMuted, lineHeight: 15 },
-  moduleRight:     { alignItems: 'flex-end', gap: 4 },
-  moduleStat:      { fontSize: 15, fontWeight: '800', letterSpacing: -0.3 },
+  moduleTitle: { fontSize: 14, fontWeight: '700', color: C.textPrimary, marginBottom: 3, lineHeight: 18 },
+  moduleSubtitle: { fontSize: 11, color: C.textMuted, lineHeight: 15 },
+  moduleRight: { alignItems: 'flex-end', gap: 4 },
+  moduleStat: { fontSize: 15, fontWeight: '800', letterSpacing: -0.3 },
   moduleStatLabel: { fontSize: 10, color: C.textMuted, marginTop: -2 },
-  moduleBadge:     { borderRadius: 99, paddingHorizontal: 8, paddingVertical: 2 },
+  moduleBadge: { borderRadius: 99, paddingHorizontal: 8, paddingVertical: 2 },
   moduleBadgeText: { fontSize: 10, fontWeight: '800', letterSpacing: 0.4 },
-  moduleArrow:     { fontSize: 22, fontWeight: '300', lineHeight: 24, marginTop: 2 },
+  moduleArrow: { fontSize: 22, fontWeight: '300', lineHeight: 24, marginTop: 2 },
 
   /* ── plan ── */
-  planRow:         { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 },
-  planAmount:      { fontSize: 22, fontWeight: '800', letterSpacing: -0.5 },
+  planRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 },
+  planAmount: { fontSize: 22, fontWeight: '800', letterSpacing: -0.5 },
   planAmountLabel: { fontSize: 12, color: C.textMuted, marginTop: 2 },
-  planMetaTxt:     { fontSize: 13, color: C.textSecondary, marginBottom: 10 },
-  stopBtnCompact:  {
+  planMetaTxt: { fontSize: 13, color: C.textSecondary, marginBottom: 10 },
+  stopBtnCompact: {
     alignSelf: 'flex-start',
     paddingVertical: 5, paddingHorizontal: 10,
     borderRadius: 8,
@@ -635,7 +635,7 @@ const styles = StyleSheet.create({
   },
   qaIconWrap: { width: 50, height: 50, borderRadius: 15, justifyContent: 'center', alignItems: 'center', marginBottom: 8 },
   qaIconText: { fontSize: 24 },
-  qaLabel:    { fontSize: 13, fontWeight: '600', color: C.textPrimary, textAlign: 'center' },
+  qaLabel: { fontSize: 13, fontWeight: '600', color: C.textPrimary, textAlign: 'center' },
 
   /* ── notifications modal ── */
   overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.65)', justifyContent: 'flex-end' },
@@ -656,20 +656,20 @@ const styles = StyleSheet.create({
     flexDirection: 'row', justifyContent: 'space-between',
     alignItems: 'center', marginBottom: 16,
   },
-  sheetTitle:    { color: C.textPrimary, fontSize: 20, fontWeight: '800' },
-  markReadText:  { color: C.energy, fontSize: 13, fontWeight: '600' },
-  notifList:     { flex: 1 },
-  emptyNotifWrap:{ alignItems: 'center', paddingTop: 40 },
-  emptyNotifIcon:{ fontSize: 40, marginBottom: 12 },
-  emptyNotif:    { color: C.textSecondary, textAlign: 'center', fontSize: 14, fontWeight: '500' },
+  sheetTitle: { color: C.textPrimary, fontSize: 20, fontWeight: '800' },
+  markReadText: { color: C.energy, fontSize: 13, fontWeight: '600' },
+  notifList: { flex: 1 },
+  emptyNotifWrap: { alignItems: 'center', paddingTop: 40 },
+  emptyNotifIcon: { fontSize: 40, marginBottom: 12 },
+  emptyNotif: { color: C.textSecondary, textAlign: 'center', fontSize: 14, fontWeight: '500' },
   notifCard: {
     backgroundColor: C.bg3, padding: 14, borderRadius: 14,
     marginBottom: 10, borderLeftWidth: 4,
     borderWidth: 1, borderColor: C.border,
   },
   notifTitle: { color: C.textPrimary, fontSize: 15, fontWeight: '700', marginBottom: 4 },
-  notifMsg:   { color: C.textSecondary, fontSize: 13, lineHeight: 18 },
-  notifDate:  { color: C.textMuted, fontSize: 11, marginTop: 8, textAlign: 'right' },
+  notifMsg: { color: C.textSecondary, fontSize: 13, lineHeight: 18 },
+  notifDate: { color: C.textMuted, fontSize: 11, marginTop: 8, textAlign: 'right' },
   closeBtn: {
     backgroundColor: C.energy, padding: 15, borderRadius: 16,
     alignItems: 'center', marginTop: 14,

@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { View, StyleSheet, ScrollView } from 'react-native';
 import { Text, Button, ActivityIndicator } from 'react-native-paper';
 import * as Location from 'expo-location';
@@ -13,6 +14,17 @@ import BottomNav from '../../components/safety/BottomNavg';
 import SkeletonLoader from '../../components/safety/SkeletonLoader';
 import HeroWeatherCard from '../../components/safety/HeroWeatherCard';
 import SmartRiskIndicator from '../../components/safety/SmartRiskIndicator';
+
+const C = {
+  bg: '#1a1a2e',
+  card: '#16213e',
+  surface: '#2a2a4e',
+  accent: '#FFD700',
+  textPrimary: '#ffffff',
+  textSecondary: '#dddddd',
+  textMuted: '#bbbbbb',
+  border: '#FFD700',
+};
 
 export default function WeatherScreen({ navigation }) {
   const [loading, setLoading] = useState(true);
@@ -61,23 +73,31 @@ export default function WeatherScreen({ navigation }) {
   useEffect(() => { doFetchLocation(); }, []);
 
   return (
-    <View style={{ flex: 1 }}>
-      <Header title="Current Weather" leftAction={<Button icon="arrow-left" onPress={() => navigation.goBack()} />} />
-      <ScrollView contentContainerStyle={styles.container}>
-        {/* TODO: add pull-to-refresh later */}
+    <View style={styles.container}>
+      {/* Custom Dark Header to match Assistant */}
+      <View style={styles.header}>
+        <View style={styles.headerTitleRow}>
+          <View style={styles.headerIconBg}>
+            <Icon name="weather-cloudy" size={20} color={C.accent} />
+          </View>
+          <View>
+            <Text style={styles.headerTitle}>Weather Monitor</Text>
+            <Text style={styles.headerStatus}>Real-time Safety Analysis</Text>
+          </View>
+        </View>
+      </View>
+
+      <ScrollView contentContainerStyle={styles.scrollContent}>
         {loading && (
-          <>
-            <SkeletonLoader height={120} style={{ borderRadius: 16, marginBottom: 12 }} />
-            <SkeletonLoader height={20} style={{ width: '40%', marginBottom: 8 }} />
-            <SkeletonLoader height={90} style={{ borderRadius: 12, marginBottom: 12 }} />
-          </>
+          <View style={{ marginTop: 20 }}>
+            <ActivityIndicator animating color={C.accent} size="large" />
+            <Text style={{ color: C.textSecondary, textAlign: 'center', marginTop: 10 }}>Loading weather data...</Text>
+          </View>
         )}
-        {error && <Text style={{ color: 'red' }}>{error}</Text>}
+        {error && <Text style={{ color: '#ff4444', textAlign: 'center', marginTop: 20 }}>{error}</Text>}
 
         {data && (
           <>
-            {/* try to load local Lottie assets placed in `assets/lottie/*.json` */}
-            {/* if not present, LottiePlayer will fall back to an emoji */}
             {(() => {
               let lottieSource = null;
               try {
@@ -97,37 +117,57 @@ export default function WeatherScreen({ navigation }) {
               );
             })()}
 
-            <View style={{ marginTop: 12, flexDirection: 'row', justifyContent: 'space-between' }}>
-              <View style={{ flex: 1, marginRight: 8 }}>
+            <View style={{ marginTop: 16, flexDirection: 'row', justifyContent: 'space-between' }}>
+              <View style={{ flex: 1, marginRight: 8, backgroundColor: C.card, borderRadius: 16, padding: 12, borderWidth: 1, borderColor: 'rgba(255,215,0,0.1)' }}>
                 <SmartRiskIndicator score={data.riskAssessment?.score ?? 0} />
               </View>
               <View style={{ flex: 1 }}>
-                <PriorityActionCard title="Protect Router" body="Voltage surges from the storm may damage network equipment. Use a surge protector." ctaLabel="View Protection Guide" onPress={() => { /* TODO: open guide */ }} />
+                <PriorityActionCard title="Protect Router" body="Voltage surges from the storm may damage network equipment." ctaLabel="View Guide" onPress={() => { }} />
               </View>
             </View>
 
-            <View style={{ marginTop: 12 }}>
-              <Text style={{ fontWeight: '700', marginBottom: 8 }}>Forecast & Stability</Text>
+            <View style={{ marginTop: 20 }}>
+              <Text style={{ fontWeight: '800', marginBottom: 12, color: C.accent, fontSize: 16 }}>Forecast & Stability</Text>
               <ForecastScroller items={(data.forecast || []).slice(0, 6).map(f => ({ label: f.label || 'Now', temp: f.temp ?? '--', emoji: f.emoji ?? '☀️' }))} />
             </View>
 
-            <SimpleCard style={styles.card} title="Priority Actions">
+            <SimpleCard style={styles.card} title="Priority Actions" leftIcon="alert-decagram-outline">
               {data.safetySuggestions?.length ? data.safetySuggestions.map((s, i) => (
-                <Text key={i} style={{ marginTop: 6 }}>• {s}</Text>
-              )) : <Text>No suggestions available.</Text>}
+                <Text key={i} style={{ marginTop: 8, color: C.textPrimary }}>• {s}</Text>
+              )) : <Text style={{ color: C.textMuted }}>No suggestions available.</Text>}
             </SimpleCard>
 
-            <View style={{ marginTop: 80 }} />
+            <View style={{ height: 100 }} />
           </>
         )}
-
-        <View style={{ height: 60 }} />
       </ScrollView>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { padding: 16, paddingBottom: 60 },
-  card: { marginBottom: 12, borderRadius: 8 }
+  container: { flex: 1, backgroundColor: '#1a1a2e' },
+  scrollContent: { padding: 16 },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#FFD700',
+    backgroundColor: '#16213e',
+  },
+  headerTitleRow: { flexDirection: 'row', alignItems: 'center' },
+  headerIconBg: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: 'rgba(255, 215, 0, 0.15)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  headerTitle: { color: '#FFD700', fontSize: 18, fontWeight: '800' },
+  headerStatus: { color: '#aaaaaa', fontSize: 11, marginTop: -2 },
+  card: { marginBottom: 12, borderRadius: 12 }
 });
