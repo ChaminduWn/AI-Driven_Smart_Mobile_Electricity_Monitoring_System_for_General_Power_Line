@@ -5,8 +5,8 @@ import { normalizeWeatherData, normalizeEmergencyProtocol, normalizeSafetyTips }
 // Compatibility: try expoConfig.extra first (newer SDKs), fall back to manifest
 const extra = Constants?.expoConfig?.extra ?? Constants?.manifest?.extra ?? {};
 // Use environment variable if available, otherwise fallback to the hardcoded IPs
-const SAFETY_BASE_URL = process.env.EXPO_PUBLIC_SAFETY_API_URL || 'http://192.168.64.109:5004';
-const SAFETY_ASSISTANT_URL = process.env.EXPO_PUBLIC_SAFETY_ASSISTANT_URL || 'http://172.20.10.2:8000';
+const SAFETY_BASE_URL = process.env.EXPO_PUBLIC_SAFETY_API_URL || 'http://192.168.90.242:5004';
+const SAFETY_ASSISTANT_URL = process.env.EXPO_PUBLIC_SAFETY_ASSISTANT_URL || 'http://192.168.90.242:8001';
 
 const apiClient = axios.create({ baseURL: SAFETY_BASE_URL, timeout: 10000 });
 const assistantClient = axios.create({ baseURL: SAFETY_ASSISTANT_URL, timeout: 10000 });

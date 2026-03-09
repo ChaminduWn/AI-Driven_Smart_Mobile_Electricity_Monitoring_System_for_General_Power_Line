@@ -36,7 +36,7 @@ const ConsumptionChart = ({ readings, plan }) => {
   const fadeAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-    Animated.timing(fadeAnim, { toValue: 1, duration: 800, useNativeDriver: true }).start();
+    Animated.timing(fadeAnim, { toValue: 1, duration: 800, useNativeDriver: Platform.OS !== 'web' }).start();
   }, [readings]);
 
   if (!readings || readings.length === 0) {
@@ -266,8 +266,8 @@ const AIRecCard = ({ rec, index }) => {
   useEffect(() => {
     setTimeout(() => {
       Animated.parallel([
-        Animated.timing(fadeAnim, { toValue: 1, duration: 400, useNativeDriver: true }),
-        Animated.spring(slideAnim, { toValue: 0, friction: 8, useNativeDriver: true }),
+        Animated.timing(fadeAnim, { toValue: 1, duration: 400, useNativeDriver: Platform.OS !== 'web' }),
+        Animated.spring(slideAnim, { toValue: 0, friction: 8, useNativeDriver: Platform.OS !== 'web' }),
       ]).start();
     }, index * 120);
   }, []);
