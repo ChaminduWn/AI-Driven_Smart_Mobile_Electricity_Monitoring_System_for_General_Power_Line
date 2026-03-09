@@ -42,6 +42,19 @@ export const COLORS = {
   entertainment: '#EC4899',
   lighting: '#FBBF24',
   other: '#6B7280',
+
+  weather: {
+    sunny: ['#FFA751', '#FFE259'],
+    cloudy: ['#8CA6DB', '#B9935A'],
+    rainy: ['#4CB8C4', '#3CD3AD'],
+    stormy: ['#4B79A1', '#283E51'],
+  },
+  risk: {
+    LOW: { icon: '#10B981' },
+    MODERATE: { icon: '#F59E0B' },
+    HIGH: { icon: '#F97316' },
+    CRITICAL: { icon: '#EF4444' }
+  }
 };
 
 // ─── Category Color Mapping ───────────────────────────────────────────────────

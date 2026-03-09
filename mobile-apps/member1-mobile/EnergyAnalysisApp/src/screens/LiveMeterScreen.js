@@ -18,6 +18,8 @@ import {
   StyleSheet, Animated, Dimensions, Alert, ActivityIndicator,
   FlatList, Platform, StatusBar, Share, PermissionsAndroid,
 } from 'react-native';
+import * as FileSystem from 'expo-file-system';
+import * as Sharing from 'expo-sharing';
 
 // ─── CONFIG ──────────────────────────────────────────────────────────────────
 const API_BASE = 'http://192.168.182.242:8000/api/v1';

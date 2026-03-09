@@ -9,23 +9,23 @@ import {
    DESIGN TOKENS  — deep navy + teal safety theme
 ───────────────────────────────────────────── */
 const C = {
-  bg:   '#07111F',
-  bg2:  '#0D1B2A',
-  bg3:  '#122236',
+  bg: '#07111F',
+  bg2: '#0D1B2A',
+  bg3: '#122236',
   card: '#0F1E30',
-  card2:'#132030',
+  card2: '#132030',
 
-  safety:  '#00E5A0',   // primary mint-green
-  energy:  '#00C8FF',   // cyan
+  safety: '#00E5A0',   // primary mint-green
+  energy: '#00C8FF',   // cyan
   warning: '#FFD60A',   // amber
-  danger:  '#FF4D6D',   // red
-  calm:    '#5B8CFF',   // soft blue
+  danger: '#FF4D6D',   // red
+  calm: '#5B8CFF',   // soft blue
 
-  textPrimary:   '#E8F4FF',
+  textPrimary: '#E8F4FF',
   textSecondary: '#7A9CC0',
-  textMuted:     '#3D5570',
-  border:        '#1A3050',
-  divider:       '#162A40',
+  textMuted: '#3D5570',
+  border: '#1A3050',
+  divider: '#162A40',
 };
 
 /* ─────────────────────────────────────────────
@@ -61,11 +61,11 @@ const WEATHER_DATA = {
     { type: 'Heat Advisory', level: 'MODERATE', desc: 'Feels like 36°C. Stay hydrated and avoid strenuous activity.', color: C.danger },
   ],
   hourly: [
-    { time: 'Now',  temp: 31, icon: '⛅' },
-    { time: '2PM',  temp: 32, icon: '☀️' },
-    { time: '4PM',  temp: 30, icon: '🌤️' },
-    { time: '6PM',  temp: 28, icon: '⛅' },
-    { time: '8PM',  temp: 26, icon: '🌙' },
+    { time: 'Now', temp: 31, icon: '⛅' },
+    { time: '2PM', temp: 32, icon: '☀️' },
+    { time: '4PM', temp: 30, icon: '🌤️' },
+    { time: '6PM', temp: 28, icon: '⛅' },
+    { time: '8PM', temp: 26, icon: '🌙' },
     { time: '10PM', temp: 25, icon: '🌙' },
   ],
 };
@@ -466,9 +466,9 @@ const SectionLabel = ({ text }) => (
    ROOT SCREEN
 ═══════════════════════════════════════════ */
 const TABS = [
-  { key: 'ai',       label: 'Safety AI',  icon: '🤖' },
-  { key: 'weather',  label: 'Weather',    icon: '🌤️' },
-  { key: 'disaster', label: 'Disaster',   icon: '🚨' },
+  { key: 'ai', label: 'Safety AI', icon: '🤖' },
+  { key: 'weather', label: 'Weather', icon: '🌤️' },
+  { key: 'disaster', label: 'Disaster', icon: '🚨' },
 ];
 
 const SafetyManagementScreen = ({ navigation }) => {
@@ -512,8 +512,8 @@ const SafetyManagementScreen = ({ navigation }) => {
 
       {/* ── CONTENT ── */}
       <View style={{ flex: 1, backgroundColor: C.bg }}>
-        {activeTab === 'ai'       && <AIAssistantTab />}
-        {activeTab === 'weather'  && <WeatherTab />}
+        {activeTab === 'ai' && <AIAssistantTab />}
+        {activeTab === 'weather' && <WeatherTab />}
         {activeTab === 'disaster' && <DisasterTab />}
       </View>
     </SafeAreaView>
@@ -532,12 +532,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16, paddingVertical: 12,
     backgroundColor: C.bg2, borderBottomWidth: 1, borderBottomColor: C.border,
   },
-  backBtn:         { padding: 6, marginRight: 8 },
-  backIcon:        { fontSize: 28, color: C.safety, fontWeight: '300', lineHeight: 30 },
-  headerCenter:    { flex: 1 },
-  headerTitle:     { fontSize: 18, fontWeight: '800', color: C.textPrimary, letterSpacing: -0.3 },
-  headerSub:       { fontSize: 11, color: C.textMuted, marginTop: 1 },
-  headerBadge:     { borderRadius: 99, paddingHorizontal: 10, paddingVertical: 4 },
+  backBtn: { padding: 6, marginRight: 8 },
+  backIcon: { fontSize: 28, color: C.safety, fontWeight: '300', lineHeight: 30 },
+  headerCenter: { flex: 1 },
+  headerTitle: { fontSize: 18, fontWeight: '800', color: C.textPrimary, letterSpacing: -0.3 },
+  headerSub: { fontSize: 11, color: C.textMuted, marginTop: 1 },
+  headerBadge: { borderRadius: 99, paddingHorizontal: 10, paddingVertical: 4 },
   headerBadgeText: { fontSize: 11, fontWeight: '700', letterSpacing: 0.5 },
 
   /* tab bar */
@@ -549,19 +549,19 @@ const styles = StyleSheet.create({
     flex: 1, alignItems: 'center', paddingVertical: 10,
     position: 'relative',
   },
-  tabActive:      {},
-  tabIcon:        { fontSize: 18, marginBottom: 3 },
-  tabLabel:       { fontSize: 11, fontWeight: '600', color: C.textMuted },
+  tabActive: {},
+  tabIcon: { fontSize: 18, marginBottom: 3 },
+  tabLabel: { fontSize: 11, fontWeight: '600', color: C.textMuted },
   tabLabelActive: { color: C.safety, fontWeight: '700' },
-  tabUnderline:   { position: 'absolute', bottom: 0, left: '15%', right: '15%', height: 2, backgroundColor: C.safety, borderRadius: 2 },
+  tabUnderline: { position: 'absolute', bottom: 0, left: '15%', right: '15%', height: 2, backgroundColor: C.safety, borderRadius: 2 },
 
   /* AI tab */
-  chips:   { backgroundColor: C.bg2, maxHeight: 56, borderBottomWidth: 1, borderBottomColor: C.border },
-  chip:    { backgroundColor: C.safety + '15', borderRadius: 99, paddingHorizontal: 14, paddingVertical: 7, borderWidth: 1, borderColor: C.safety + '40', alignSelf: 'flex-start' },
-  chipText:{ fontSize: 12, color: C.safety, fontWeight: '600' },
+  chips: { backgroundColor: C.bg2, maxHeight: 56, borderBottomWidth: 1, borderBottomColor: C.border },
+  chip: { backgroundColor: C.safety + '15', borderRadius: 99, paddingHorizontal: 14, paddingVertical: 7, borderWidth: 1, borderColor: C.safety + '40', alignSelf: 'flex-start' },
+  chipText: { fontSize: 12, color: C.safety, fontWeight: '600' },
 
   msgList: { flex: 1, backgroundColor: C.bg },
-  bubble:  { maxWidth: '88%', borderRadius: 16, padding: 14 },
+  bubble: { maxWidth: '88%', borderRadius: 16, padding: 14 },
   bubbleAI: {
     backgroundColor: C.card, alignSelf: 'flex-start',
     borderWidth: 1, borderColor: C.border,
@@ -572,12 +572,12 @@ const styles = StyleSheet.create({
     borderWidth: 1, borderColor: C.safety + '50',
     borderBottomRightRadius: 4,
   },
-  bubbleText:     { fontSize: 14, color: C.textPrimary, lineHeight: 21 },
+  bubbleText: { fontSize: 14, color: C.textPrimary, lineHeight: 21 },
   bubbleTextUser: { color: C.textPrimary },
-  aiBadge:        { flexDirection: 'row', alignItems: 'center', marginBottom: 8 },
-  aiBadgeText:    { fontSize: 11, fontWeight: '700', color: C.safety, letterSpacing: 0.5 },
-  typingDots:     { flexDirection: 'row', alignItems: 'center' },
-  typingText:     { color: C.textMuted, fontSize: 13 },
+  aiBadge: { flexDirection: 'row', alignItems: 'center', marginBottom: 8 },
+  aiBadgeText: { fontSize: 11, fontWeight: '700', color: C.safety, letterSpacing: 0.5 },
+  typingDots: { flexDirection: 'row', alignItems: 'center' },
+  typingText: { color: C.textMuted, fontSize: 13 },
 
   inputRow: {
     flexDirection: 'row', alignItems: 'flex-end', gap: 10,
@@ -589,7 +589,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14, paddingVertical: 10, color: C.textPrimary, fontSize: 14,
     maxHeight: 100,
   },
-  sendBtn:  { width: 44, height: 44, borderRadius: 14, backgroundColor: C.safety, justifyContent: 'center', alignItems: 'center' },
+  sendBtn: { width: 44, height: 44, borderRadius: 14, backgroundColor: C.safety, justifyContent: 'center', alignItems: 'center' },
   sendIcon: { fontSize: 20, color: C.bg, fontWeight: '800' },
 
   /* weather tab */
@@ -599,11 +599,11 @@ const styles = StyleSheet.create({
   },
   weatherGradientBar: { height: 3, backgroundColor: C.energy },
   weatherLocation: { fontSize: 13, color: C.textMuted, marginBottom: 10 },
-  weatherMain:     { flexDirection: 'row', alignItems: 'center', gap: 18 },
-  weatherIcon:     { fontSize: 56 },
-  weatherTemp:     { fontSize: 42, fontWeight: '800', color: C.textPrimary, letterSpacing: -2 },
-  weatherCondition:{ fontSize: 16, color: C.textSecondary, fontWeight: '600' },
-  weatherFeels:    { fontSize: 12, color: C.textMuted, marginTop: 2 },
+  weatherMain: { flexDirection: 'row', alignItems: 'center', gap: 18 },
+  weatherIcon: { fontSize: 56 },
+  weatherTemp: { fontSize: 42, fontWeight: '800', color: C.textPrimary, letterSpacing: -2 },
+  weatherCondition: { fontSize: 16, color: C.textSecondary, fontWeight: '600' },
+  weatherFeels: { fontSize: 12, color: C.textMuted, marginTop: 2 },
 
   hourlyItem: {
     backgroundColor: C.bg3, borderRadius: 12, paddingVertical: 10, paddingHorizontal: 12,
@@ -618,7 +618,7 @@ const styles = StyleSheet.create({
     width: '47.5%', backgroundColor: C.card, borderRadius: 14, borderWidth: 1, borderColor: C.border,
     paddingVertical: 14, alignItems: 'center', gap: 4,
   },
-  wStatIcon:  { fontSize: 22 },
+  wStatIcon: { fontSize: 22 },
   wStatValue: { fontSize: 18, fontWeight: '800', letterSpacing: -0.5 },
   wStatLabel: { fontSize: 12, color: C.textMuted },
 
@@ -626,19 +626,19 @@ const styles = StyleSheet.create({
     backgroundColor: C.card, borderRadius: 14, padding: 14,
     borderWidth: 1, borderColor: C.border,
   },
-  alertTop:      { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 },
-  alertType:     { fontSize: 14, fontWeight: '700', color: C.textPrimary },
+  alertTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 },
+  alertType: { fontSize: 14, fontWeight: '700', color: C.textPrimary },
   alertLevelBadge: { borderRadius: 99, paddingHorizontal: 8, paddingVertical: 2 },
   alertLevelText: { fontSize: 10, fontWeight: '800', letterSpacing: 0.5 },
-  alertDesc:     { fontSize: 13, color: C.textSecondary, lineHeight: 19 },
+  alertDesc: { fontSize: 13, color: C.textSecondary, lineHeight: 19 },
 
   checklistCard: { backgroundColor: C.card, borderRadius: 16, borderWidth: 1, borderColor: C.border, overflow: 'hidden' },
-  checkRow:      { flexDirection: 'row', alignItems: 'center', padding: 14, gap: 12 },
-  checkbox:      { width: 22, height: 22, borderRadius: 6, borderWidth: 2, borderColor: C.border, justifyContent: 'center', alignItems: 'center' },
-  checkmark:     { fontSize: 13, color: C.bg, fontWeight: '900' },
-  checkText:     { flex: 1, fontSize: 14, color: C.textPrimary },
+  checkRow: { flexDirection: 'row', alignItems: 'center', padding: 14, gap: 12 },
+  checkbox: { width: 22, height: 22, borderRadius: 6, borderWidth: 2, borderColor: C.border, justifyContent: 'center', alignItems: 'center' },
+  checkmark: { fontSize: 13, color: C.bg, fontWeight: '900' },
+  checkText: { flex: 1, fontSize: 14, color: C.textPrimary },
   criticalBadge: { backgroundColor: C.danger + '20', borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2, borderWidth: 1, borderColor: C.danger + '40' },
-  criticalText:  { fontSize: 9, fontWeight: '800', color: C.danger, letterSpacing: 0.5 },
+  criticalText: { fontSize: 9, fontWeight: '800', color: C.danger, letterSpacing: 0.5 },
 
   /* disaster tab */
   emergencyBanner: {
@@ -647,36 +647,36 @@ const styles = StyleSheet.create({
     borderTopWidth: 3, borderTopColor: C.danger,
   },
   emergencyTitle: { fontSize: 14, fontWeight: '700', color: C.textPrimary, marginBottom: 12 },
-  emergencyRow:   { flexDirection: 'row', gap: 8 },
-  contactBtn:     { flex: 1, borderRadius: 12, borderWidth: 1, paddingVertical: 10, alignItems: 'center', gap: 2 },
-  contactNum:     { fontSize: 15, fontWeight: '800', letterSpacing: -0.3 },
-  contactLabel:   { fontSize: 10, color: C.textMuted, fontWeight: '600' },
+  emergencyRow: { flexDirection: 'row', gap: 8 },
+  contactBtn: { flex: 1, borderRadius: 12, borderWidth: 1, paddingVertical: 10, alignItems: 'center', gap: 2 },
+  contactNum: { fontSize: 15, fontWeight: '800', letterSpacing: -0.3 },
+  contactLabel: { fontSize: 10, color: C.textMuted, fontWeight: '600' },
 
   disasterCard: {
     backgroundColor: C.card, borderRadius: 18, borderWidth: 1,
     overflow: 'hidden', flexDirection: 'column',
   },
-  disasterBar:     { height: 3 },
-  disasterBody:    { flexDirection: 'row', alignItems: 'center', padding: 14, gap: 12 },
-  disasterIconWrap:{ width: 48, height: 48, borderRadius: 14, justifyContent: 'center', alignItems: 'center' },
-  disasterIcon:    { fontSize: 24 },
-  disasterTitle:   { fontSize: 15, fontWeight: '700', color: C.textPrimary, marginBottom: 3 },
-  disasterStepCount:{ fontSize: 12, color: C.textMuted },
-  riskBadge:       { borderRadius: 99, paddingHorizontal: 9, paddingVertical: 3 },
-  riskText:        { fontSize: 10, fontWeight: '800', letterSpacing: 0.5 },
-  expandArrow:     { fontSize: 22, fontWeight: '300', lineHeight: 24 },
+  disasterBar: { height: 3 },
+  disasterBody: { flexDirection: 'row', alignItems: 'center', padding: 14, gap: 12 },
+  disasterIconWrap: { width: 48, height: 48, borderRadius: 14, justifyContent: 'center', alignItems: 'center' },
+  disasterIcon: { fontSize: 24 },
+  disasterTitle: { fontSize: 15, fontWeight: '700', color: C.textPrimary, marginBottom: 3 },
+  disasterStepCount: { fontSize: 12, color: C.textMuted },
+  riskBadge: { borderRadius: 99, paddingHorizontal: 9, paddingVertical: 3 },
+  riskText: { fontSize: 10, fontWeight: '800', letterSpacing: 0.5 },
+  expandArrow: { fontSize: 22, fontWeight: '300', lineHeight: 24 },
 
   disasterExpanded: { paddingHorizontal: 14, paddingBottom: 16 },
-  expandDivider:    { height: 1, marginBottom: 14 },
-  expandSubhead:    { fontSize: 12, fontWeight: '700', letterSpacing: 0.8, textTransform: 'uppercase', marginBottom: 10 },
-  stepRow:          { flexDirection: 'row', alignItems: 'flex-start', gap: 10, marginBottom: 8 },
-  stepNum:          { width: 24, height: 24, borderRadius: 7, justifyContent: 'center', alignItems: 'center', marginTop: 1 },
-  stepNumText:      { fontSize: 12, fontWeight: '800' },
-  stepText:         { flex: 1, fontSize: 13, color: C.textSecondary, lineHeight: 20 },
-  planContact:      { fontSize: 13, color: C.textSecondary, marginBottom: 4 },
+  expandDivider: { height: 1, marginBottom: 14 },
+  expandSubhead: { fontSize: 12, fontWeight: '700', letterSpacing: 0.8, textTransform: 'uppercase', marginBottom: 10 },
+  stepRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 10, marginBottom: 8 },
+  stepNum: { width: 24, height: 24, borderRadius: 7, justifyContent: 'center', alignItems: 'center', marginTop: 1 },
+  stepNumText: { fontSize: 12, fontWeight: '800' },
+  stepText: { flex: 1, fontSize: 13, color: C.textSecondary, lineHeight: 20 },
+  planContact: { fontSize: 13, color: C.textSecondary, marginBottom: 4 },
 
   /* shared section label */
-  secLabel:     { marginBottom: 2 },
+  secLabel: { marginBottom: 2 },
   secLabelText: { fontSize: 13, fontWeight: '700', color: C.textSecondary },
 });
 

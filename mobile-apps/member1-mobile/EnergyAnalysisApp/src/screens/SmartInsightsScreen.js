@@ -664,6 +664,71 @@ const EfficiencyScoreTab = ({ data, loading }) => {
 };
 
 // ══════════════════════════════════════════════════════════════════════════════
+// TAB 4: SAFETY ASSISTANT
+// ══════════════════════════════════════════════════════════════════════════════
+
+const SafetyTab = ({ navigation }) => {
+  return (
+    <ScrollView showsVerticalScrollIndicator={false}>
+      <SectionCard>
+        <Text style={s.cardTitle}>Safety Assistant</Text>
+        <Text style={s.cardSub}>AI-powered safety and weather monitoring</Text>
+      </SectionCard>
+
+      <TouchableOpacity
+        style={s.safetyBtn}
+        onPress={() => navigation.navigate('Weather')}
+        activeOpacity={0.8}
+      >
+        <Text style={s.safetyEmoji}>🌤️</Text>
+        <View style={s.safetyText}>
+          <Text style={s.safetyTitle}>Weather Monitor</Text>
+          <Text style={s.safetySub}>Check weather conditions and safety alerts</Text>
+        </View>
+      </TouchableOpacity>
+
+      <TouchableOpacity
+        style={s.safetyBtn}
+        onPress={() => navigation.navigate('SafetyTips')}
+        activeOpacity={0.8}
+      >
+        <Text style={s.safetyEmoji}>💡</Text>
+        <View style={s.safetyText}>
+          <Text style={s.safetyTitle}>Safety Tips</Text>
+          <Text style={s.safetySub}>Daily, seasonal, and emergency safety tips</Text>
+        </View>
+      </TouchableOpacity>
+
+      <TouchableOpacity
+        style={s.safetyBtn}
+        onPress={() => navigation.navigate('Emergency')}
+        activeOpacity={0.8}
+      >
+        <Text style={s.safetyEmoji}>🚨</Text>
+        <View style={s.safetyText}>
+          <Text style={s.safetyTitle}>Emergency Protocols</Text>
+          <Text style={s.safetySub}>Step-by-step guides for disasters</Text>
+        </View>
+      </TouchableOpacity>
+
+      <TouchableOpacity
+        style={s.safetyBtn}
+        onPress={() => navigation.navigate('Assistant')}
+        activeOpacity={0.8}
+      >
+        <Text style={s.safetyEmoji}>🤖</Text>
+        <View style={s.safetyText}>
+          <Text style={s.safetyTitle}>AI Assistant</Text>
+          <Text style={s.safetySub}>Ask questions about safety and electricity</Text>
+        </View>
+      </TouchableOpacity>
+
+      <View style={{ height: SPACING.xl }} />
+    </ScrollView>
+  );
+};
+
+// ══════════════════════════════════════════════════════════════════════════════
 // MAIN SCREEN
 // ══════════════════════════════════════════════════════════════════════════════
 
@@ -671,6 +736,7 @@ const TABS = [
   { id: 'spike',      emoji: '⚡', label: 'Spike Alert' },
   { id: 'tariff',     emoji: '📏', label: 'Tariff Watch' },
   { id: 'efficiency', emoji: '🏆', label: 'Efficiency' },
+  { id: 'safety',     emoji: '🛡️', label: 'Safety' },
 ];
 
 const SmartInsightsScreen = ({ navigation }) => {
@@ -788,6 +854,9 @@ const SmartInsightsScreen = ({ navigation }) => {
         )}
         {activeTab === 'efficiency' && (
           <EfficiencyScoreTab data={efficiencyData} loading={loading} />
+        )}
+        {activeTab === 'safety' && (
+          <SafetyTab navigation={navigation} />
         )}
       </View>
     </View>
@@ -929,6 +998,23 @@ const s = StyleSheet.create({
   breakdownRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 4 },
   breakdownLabel: { color: COLORS.textSecondary, fontSize: 12 },
   breakdownValue: { color: COLORS.textPrimary, fontSize: 12, ...FONTS.medium },
+
+  // Safety tab
+  safetyBtn: {
+    flexDirection: 'row',
+    backgroundColor: COLORS.bg2,
+    margin: SPACING.lg,
+    marginBottom: 0,
+    padding: SPACING.lg,
+    borderRadius: RADIUS.lg,
+    alignItems: 'center',
+    gap: SPACING.md,
+    ...SHADOW.sm,
+  },
+  safetyEmoji: { fontSize: 24 },
+  safetyText: { flex: 1 },
+  safetyTitle: { color: COLORS.textPrimary, fontSize: 16, ...FONTS.semiBold },
+  safetySub: { color: COLORS.textSecondary, fontSize: 13, marginTop: 2 },
 });
 
 export default SmartInsightsScreen;
