@@ -1,6 +1,7 @@
 import React, { useState } from "react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
+import postTransparentImg from '../img/post_transparent.png';
 
 const features = [
   {
@@ -97,6 +98,7 @@ const Orb = ({ x, y, color, size = 400 }) => (
 export default function Home() {
   const navigate = useNavigate();
   const [hoveredFeature, setHoveredFeature] = useState(null);
+  const [showPoster, setShowPoster] = useState(false);
 
   return (
     <div style={{ color: "#1E293B" }}>
@@ -140,11 +142,11 @@ export default function Home() {
                 letterSpacing: "-2px", margin: "0 0 24px",
                 color: "#0F172A",
               }}>
-                Smart Power<br/>
+                Smart Mobile<br/>
                 <span style={{
                   background: "linear-gradient(135deg, #2563EB 0%, #7C3AED 60%, #0EA5E9 100%)",
                   WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent",
-                }}>Perfected by AI.</span>
+                }}>Electricity Monitoring System</span>
               </h1>
 
               <p style={{ fontSize: 17, color: "#64748B", lineHeight: 1.75, margin: "0 0 40px", maxWidth: 460 }}>
@@ -154,6 +156,7 @@ export default function Home() {
 
               <div style={{ display: "flex", gap: 14, alignItems: "center" }}>
                 <motion.button
+                  onClick={() => navigate("/app")}
                   whileHover={{ scale: 1.03, boxShadow: "0 16px 36px rgba(37,99,235,0.35)" }}
                   whileTap={{ scale: 0.97 }}
                   style={{
@@ -165,13 +168,14 @@ export default function Home() {
                     display: "flex", alignItems: "center", gap: 8,
                   }}
                 >
-                  Get Started Free
+                  Launch App
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                     <path d="M5 12h14M12 5l7 7-7 7" strokeLinecap="round" strokeLinejoin="round"/>
                   </svg>
                 </motion.button>
 
                 <motion.button
+                  onClick={() => setShowPoster(true)}
                   whileHover={{ scale: 1.03, background: "#F1F5F9" }}
                   whileTap={{ scale: 0.97 }}
                   style={{
@@ -185,10 +189,10 @@ export default function Home() {
                   }}
                 >
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <circle cx="12" cy="12" r="10"/>
-                    <path d="M10 8l6 4-6 4V8z" fill="currentColor" stroke="none"/>
+                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" strokeLinecap="round" strokeLinejoin="round"/>
+                    <circle cx="12" cy="12" r="3" strokeLinecap="round" strokeLinejoin="round"/>
                   </svg>
-                  View Demo
+                  View Poster
                 </motion.button>
               </div>
 
@@ -534,6 +538,46 @@ export default function Home() {
         }
         * { box-sizing: border-box; }
       `}</style>
+
+      {/* ── POSTER MODAL ── */}
+      <AnimatePresence>
+        {showPoster && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setShowPoster(false)}
+            style={{
+              position: 'fixed', inset: 0, zIndex: 9999,
+              background: 'rgba(15,23,42,0.85)', backdropFilter: 'blur(8px)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center'
+            }}
+          >
+            <motion.div
+              initial={{ scale: 0.95, y: 20 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.95, y: 20, opacity: 0 }}
+              onClick={e => e.stopPropagation()}
+              style={{
+                position: 'relative', maxWidth: '90vw', maxHeight: '90vh',
+                background: 'rgba(255,255,255,0.05)',
+                borderRadius: 24, padding: 20, boxShadow: '0 25px 50px -12px rgba(0,0,0,0.5)'
+              }}
+            >
+              <button 
+                onClick={() => setShowPoster(false)}
+                style={{
+                  position: 'absolute', top: -16, right: -16, width: 32, height: 32,
+                  borderRadius: 16, border: 'none', background: '#EF4444',
+                  color: 'white', fontWeight: 'bold', cursor: 'pointer', zIndex: 10,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16
+                }}
+              >✕</button>
+              <img src={postTransparentImg} alt="Poster" style={{ maxWidth: '100%', maxHeight: 'calc(90vh - 40px)', objectFit: 'contain', display: 'block' }} />
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
