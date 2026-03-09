@@ -9,13 +9,24 @@ export default function PriorityActionCard({ title, body, ctaLabel, onPress }) {
         <Text style={styles.title}>{title}</Text>
         <Text style={styles.body}>{body}</Text>
       </View>
-      <Button mode="contained" onPress={onPress}>{ctaLabel}</Button>
+      <Button mode="contained" onPress={onPress} buttonColor="#FFD700" textColor="#1a1a2e">{ctaLabel}</Button>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  card: { backgroundColor: '#fff', borderRadius: 12, padding: 12, marginBottom: 12, shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 6, elevation: 3 },
-  title: { fontWeight: '700', fontSize: 16 },
-  body: { color: '#666', marginTop: 6, marginBottom: 8 }
+  card: {
+    backgroundColor: '#16213e',
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 12,
+    shadowColor: '#000',
+    shadowOpacity: 0.2,
+    shadowRadius: 6,
+    elevation: 3,
+    borderWidth: 1,
+    borderColor: 'rgba(255,215,0,0.2)'
+  },
+  title: { fontWeight: '700', fontSize: 16, color: '#ffffff' },
+  body: { color: '#aaaaaa', marginTop: 6, marginBottom: 8 }
 });

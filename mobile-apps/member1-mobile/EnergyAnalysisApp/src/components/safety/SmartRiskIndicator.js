@@ -35,7 +35,7 @@ export default function SmartRiskIndicator({ score = 40, size = 120 }) {
       </Svg>
       <View style={styles.textWrap} pointerEvents="none">
         <Text style={{ fontSize: 20, fontWeight: '700', color }}>{level}</Text>
-        <Text style={{ color: COLORS.text.secondary }}>{score}%</Text>
+        <Text style={{ color: '#dddddd' }}>{score}%</Text>
       </View>
     </View>
   );

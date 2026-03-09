@@ -28,13 +28,13 @@ export default function ProtocolPhase({ phase, title, items = [], open = false }
 }
 
 const styles = StyleSheet.create({
-  container: { backgroundColor: '#fff', borderRadius: 12, padding: 12, marginBottom: 12 },
+  container: { backgroundColor: '#16213e', borderRadius: 12, padding: 12, marginBottom: 12, borderWidth: 1, borderColor: 'rgba(255,215,0,0.1)' },
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  icon: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#eef6ff', alignItems: 'center', justifyContent: 'center' },
-  phase: { fontSize: 12, color: '#f39c12', fontWeight: '700' },
-  title: { fontSize: 16, fontWeight: '700' },
+  icon: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255, 215, 0, 0.1)', alignItems: 'center', justifyContent: 'center' },
+  phase: { fontSize: 12, color: '#FFD700', fontWeight: '700' },
+  title: { fontSize: 16, fontWeight: '700', color: '#ffffff' },
   body: { marginTop: 8 },
-  itemRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 8, backgroundColor: '#f6fbff', borderRadius: 8, marginBottom: 8, paddingHorizontal: 10 },
-  dot: { width: 12, height: 12, borderRadius: 6, backgroundColor: '#2ecc71', marginRight: 10 },
-  itemText: { flex: 1 }
+  itemRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 10, backgroundColor: 'rgba(255, 255, 255, 0.03)', borderRadius: 8, marginBottom: 8, paddingHorizontal: 12 },
+  dot: { width: 8, height: 8, borderRadius: 4, backgroundColor: '#FFD700', marginRight: 12 },
+  itemText: { flex: 1, color: '#eeeeee', fontSize: 14 }
 });
