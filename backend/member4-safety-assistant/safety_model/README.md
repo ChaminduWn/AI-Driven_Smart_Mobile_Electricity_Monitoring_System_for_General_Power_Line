@@ -23,7 +23,7 @@ python build_index.py
 ```
 4. Run the API:
 ```bash
-uvicorn app:app --reload --port 8000 --host 0.0.0.0
+uvicorn app:app --reload --port 8001 --host 0.0.0.0
 
 ```
 5. Run the UI (in a separate terminal):

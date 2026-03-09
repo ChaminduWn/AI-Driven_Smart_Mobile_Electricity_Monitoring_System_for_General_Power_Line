@@ -11,7 +11,7 @@ import {
 } from 'react-native';
 import { Text } from 'react-native-paper';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
-import api from '../../services/safety/api';
+import safetyApi from '../../services/safety/api';
 
 const AssistantScreen = () => {
   const [question, setQuestion] = useState('');
@@ -43,7 +43,7 @@ const AssistantScreen = () => {
     setLoading(true);
 
     try {
-      const data = await api.fetchAssistant(question.trim());
+      const data = await safetyApi.fetchAssistant(question.trim());
 
       // Format bot response
       let botResponse = `${data.answer}`;
@@ -68,7 +68,7 @@ const AssistantScreen = () => {
       console.error('Connection Error:', error);
       const errorMessage = {
         type: 'bot',
-        text: `⚠️ Connection Error\n\n${error.message}\n\nMake sure the API is running:\n\ncd d:\\AI-Driven_Smart_Mobile_Electricity_Monitoring_System_for_General_Power_Line\\backend\\member4-safety-assistant\\safety_model\n\npython -m uvicorn app:app --reload --port 8000`,
+        text: `⚠️ Connection Error\n\n${error.message}\n\nMake sure the API is running:\n\ncd d:\\AI-Driven_Smart_Mobile_Electricity_Monitoring_System_for_General_Power_Line\\backend\\member4-safety-assistant\\safety_model\n\npython -m uvicorn app:app --reload --port 8001`,
         timestamp: new Date(),
       };
       setMessages((prev) => [...prev, errorMessage]);
