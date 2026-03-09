@@ -430,51 +430,85 @@ class IoTService:
     async def _save_reading_to_db(self, device_id: str, data: dict):
         if not self._db_factory:
             return
-        session_id = active_sessions.get(device_id)
-        if not session_id:
-            return
 
+        db = self._db_factory()
         try:
             from src.models.device_session import DeviceReading, DeviceSession
-            db = self._db_factory()
+            from src.models.iot_reading import LiveMeterReading
+            
+            session_id = active_sessions.get(device_id)
+            session = None
+            account_number = None
 
-            # Pull account_number from the active session
-            session = db.query(DeviceSession).filter(DeviceSession.id == session_id).first()
-            account_number = session.account_number if session else None
+            if session_id:
+                session = db.query(DeviceSession).filter(DeviceSession.id == session_id).first()
+                if session:
+                    account_number = session.account_number
 
-            reading = DeviceReading(
-                session_id          = session_id,
-                device_id           = device_id,
-                account_number      = account_number,           # ✅ FIX: from session
-                voltage             = data.get("voltage", 0),
-                current_a           = data.get("current_a") or data.get("current", 0),   # ✅ FIX
-                power_w             = data.get("power_w")   or data.get("power",   0),   # ✅ FIX
-                energy_kwh          = data.get("energy_kwh") or data.get("energy",  0),  # ✅ FIX
-                frequency_hz        = data.get("frequency_hz") or data.get("frequency", 50),  # ✅ FIX
-                power_factor        = data.get("power_factor", 1),
-                apparent_power_va   = data.get("apparent_power_va") or data.get("apparent_power"),
-                reactive_power_var  = data.get("reactive_power_var") or data.get("reactive_power"),
-                resistance_ohm      = data.get("resistance_ohm"),
-                voltage_deviation   = data.get("voltage_deviation"),
-                voltage_dev_pct     = data.get("voltage_dev_pct"),
-                power_quality_score = data.get("power_quality_score"),
-                efficiency_class    = data.get("efficiency_class"),
-                session_kwh         = data.get("session_kwh"),
-                session_cost_rs     = data.get("session_cost_rs"),
-                session_minutes     = data.get("session_minutes"),
-                avg_power_w         = data.get("avg_power_w"),
-                peak_power_w        = data.get("peak_power_w"),
-                avg_power_factor    = data.get("avg_power_factor"),
-                detected_appliance  = data.get("detected_appliance"),
-                anomaly             = data.get("anomaly"),
-                wifi_rssi           = data.get("wifi_rssi"),
-                read_count          = data.get("read_count"),
-                uptime_ms           = data.get("uptime_ms"),
-                temperature_c       = data.get("temperature_c"),   # ✅ Arduino sends directly
-                humidity_pct        = data.get("humidity_pct"),    # ✅ Arduino sends directly
-                heat_index_c        = data.get("heat_index_c"),    # ✅ Arduino sends directly
-            )
-            db.add(reading)
+            # Fallback: if no active session, try to find the last known account for this device
+            if not account_number:
+                last_s = db.query(DeviceSession).filter(
+                    DeviceSession.device_id == device_id
+                ).order_by(DeviceSession.started_at.desc()).first()
+                if last_s:
+                    account_number = last_s.account_number
+
+            # 1. ALWAYS save to LiveMeterReading if we have an account number
+            if account_number:
+                live = LiveMeterReading(
+                    account_number      = account_number,
+                    voltage             = data.get("voltage", 0),
+                    current             = data.get("current_a") or data.get("current", 0),
+                    power               = data.get("power_w")   or data.get("power",   0),
+                    energy              = data.get("energy_kwh") or data.get("energy",  0),
+                    frequency           = data.get("frequency_hz") or data.get("frequency", 50),
+                    power_factor        = data.get("power_factor", 1),
+                    session_kwh         = data.get("session_kwh", 0),
+                    session_cost_rs     = data.get("session_cost_rs", 0),
+                    detected_appliance  = data.get("detected_appliance"),
+                    anomaly             = data.get("anomalies")[0] if data.get("anomalies") else None,
+                    read_count          = data.get("read_count", 0),
+                    uptime_ms           = data.get("uptime_ms", 0),
+                    wifi_rssi           = data.get("wifi_rssi", 0),
+                    raw_data            = data
+                )
+                db.add(live)
+
+            # 2. Save to DeviceReading ONLY if there is an active session
+            if session_id and session:
+                reading = DeviceReading(
+                    session_id          = session_id,
+                    device_id           = device_id,
+                    account_number      = account_number,
+                    voltage             = data.get("voltage", 0),
+                    current_a           = data.get("current_a") or data.get("current", 0),
+                    power_w             = data.get("power_w")   or data.get("power",   0),
+                    energy_kwh          = data.get("energy_kwh") or data.get("energy",  0),
+                    frequency_hz        = data.get("frequency_hz") or data.get("frequency", 50),
+                    power_factor        = data.get("power_factor", 1),
+                    apparent_power_va   = data.get("apparent_power_va") or data.get("apparent_power"),
+                    reactive_power_var  = data.get("reactive_power_var") or data.get("reactive_power"),
+                    resistance_ohm      = data.get("resistance_ohm"),
+                    voltage_deviation   = data.get("voltage_deviation"),
+                    voltage_dev_pct     = data.get("voltage_dev_pct"),
+                    power_quality_score = data.get("power_quality_score"),
+                    efficiency_class    = data.get("efficiency_class"),
+                    session_kwh         = data.get("session_kwh"),
+                    session_cost_rs     = data.get("session_cost_rs"),
+                    session_minutes     = data.get("session_minutes"),
+                    avg_power_w         = data.get("avg_power_w"),
+                    peak_power_w        = data.get("peak_power_w"),
+                    avg_power_factor    = data.get("avg_power_factor"),
+                    detected_appliance  = data.get("detected_appliance"),
+                    anomaly             = data.get("anomaly"),
+                    wifi_rssi           = data.get("wifi_rssi"),
+                    read_count          = data.get("read_count"),
+                    uptime_ms           = data.get("uptime_ms"),
+                    temperature_c       = data.get("temperature_c"),
+                    humidity_pct        = data.get("humidity_pct"),
+                    heat_index_c        = data.get("heat_index_c"),
+                )
+                db.add(reading)
 
             # Update session summary
             if session:
@@ -537,20 +571,48 @@ class IoTService:
     async def _save_event_to_db(self, device_id: str, data: dict):
         if not self._db_factory:
             return
-        session_id = active_sessions.get(device_id)
-        if not session_id:
-            return
+            
+        db = self._db_factory()
         try:
-            from src.models.device_session import DeviceApplianceEvent
-            db = self._db_factory()
-            event = DeviceApplianceEvent(
-                session_id     = session_id,
-                device_id      = device_id,
-                from_appliance = data.get("from", ""),
-                to_appliance   = data.get("to", ""),
-                watts          = data.get("watts", 0),
-            )
-            db.add(event)
+            from src.models.device_session import DeviceApplianceEvent, DeviceSession
+            from src.models.iot_reading import ApplianceEvent
+            
+            session_id = active_sessions.get(device_id)
+            account_number = None
+
+            if session_id:
+                session = db.query(DeviceSession).filter(DeviceSession.id == session_id).first()
+                if session:
+                    account_number = session.account_number
+
+            if not account_number:
+                last_s = db.query(DeviceSession).filter(
+                    DeviceSession.device_id == device_id
+                ).order_by(DeviceSession.started_at.desc()).first()
+                if last_s:
+                    account_number = last_s.account_number
+
+            # 1. ALWAYS save to ApplianceEvent if we have an account number
+            if account_number:
+                app_event = ApplianceEvent(
+                    account_number = account_number,
+                    from_appliance = data.get("from", ""),
+                    to_appliance   = data.get("to", ""),
+                    watts          = data.get("watts", 0),
+                )
+                db.add(app_event)
+
+            # 2. Save to DeviceApplianceEvent ONLY if session is active
+            if session_id:
+                event = DeviceApplianceEvent(
+                    session_id     = session_id,
+                    device_id      = device_id,
+                    from_appliance = data.get("from", ""),
+                    to_appliance   = data.get("to", ""),
+                    watts          = data.get("watts", 0),
+                )
+                db.add(event)
+            
             db.commit()
         except Exception as e:
             logger.error(f"DB save event error: {e}")

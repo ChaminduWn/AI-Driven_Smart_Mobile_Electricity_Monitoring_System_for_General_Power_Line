@@ -15,11 +15,11 @@ WebBrowser.maybeCompleteAuthSession();
 
 const LoginScreen = ({ navigation }) => {
   const { login } = useAuth();
-  const [email, setEmail]       = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPass, setShowPass] = useState(false);
-  const [loading, setLoading]   = useState(false);
-  const [errors, setErrors]     = useState({});
+  const [loading, setLoading] = useState(false);
+  const [errors, setErrors] = useState({});
 
   // ── Google Auth Setup ───────────────────────────────────────────────────────
   // Using useProxy: false because you are not logged into Expo
@@ -30,9 +30,9 @@ const LoginScreen = ({ navigation }) => {
   });
 
   const [request, response, promptAsync] = Google.useAuthRequest({
-    webClientId:     process.env.EXPO_PUBLIC_WEB_CLIENT_ID,
+    webClientId: process.env.EXPO_PUBLIC_WEB_CLIENT_ID,
     androidClientId: process.env.EXPO_PUBLIC_ANDROID_CLIENT_ID,
-    iosClientId:     process.env.EXPO_PUBLIC_IOS_CLIENT_ID,
+    iosClientId: process.env.EXPO_PUBLIC_IOS_CLIENT_ID,
     redirectUri,
   });
 
@@ -84,9 +84,9 @@ const LoginScreen = ({ navigation }) => {
       const backendRes = await authAPI.googleLogin(accessToken, userInfo);
       const data = backendRes.data;
 
-      const appAccessToken  = data.access_token || data.accessToken || data.token;
+      const appAccessToken = data.access_token || data.accessToken || data.token;
       const appRefreshToken = data.refresh_token || data.refreshToken || appAccessToken;
-      const userData        = data.user || data.profile;
+      const userData = data.user || data.profile;
 
       await login(appAccessToken, appRefreshToken, userData);
 
@@ -105,9 +105,9 @@ const LoginScreen = ({ navigation }) => {
       const res = await authAPI.googleLogin(idToken);
       const data = res.data;
 
-      const accessToken  = data.access_token || data.accessToken || data.token;
+      const accessToken = data.access_token || data.accessToken || data.token;
       const refreshToken = data.refresh_token || data.refreshToken || accessToken;
-      const userData     = data.user || data.profile;
+      const userData = data.user || data.profile;
 
       if (!accessToken) {
         Alert.alert('Error', 'No token received from server.');
@@ -140,12 +140,12 @@ const LoginScreen = ({ navigation }) => {
     if (!validate()) return;
     setLoading(true);
     try {
-      const res  = await authAPI.login(email.trim().toLowerCase(), password);
+      const res = await authAPI.login(email.trim().toLowerCase(), password);
       const data = res.data;
 
-      const accessToken  = data.access_token || data.accessToken || data.token;
+      const accessToken = data.access_token || data.accessToken || data.token;
       const refreshToken = data.refresh_token || data.refreshToken || accessToken;
-      const userData     = data.user || data.profile || { email: email.trim().toLowerCase() };
+      const userData = data.user || data.profile || { email: email.trim().toLowerCase() };
 
       if (!accessToken) {
         Alert.alert('Login Error', 'Server response missing token.');
@@ -169,8 +169,11 @@ const LoginScreen = ({ navigation }) => {
       style={styles.flex}
     >
       <ScrollView
+        style={[styles.flex, Platform.OS === 'web' && { overflow: 'scroll' }]}
         contentContainerStyle={styles.container}
         keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={true}
+        alwaysBounceVertical={true}
       >
         {/* Header */}
         <View style={styles.header}>
@@ -260,29 +263,35 @@ const LoginScreen = ({ navigation }) => {
 };
 
 const styles = StyleSheet.create({
-  flex:       { flex: 1, backgroundColor: COLORS.bg1 },
-  container:  { flexGrow: 1, padding: SPACING.xl, justifyContent: 'center' },
-  header:     { alignItems: 'center', marginBottom: SPACING.xxxl },
+  flex: { flex: 1, backgroundColor: COLORS.bg1 },
+  container: {
+    flexGrow: 1,
+    padding: SPACING.lg,
+    justifyContent: 'center',
+    paddingTop: Platform.OS === 'web' ? SPACING.xl : SPACING.xxxl,
+    paddingBottom: SPACING.xxxl
+  },
+  header: { alignItems: 'center', marginBottom: SPACING.xl },
   logoWrap: {
-    width: 80, height: 80,
+    width: 60, height: 60,
     backgroundColor: COLORS.primary,
-    borderRadius: RADIUS.xl,
+    borderRadius: RADIUS.lg,
     justifyContent: 'center', alignItems: 'center',
-    marginBottom: SPACING.lg,
+    marginBottom: SPACING.md,
     ...SHADOW.md,
   },
-  logoIcon:   { fontSize: 40 },
-  title:      { color: COLORS.textPrimary, fontSize: 32, ...FONTS.extraBold, letterSpacing: -0.5 },
-  subtitle:   { color: COLORS.textSecondary, fontSize: 14, marginTop: 4, letterSpacing: 1 },
+  logoIcon: { fontSize: 32 },
+  title: { color: COLORS.textPrimary, fontSize: 28, ...FONTS.extraBold, letterSpacing: -0.5 },
+  subtitle: { color: COLORS.textSecondary, fontSize: 13, marginTop: 4, letterSpacing: 1 },
   form: {
     backgroundColor: COLORS.bg2,
     borderRadius: RADIUS.xl,
-    padding: SPACING.xl,
+    padding: SPACING.lg,
     ...SHADOW.md,
   },
-  formTitle:  { color: COLORS.textPrimary, fontSize: 22, ...FONTS.bold, marginBottom: 4 },
-  formSub:    { color: COLORS.textSecondary, fontSize: 14, marginBottom: SPACING.xl },
-  fieldWrap:  { marginBottom: SPACING.lg },
+  formTitle: { color: COLORS.textPrimary, fontSize: 20, ...FONTS.bold, marginBottom: 4 },
+  formSub: { color: COLORS.textSecondary, fontSize: 13, marginBottom: SPACING.lg },
+  fieldWrap: { marginBottom: SPACING.md },
   fieldLabel: { color: COLORS.textSecondary, fontSize: 13, ...FONTS.medium, marginBottom: 6 },
   input: {
     backgroundColor: COLORS.bg3,
@@ -290,23 +299,23 @@ const styles = StyleSheet.create({
     borderRadius: RADIUS.md,
     paddingHorizontal: SPACING.lg,
     paddingVertical: SPACING.md,
-    fontSize: 16,
+    fontSize: 15,
     borderWidth: 1,
     borderColor: COLORS.border,
   },
-  inputError:         { borderColor: COLORS.danger },
-  passWrap:           { position: 'relative' },
-  passInput:          { paddingRight: 50 },
-  eyeBtn:             { position: 'absolute', right: SPACING.md, top: '50%', transform: [{ translateY: -12 }] },
-  eye:                { fontSize: 20 },
-  errText:            { color: COLORS.danger, fontSize: 12, marginTop: 4 },
-  loginBtn:           { marginTop: SPACING.sm },
-  footer:             { flexDirection: 'row', justifyContent: 'center', marginTop: SPACING.xl },
-  footerText:         { color: COLORS.textSecondary, fontSize: 14 },
-  link:               { color: COLORS.primary, fontSize: 14, ...FONTS.semiBold },
-  divider:            { flexDirection: 'row', alignItems: 'center', marginVertical: SPACING.lg },
-  line:               { flex: 1, height: 1, backgroundColor: COLORS.border },
-  dividerText:        { color: COLORS.textMuted, marginHorizontal: SPACING.md, fontSize: 12 },
+  inputError: { borderColor: COLORS.danger },
+  passWrap: { position: 'relative' },
+  passInput: { paddingRight: 50 },
+  eyeBtn: { position: 'absolute', right: SPACING.md, top: '50%', transform: [{ translateY: -12 }] },
+  eye: { fontSize: 18 },
+  errText: { color: COLORS.danger, fontSize: 12, marginTop: 4 },
+  loginBtn: { marginTop: SPACING.sm },
+  footer: { flexDirection: 'row', justifyContent: 'center', marginTop: SPACING.xl },
+  footerText: { color: COLORS.textSecondary, fontSize: 14 },
+  link: { color: COLORS.primary, fontSize: 14, ...FONTS.semiBold },
+  divider: { flexDirection: 'row', alignItems: 'center', marginVertical: SPACING.lg },
+  line: { flex: 1, height: 1, backgroundColor: COLORS.border },
+  dividerText: { color: COLORS.textMuted, marginHorizontal: SPACING.md, fontSize: 12 },
   googleBtn: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -318,9 +327,9 @@ const styles = StyleSheet.create({
     borderColor: '#ddd',
     ...SHADOW.sm,
   },
-  googleBtnDisabled:  { opacity: 0.5 },
-  googleIcon:         { color: '#4285F4', fontSize: 20, fontWeight: 'bold', marginRight: 10 },
-  googleBtnText:      { color: '#757575', fontSize: 16, fontWeight: '600' },
+  googleBtnDisabled: { opacity: 0.5 },
+  googleIcon: { color: '#4285F4', fontSize: 20, fontWeight: 'bold', marginRight: 10 },
+  googleBtnText: { color: '#757575', fontSize: 16, fontWeight: '600' },
 });
 
 export default LoginScreen;

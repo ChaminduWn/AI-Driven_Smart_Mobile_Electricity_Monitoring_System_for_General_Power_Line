@@ -15,7 +15,7 @@ class ElectricityBill(Base):
     uploaded_at = Column(DateTime(timezone=True), server_default=func.now())
     
     # Bill Details
-    account_number = Column(String(100), index=True)
+    account_number = Column(String(100), index=True, nullable=False)
     bill_reference = Column(String(100), unique=True, index=True)
     bill_date = Column(DateTime, nullable=True)
     

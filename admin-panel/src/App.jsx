@@ -17,7 +17,9 @@ import Member3Dashboard from './pages/Member3Dashboard';
 import Member4Dashboard from './pages/Member4Dashboard';
 import Login from './pages/Login';
 
-import Home from './pages//Homepage';
+import Home from './pages/Homepage';
+import MobileAppView from './pages/MobileAppView';
+
 
 const theme = createTheme({
   palette: {
@@ -44,6 +46,8 @@ function App() {
             <Route path="/Solar Intelligence" element={<Member3Dashboard />} />
             <Route path="/Safety Assistant" element={<Member4Dashboard />} />
           </Route>
+
+          <Route path="/app" element={<MobileAppView />} />
 
           {/* Dashboard Layout Routes */}
           <Route path="/d" element={<DashboardLayout />}>

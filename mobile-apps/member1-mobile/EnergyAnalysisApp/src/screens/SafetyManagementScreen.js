@@ -515,6 +515,81 @@ const SafetyManagementScreen = ({ navigation }) => {
         {activeTab === 'ai' && <AIAssistantTab />}
         {activeTab === 'weather' && <WeatherTab />}
         {activeTab === 'disaster' && <DisasterTab />}
+        {activeTab === 'more' && (
+          <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 16, gap: 12 }}>
+            <SectionLabel text="🛡️  Advanced Safety Tools" />
+
+            <TouchableOpacity
+              style={styles.toolCard}
+              onPress={() => navigation.navigate('SafetyAppliances')}
+            >
+              <View style={[styles.toolIconWrap, { backgroundColor: C.energy + '20' }]}>
+                <Text style={styles.toolIcon}>⚡</Text>
+              </View>
+              <View style={styles.toolText}>
+                <Text style={styles.toolTitle}>Appliance Protection</Text>
+                <Text style={styles.toolSub}>Monitor and secure your individual devices</Text>
+              </View>
+              <Text style={styles.toolArrow}>›</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.toolCard}
+              onPress={() => navigation.navigate('SafetyTips')}
+            >
+              <View style={[styles.toolIconWrap, { backgroundColor: C.safety + '20' }]}>
+                <Text style={styles.toolIcon}>📜</Text>
+              </View>
+              <View style={styles.toolText}>
+                <Text style={styles.toolTitle}>Pro Safety Tips</Text>
+                <Text style={styles.toolSub}>Expert guidelines for electricity safety</Text>
+              </View>
+              <Text style={styles.toolArrow}>›</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.toolCard}
+              onPress={() => navigation.navigate('SafetyWeather')}
+            >
+              <View style={[styles.toolIconWrap, { backgroundColor: C.calm + '20' }]}>
+                <Text style={styles.toolIcon}>🌤️</Text>
+              </View>
+              <View style={styles.toolText}>
+                <Text style={styles.toolTitle}>Advanced Weather</Text>
+                <Text style={styles.toolSub}>Risk-calculated local weather analysis</Text>
+              </View>
+              <Text style={styles.toolArrow}>›</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.toolCard}
+              onPress={() => navigation.navigate('SafetyAssistant')}
+            >
+              <View style={[styles.toolIconWrap, { backgroundColor: C.warning + '20' }]}>
+                <Text style={styles.toolIcon}>🤖</Text>
+              </View>
+              <View style={styles.toolText}>
+                <Text style={styles.toolTitle}>Expert Safety AI</Text>
+                <Text style={styles.toolSub}>PUCSL guidelines powered AI assistant</Text>
+              </View>
+              <Text style={styles.toolArrow}>›</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.toolCard}
+              onPress={() => navigation.navigate('SafetyEmergency')}
+            >
+              <View style={[styles.toolIconWrap, { backgroundColor: C.danger + '20' }]}>
+                <Text style={styles.toolIcon}>🚨</Text>
+              </View>
+              <View style={styles.toolText}>
+                <Text style={styles.toolTitle}>Emergency Desk</Text>
+                <Text style={styles.toolSub}>Immediate protocols and local contacts</Text>
+              </View>
+              <Text style={styles.toolArrow}>›</Text>
+            </TouchableOpacity>
+          </ScrollView>
+        )}
       </View>
     </SafeAreaView>
   );
@@ -678,6 +753,22 @@ const styles = StyleSheet.create({
   /* shared section label */
   secLabel: { marginBottom: 2 },
   secLabelText: { fontSize: 13, fontWeight: '700', color: C.textSecondary },
+
+  /* advanced tools */
+  toolCard: {
+    flexDirection: 'row', alignItems: 'center',
+    backgroundColor: C.card, borderRadius: 18,
+    padding: 14, gap: 14, borderWidth: 1, borderColor: C.border,
+  },
+  toolIconWrap: {
+    width: 48, height: 48, borderRadius: 14,
+    justifyContent: 'center', alignItems: 'center',
+  },
+  toolIcon: { fontSize: 24 },
+  toolText: { flex: 1 },
+  toolTitle: { fontSize: 16, fontWeight: '700', color: C.textPrimary, marginBottom: 2 },
+  toolSub: { fontSize: 12, color: C.textMuted },
+  toolArrow: { fontSize: 22, color: C.textMuted, fontWeight: '300' },
 });
 
 export default SafetyManagementScreen;
