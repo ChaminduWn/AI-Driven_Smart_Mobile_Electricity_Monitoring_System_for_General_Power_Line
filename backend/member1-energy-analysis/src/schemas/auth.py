@@ -11,6 +11,7 @@ class UserRegisterRequest(BaseModel):
     phone_number: Optional[str] = Field(None, max_length=32)
     password: str = Field(..., min_length=8, max_length=128)
     full_name: Optional[str] = Field(None, max_length=255)
+    default_account_number: Optional[str] = Field(None, max_length=100)
 
     @validator('password')
     def validate_password(cls, v):
@@ -58,6 +59,16 @@ class UserProfileResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+class UserProfileUpdate(BaseModel):
+    """Schema for updating user profile."""
+    full_name: Optional[str] = Field(None, max_length=255)
+    phone_number: Optional[str] = Field(None, max_length=32)
+    address: Optional[str] = Field(None, max_length=500)
+    city: Optional[str] = Field(None, max_length=100)
+    country: Optional[str] = Field(None, max_length=100)
+    default_account_number: Optional[str] = Field(None, max_length=100)
 
 
 class TokenResponse(BaseModel):

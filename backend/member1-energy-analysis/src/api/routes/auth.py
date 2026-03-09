@@ -19,6 +19,7 @@ from src.schemas.auth import (
     TokenResponse,
     RefreshTokenRequest,
     UserProfileResponse,
+    UserProfileUpdate,
 )
 
 logger = logging.getLogger(__name__)
@@ -125,7 +126,11 @@ def register_user(payload: UserRegisterRequest, db: Session = Depends(get_db)):
         db.add(user)
         db.flush()
 
-        profile = UserProfile(user_id=user.id, full_name=payload.full_name)
+        profile = UserProfile(
+            user_id=user.id, 
+            full_name=payload.full_name,
+            default_account_number=payload.default_account_number
+        )
         db.add(profile)
         db.commit()
         db.refresh(user)
@@ -133,6 +138,9 @@ def register_user(payload: UserRegisterRequest, db: Session = Depends(get_db)):
 
         access_token  = create_access_token({"sub": str(user.id)})
         refresh_token = create_refresh_token({"sub": str(user.id)})
+
+        from src.api.routes.notifications import create_notification
+        create_notification(db, user.id, "Registration Success", "Welcome! Please add your household appliances to get accurate analysis.", "success")
 
         return TokenResponse(
             access_token=access_token,
@@ -171,6 +179,9 @@ def login_user(payload: UserLoginRequest, db: Session = Depends(get_db)):
         profile       = user.profile
         access_token  = create_access_token({"sub": str(user.id)})
         refresh_token = create_refresh_token({"sub": str(user.id)})
+
+        from src.api.routes.notifications import create_notification
+        create_notification(db, user.id, "Login Success", f"Welcome back, {profile.full_name if profile else user.email}!", "info")
 
         return TokenResponse(
             access_token=access_token,
@@ -425,6 +436,55 @@ def get_me(current_user: User = Depends(get_user_from_token)):
         default_account_number=profile.default_account_number if profile else None,
         created_at=current_user.created_at,
     )
+
+
+@router.put("/profile", response_model=UserProfileResponse)
+def update_profile(
+    payload: UserProfileUpdate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_user_from_token)
+):
+    """Update current user profile and account details"""
+    try:
+        profile = current_user.profile
+        if not profile:
+            # Create if somehow missing
+            profile = UserProfile(user_id=current_user.id)
+            db.add(profile)
+            db.flush()
+
+        # Update User fields
+        if payload.phone_number is not None:
+            current_user.phone_number = payload.phone_number
+
+        # Update Profile fields
+        if payload.full_name is not None:
+            profile.full_name = payload.full_name
+        if payload.address is not None:
+            profile.address = payload.address
+        if payload.city is not None:
+            profile.city = payload.city
+        if payload.country is not None:
+            profile.country = payload.country
+        if payload.default_account_number is not None:
+            profile.default_account_number = payload.default_account_number
+
+        db.commit()
+        db.refresh(current_user)
+        db.refresh(profile)
+
+        return UserProfileResponse(
+            id=current_user.id,
+            email=current_user.email,
+            phone_number=current_user.phone_number,
+            full_name=profile.full_name,
+            default_account_number=profile.default_account_number,
+            created_at=current_user.created_at,
+        )
+    except Exception as e:
+        db.rollback()
+        logger.error(f"Profile update error: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to update profile: {str(e)}")
 
 
 # ─────────────────────────────────────────────────────────────────────────────

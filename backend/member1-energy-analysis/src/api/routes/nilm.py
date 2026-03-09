@@ -149,8 +149,11 @@ def disaggregate_consumption(
                     }
                 
                 # Calculate daily average
-                billing_days = (latest_bill.bill_date - latest_bill.reading_date).days
-                if billing_days <= 0:
+                billing_days = latest_bill.billing_period_days
+                if not billing_days and latest_bill.bill_date and latest_bill.previous_reading_date:
+                    billing_days = (latest_bill.bill_date - latest_bill.previous_reading_date).days
+                
+                if not billing_days or billing_days <= 0:
                     billing_days = 30  # Default to 30 days
                 
                 total_kwh = latest_bill.units_consumed / billing_days  # Daily average
@@ -279,7 +282,13 @@ def disaggregate_with_household(
             if not latest_bill:
                 raise HTTPException(status_code=404, detail="No bills found")
             
-            billing_days = (latest_bill.bill_date - latest_bill.reading_date).days or 30
+            billing_days = latest_bill.billing_period_days
+            if not billing_days and latest_bill.bill_date and latest_bill.previous_reading_date:
+                billing_days = (latest_bill.bill_date - latest_bill.previous_reading_date).days
+            
+            if not billing_days or billing_days <= 0:
+                billing_days = 30
+                
             total_kwh = latest_bill.units_consumed / billing_days
             date = latest_bill.bill_date
         

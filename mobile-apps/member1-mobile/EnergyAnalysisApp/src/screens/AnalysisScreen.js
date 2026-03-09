@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import {
   View, Text, ScrollView, StyleSheet,
-  TouchableOpacity, Alert,
+  TouchableOpacity, Alert, Platform,
 } from 'react-native';
 import { analysisAPI } from '../api/analysisAPI';
 import { appliancesAPI } from '../api/appliancesAPI';
@@ -29,10 +29,10 @@ const TariffNavCard = ({ onPress }) => (
 
 // Feature preview tiles shown below the nav card
 const FEATURES = [
-  { icon: '📊', label: 'Usage Gauge',    desc: 'Visual consumption level indicator' },
-  { icon: '⚡', label: 'Slab Breakdown', desc: 'Animated per-block energy charges'  },
-  { icon: '💡', label: 'Quick Presets',  desc: 'Low / Mid / High instant estimates'  },
-  { icon: '📋', label: 'Rate Reference', desc: 'Full Oct 2025 tariff table'         },
+  { icon: '📊', label: 'Usage Gauge', desc: 'Visual consumption level indicator' },
+  { icon: '⚡', label: 'Slab Breakdown', desc: 'Animated per-block energy charges' },
+  { icon: '💡', label: 'Quick Presets', desc: 'Low / Mid / High instant estimates' },
+  { icon: '📋', label: 'Rate Reference', desc: 'Full Oct 2025 tariff table' },
 ];
 
 const nc = StyleSheet.create({
@@ -85,7 +85,21 @@ const AnalysisScreen = ({ navigation }) => {
   };
 
   const deletePlan = async (planId) => {
-    Alert.alert('Delete Plan', 'This will also delete all meter readings. Continue?', [
+    const message = 'This will also delete all meter readings. Continue?';
+
+    // Fallback for Web since Alert.alert often fails on Web
+    if (Platform.OS === 'web') {
+      const confirmed = window.confirm(`Delete Plan?\n\n${message}`);
+      if (confirmed) {
+        try {
+          await analysisAPI.deletePlan(planId);
+          loadPlans();
+        } catch { alert('Error: Could not delete plan.'); }
+      }
+      return;
+    }
+
+    Alert.alert('Delete Plan', message, [
       { text: 'Cancel', style: 'cancel' },
       {
         text: 'Delete', style: 'destructive',
@@ -105,9 +119,9 @@ const AnalysisScreen = ({ navigation }) => {
       {/* TAB BAR */}
       <View style={styles.tabs}>
         {[
-          { key: 'tariff',          label: '🧮 Tariff' },
-          { key: 'recommendations', label: '💡 Tips'   },
-          { key: 'plans',           label: '📋 Plans'  },
+          { key: 'tariff', label: '🧮 Tariff' },
+          { key: 'recommendations', label: '💡 Tips' },
+          { key: 'plans', label: '📋 Plans' },
         ].map(({ key, label }) => (
           <TouchableOpacity
             key={key}
@@ -187,12 +201,12 @@ const AnalysisScreen = ({ navigation }) => {
               : plans.length === 0
                 ? <EmptyState icon="📋" title="No Plans" subtitle="Create a budget plan from bill analysis." />
                 : plans.map((p) => (
-                    <PlanCard
-                      key={p.id} plan={p}
-                      onDelete={() => deletePlan(p.id)}
-                      onTrack={() => navigation.navigate('Tracking')}
-                    />
-                  ))
+                  <PlanCard
+                    key={p.id} plan={p}
+                    onDelete={() => deletePlan(p.id)}
+                    onTrack={() => navigation.navigate('Tracking')}
+                  />
+                ))
             }
           </>
         )}
@@ -237,8 +251,13 @@ const PlanCard = ({ plan, onDelete, onTrack }) => (
         <TouchableOpacity onPress={onTrack} style={styles.planBtn}>
           <Text style={styles.planBtnText}>Track</Text>
         </TouchableOpacity>
-        <TouchableOpacity onPress={onDelete}>
-          <Text style={{ fontSize: 18 }}>🗑️</Text>
+        <TouchableOpacity
+          onPress={onDelete}
+          style={styles.deleteBtn}
+          hitSlop={{ top: 25, bottom: 25, left: 25, right: 25 }}
+          activeOpacity={0.6}
+        >
+          <Text style={styles.deleteIcon}>🗑️</Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -301,6 +320,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: SPACING.md, paddingVertical: 6, borderRadius: RADIUS.sm,
   },
   planBtnText: { color: '#fff', fontSize: 13, ...FONTS.medium },
+  deleteBtn: {
+    padding: SPACING.xs,
+    marginLeft: SPACING.sm,
+  },
+  deleteIcon: {
+    fontSize: 20,
+  },
 });
 
 export default AnalysisScreen;

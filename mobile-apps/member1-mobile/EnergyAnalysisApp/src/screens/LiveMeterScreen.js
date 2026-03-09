@@ -19,9 +19,7 @@ import {
   FlatList, Platform, StatusBar, Share, PermissionsAndroid,
 } from 'react-native';
 
-// ─── CONFIG ──────────────────────────────────────────────────────────────────
-const API_BASE = 'http://192.168.182.242:8000/api/v1';
-const WS_BASE = 'ws://192.168.182.242:8000/api/v1';
+import { API_BASE, WS_BASE } from '../config';
 const POLL_INTERVAL_MS = 3000;
 const WS_RECONNECT_MS = 6000;
 const CARD_INTERVAL_MS = 4000;
@@ -44,6 +42,15 @@ const _getFromStorage = async (key) => {
 const loadAuth = async () => {
   _cachedToken = await _getFromStorage('accessToken') || '';
   let acct = await _getFromStorage('selectedAccount');
+  if (!acct) {
+    try {
+      const uStr = await _getFromStorage('user');
+      if (uStr) {
+        const uObj = JSON.parse(uStr);
+        acct = uObj.default_account_number || uObj.account_number;
+      }
+    } catch { }
+  }
   if (!acct) {
     try {
       const raw = await _getFromStorage('accounts');

@@ -24,11 +24,11 @@ const Field = ({ label, error, children }) => (
 const RegisterScreen = ({ navigation }) => {
   const { login } = useAuth();
   const [form, setForm] = useState({
-    full_name: '', email: '', phone_number: '', password: '', confirm: '',
+    full_name: '', email: '', phone_number: '', account_number: '', password: '', confirm: '',
   });
   const [showPass, setShowPass] = useState(false);
-  const [loading, setLoading]   = useState(false);
-  const [errors, setErrors]     = useState({});
+  const [loading, setLoading] = useState(false);
+  const [errors, setErrors] = useState({});
 
   // ── Google Auth Setup ───────────────────────────────────────────────────────
   const redirectUri = AuthSession.makeRedirectUri({
@@ -37,9 +37,9 @@ const RegisterScreen = ({ navigation }) => {
   });
 
   const [request, response, promptAsync] = Google.useAuthRequest({
-    webClientId:     process.env.EXPO_PUBLIC_WEB_CLIENT_ID,
+    webClientId: process.env.EXPO_PUBLIC_WEB_CLIENT_ID,
     androidClientId: process.env.EXPO_PUBLIC_ANDROID_CLIENT_ID,
-    iosClientId:     process.env.EXPO_PUBLIC_IOS_CLIENT_ID,
+    iosClientId: process.env.EXPO_PUBLIC_IOS_CLIENT_ID,
     redirectUri,
   });
 
@@ -85,9 +85,9 @@ const RegisterScreen = ({ navigation }) => {
       const backendRes = await authAPI.googleLogin(accessToken, userInfo);
       const data = backendRes.data;
 
-      const appAccessToken  = data.access_token || data.accessToken || data.token;
+      const appAccessToken = data.access_token || data.accessToken || data.token;
       const appRefreshToken = data.refresh_token || data.refreshToken || appAccessToken;
-      const userData        = data.user || data.profile;
+      const userData = data.user || data.profile;
 
       await login(appAccessToken, appRefreshToken, userData);
 
@@ -106,9 +106,9 @@ const RegisterScreen = ({ navigation }) => {
       const res = await authAPI.googleLogin(idToken);
       const data = res.data;
 
-      const accessToken  = data.access_token || data.accessToken || data.token;
+      const accessToken = data.access_token || data.accessToken || data.token;
       const refreshToken = data.refresh_token || data.refreshToken || accessToken;
-      const userData     = data.user || data.profile;
+      const userData = data.user || data.profile;
 
       if (!accessToken) {
         Alert.alert('Error', 'No token received from server.');
@@ -146,17 +146,18 @@ const RegisterScreen = ({ navigation }) => {
     setLoading(true);
     try {
       const payload = {
-        email:        form.email.trim().toLowerCase(),
-        password:     form.password,
-        full_name:    form.full_name.trim() || null,
+        email: form.email.trim().toLowerCase(),
+        password: form.password,
+        full_name: form.full_name.trim() || null,
         phone_number: form.phone_number.replace(/\D/g, '') || null,
+        default_account_number: form.account_number.trim() || null,
       };
-      const res  = await authAPI.register(payload);
+      const res = await authAPI.register(payload);
       const data = res.data;
 
-      const accessToken  = data.access_token || data.accessToken || data.token;
+      const accessToken = data.access_token || data.accessToken || data.token;
       const refreshToken = data.refresh_token || data.refreshToken || accessToken;
-      const userData     = data.user || data.profile || { email: form.email.trim().toLowerCase() };
+      const userData = data.user || data.profile || { email: form.email.trim().toLowerCase() };
 
       if (!accessToken) {
         Alert.alert('Error', 'Server response missing token.');
@@ -180,8 +181,11 @@ const RegisterScreen = ({ navigation }) => {
       style={styles.flex}
     >
       <ScrollView
+        style={[styles.flex, Platform.OS === 'web' && { overflow: 'scroll' }]}
         contentContainerStyle={styles.container}
         keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={true}
+        alwaysBounceVertical={true}
       >
         <View style={styles.header}>
           <View style={styles.logoWrap}>
@@ -222,6 +226,16 @@ const RegisterScreen = ({ navigation }) => {
               value={form.phone_number}
               onChangeText={(t) => set('phone_number', t)}
               keyboardType="phone-pad"
+            />
+          </Field>
+
+          <Field label="Electricity Account Number">
+            <TextInput
+              style={styles.input}
+              placeholder="e.g. 1234567890"
+              placeholderTextColor={COLORS.textMuted}
+              value={form.account_number}
+              onChangeText={(t) => set('account_number', t)}
             />
           </Field>
 
@@ -290,28 +304,33 @@ const RegisterScreen = ({ navigation }) => {
 };
 
 const styles = StyleSheet.create({
-  flex:       { flex: 1, backgroundColor: COLORS.bg1 },
-  container:  { flexGrow: 1, padding: SPACING.xl, paddingTop: SPACING.xxxl },
-  header:     { alignItems: 'center', marginBottom: SPACING.xl },
+  flex: { flex: 1, backgroundColor: COLORS.bg1 },
+  container: {
+    flexGrow: 1,
+    padding: SPACING.lg,
+    paddingTop: Platform.OS === 'web' ? SPACING.xl : SPACING.xxl,
+    paddingBottom: SPACING.xxxl
+  },
+  header: { alignItems: 'center', marginBottom: SPACING.lg },
   logoWrap: {
-    width: 70, height: 70,
+    width: 60, height: 60,
     backgroundColor: COLORS.secondary,
-    borderRadius: RADIUS.xl,
+    borderRadius: RADIUS.lg,
     justifyContent: 'center', alignItems: 'center',
-    marginBottom: SPACING.md,
+    marginBottom: SPACING.sm,
     ...SHADOW.md,
   },
-  logoIcon:   { fontSize: 36 },
-  title:      { color: COLORS.textPrimary, fontSize: 26, ...FONTS.bold },
-  subtitle:   { color: COLORS.textSecondary, fontSize: 14, marginTop: 4 },
+  logoIcon: { fontSize: 30 },
+  title: { color: COLORS.textPrimary, fontSize: 24, ...FONTS.bold },
+  subtitle: { color: COLORS.textSecondary, fontSize: 13, marginTop: 2 },
   form: {
     backgroundColor: COLORS.bg2,
     borderRadius: RADIUS.xl,
-    padding: SPACING.xl,
+    padding: SPACING.lg,
     ...SHADOW.md,
   },
-  fieldWrap:  { marginBottom: SPACING.md },
-  fieldLabel: { color: COLORS.textSecondary, fontSize: 13, ...FONTS.medium, marginBottom: 6 },
+  fieldWrap: { marginBottom: SPACING.md },
+  fieldLabel: { color: COLORS.textSecondary, fontSize: 13, ...FONTS.medium, marginBottom: 4 },
   input: {
     backgroundColor: COLORS.bg3,
     color: COLORS.textPrimary,
@@ -322,18 +341,18 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: COLORS.border,
   },
-  inputError:        { borderColor: COLORS.danger },
-  passWrap:          { position: 'relative' },
-  passInput:         { paddingRight: 50 },
-  eyeBtn:            { position: 'absolute', right: SPACING.md, top: '50%', transform: [{ translateY: -12 }] },
-  errText:           { color: COLORS.danger, fontSize: 12, marginTop: 4 },
-  btn:               { marginTop: SPACING.sm },
-  footer:            { flexDirection: 'row', justifyContent: 'center', marginTop: SPACING.xl },
-  footerText:        { color: COLORS.textSecondary },
-  link:              { color: COLORS.primary, ...FONTS.semiBold },
-  divider:           { flexDirection: 'row', alignItems: 'center', marginVertical: SPACING.lg },
-  line:              { flex: 1, height: 1, backgroundColor: COLORS.border },
-  dividerText:       { color: COLORS.textMuted, marginHorizontal: SPACING.md, fontSize: 12 },
+  inputError: { borderColor: COLORS.danger },
+  passWrap: { position: 'relative' },
+  passInput: { paddingRight: 50 },
+  eyeBtn: { position: 'absolute', right: SPACING.md, top: '50%', transform: [{ translateY: -12 }] },
+  errText: { color: COLORS.danger, fontSize: 12, marginTop: 4 },
+  btn: { marginTop: SPACING.sm },
+  footer: { flexDirection: 'row', justifyContent: 'center', marginTop: SPACING.xl },
+  footerText: { color: COLORS.textSecondary },
+  link: { color: COLORS.primary, ...FONTS.semiBold },
+  divider: { flexDirection: 'row', alignItems: 'center', marginVertical: SPACING.lg },
+  line: { flex: 1, height: 1, backgroundColor: COLORS.border },
+  dividerText: { color: COLORS.textMuted, marginHorizontal: SPACING.md, fontSize: 12 },
   googleBtn: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -346,8 +365,8 @@ const styles = StyleSheet.create({
     ...SHADOW.sm,
   },
   googleBtnDisabled: { opacity: 0.5 },
-  googleIcon:        { color: '#4285F4', fontSize: 20, fontWeight: 'bold', marginRight: 10 },
-  googleBtnText:     { color: '#757575', fontSize: 16, fontWeight: '600' },
+  googleIcon: { color: '#4285F4', fontSize: 20, fontWeight: 'bold', marginRight: 10 },
+  googleBtnText: { color: '#757575', fontSize: 16, fontWeight: '600' },
 });
 
 export default RegisterScreen;

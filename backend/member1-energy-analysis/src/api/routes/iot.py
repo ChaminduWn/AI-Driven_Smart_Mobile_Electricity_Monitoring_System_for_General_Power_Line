@@ -34,17 +34,29 @@ class StartSessionRequest(BaseModel):
 
 
 def _get_account(user, explicit_account: str = None) -> str:
-    """Extract account number — prefer explicit, then user attributes."""
+    """Extract account number — prefer explicit, then user profile attributes."""
     if explicit_account:
         return explicit_account
+    
+    # Check User object directly (for legacy compatibility)
     for attr in ("selected_account", "account_number", "default_account_number"):
         val = getattr(user, attr, None)
         if val:
             return str(val)
-    accounts = getattr(user, "accounts", None)
-    if accounts and len(accounts) > 0:
-        return str(accounts[0])
-    return str(user.id)
+            
+    # Check User Profile - THIS IS THE PRIMARY SOURCE
+    if hasattr(user, "profile") and user.profile:
+        if user.profile.default_account_number:
+            return str(user.profile.default_account_number)
+            
+    # Check if user has any bills with account numbers
+    if hasattr(user, "bills") and user.bills:
+        for bill in user.bills:
+            if bill.account_number:
+                return str(bill.account_number)
+            
+    # Fallback to user ID to prevent NULLs in DB
+    return f"U{user.id}"
 
 
 @router.post("/sessions")

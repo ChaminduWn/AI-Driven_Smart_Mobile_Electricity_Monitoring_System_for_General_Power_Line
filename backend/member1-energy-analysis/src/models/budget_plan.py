@@ -26,7 +26,7 @@ class BudgetPlan(Base):
     user_id = Column(Integer, ForeignKey('users.id', ondelete="CASCADE"), nullable=False)
     bill_id = Column(Integer, ForeignKey('electricity_bills.id', ondelete="CASCADE"), nullable=True) # For direct linking if requested
     
-    account_number = Column(String(100), index=True)
+    account_number = Column(String(100), index=True, nullable=False)
     
     # Plan details
     plan_name = Column(String(255), default="Budget Plan")
@@ -132,7 +132,7 @@ class HouseholdAppliance(Base):
     user_id = Column(Integer, ForeignKey('users.id', ondelete="CASCADE"), nullable=False)
     bill_id = Column(Integer, ForeignKey('electricity_bills.id', ondelete="CASCADE"), nullable=True)
     
-    account_number = Column(String(100), index=True)
+    account_number = Column(String(100), index=True, nullable=False)
     
     user = relationship("User")
     bill = relationship("ElectricityBill")
@@ -194,7 +194,7 @@ class HouseholdMember(Base):
     user_id = Column(Integer, ForeignKey('users.id', ondelete="CASCADE"), nullable=False)
     bill_id = Column(Integer, ForeignKey('electricity_bills.id', ondelete="CASCADE"), nullable=True)
     
-    account_number = Column(String(100), index=True)
+    account_number = Column(String(100), index=True, nullable=False)
     
     user = relationship("User")
     bill = relationship("ElectricityBill")

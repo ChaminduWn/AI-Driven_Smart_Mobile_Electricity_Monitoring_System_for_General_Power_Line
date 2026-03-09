@@ -1,12 +1,14 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
-  View, Text, ScrollView, StyleSheet, RefreshControl, TouchableOpacity, Animated,
+  View, Text, ScrollView, StyleSheet, RefreshControl,
+  TouchableOpacity, Animated, Modal, Alert,
 } from 'react-native';
 import { useAuth } from '../contexts/AuthContext';
 import { useAccount } from '../contexts/AccountContext';
 import { billsAPI } from '../api/billsAPI';
 import { appliancesAPI } from '../api/appliancesAPI';
 import { analysisAPI } from '../api/analysisAPI';
+import { notificationsAPI } from '../api/notificationsAPI';
 import {
   StatCard, SectionHeader, EmptyState, LoadingScreen, Card, ProgressBar,
 } from '../components/SharedComponents';
@@ -16,6 +18,7 @@ import {
   formatCurrency, formatKwh, formatMonthYear,
   getStatusColor, getStatusLabel, extractAccountNumbers,
 } from '../utils/helpers';
+import { Bell, LogOut, User } from 'lucide-react-native';
 
 /* ─────────────────────────────────────────────
    DESIGN TOKENS  (deep navy-teal dark theme)
@@ -52,7 +55,12 @@ const C = {
    SMALL ATOMS
 ───────────────────────────────────────────── */
 const Pill = ({ label, color }) => (
-  <View style={{ backgroundColor: color + '25', borderRadius: 99, paddingHorizontal: 10, paddingVertical: 3, alignSelf: 'flex-start', borderWidth: 1, borderColor: color + '50' }}>
+  <View style={{
+    backgroundColor: color + '25', borderRadius: 99,
+    paddingHorizontal: 10, paddingVertical: 3,
+    alignSelf: 'flex-start',
+    borderWidth: 1, borderColor: color + '50',
+  }}>
     <Text style={{ fontSize: 11, fontWeight: '700', color, letterSpacing: 0.5 }}>{label}</Text>
   </View>
 );
@@ -65,7 +73,7 @@ const GlowCard = ({ accentColor, children, style }) => (
 );
 
 /* ─────────────────────────────────────────────
-   MODULE CARD  (enhanced with glow border)
+   MODULE CARD
 ───────────────────────────────────────────── */
 const ModuleCard = ({ icon, title, subtitle, accent, badge, badgeColor, stat, statLabel, onPress }) => (
   <TouchableOpacity
@@ -73,26 +81,25 @@ const ModuleCard = ({ icon, title, subtitle, accent, badge, badgeColor, stat, st
     onPress={onPress}
     style={[styles.moduleCard, { borderColor: accent + '40' }]}
   >
-    {/* left accent bar */}
     <View style={[styles.moduleBar, { backgroundColor: accent }]} />
     <View style={styles.moduleBody}>
-      {/* icon */}
       <View style={[styles.moduleIconWrap, { backgroundColor: accent + '20', borderColor: accent + '35', borderWidth: 1 }]}>
         <Text style={styles.moduleIcon}>{icon}</Text>
       </View>
-      {/* text */}
       <View style={styles.moduleTextGroup}>
         <Text style={styles.moduleTitle}>{title}</Text>
         <Text style={styles.moduleSubtitle}>{subtitle}</Text>
       </View>
-      {/* right info */}
       <View style={styles.moduleRight}>
         {stat !== undefined && (
           <Text style={[styles.moduleStat, { color: accent }]}>{stat}</Text>
         )}
         {statLabel && <Text style={styles.moduleStatLabel}>{statLabel}</Text>}
         {badge && (
-          <View style={[styles.moduleBadge, { backgroundColor: (badgeColor || accent) + '22', borderColor: (badgeColor || accent) + '55', borderWidth: 1 }]}>
+          <View style={[styles.moduleBadge, {
+            backgroundColor: (badgeColor || accent) + '22',
+            borderColor: (badgeColor || accent) + '55', borderWidth: 1,
+          }]}>
             <Text style={[styles.moduleBadgeText, { color: badgeColor || accent }]}>{badge}</Text>
           </View>
         )}
@@ -130,6 +137,18 @@ const SLabel = ({ text, action, actionLabel }) => (
   </View>
 );
 
+/* ─────────────────────────────────────────────
+   NOTIFICATION COLOR HELPER
+───────────────────────────────────────────── */
+const getNotifColor = (type) => {
+  switch (type) {
+    case 'success': return C.success;
+    case 'warning': return C.warning;
+    case 'danger':  return C.danger;
+    default:        return C.energy;
+  }
+};
+
 /* ═══════════════════════════════════════════
    MAIN SCREEN
 ═══════════════════════════════════════════ */
@@ -143,6 +162,10 @@ const DashboardScreen = ({ navigation }) => {
   const [applianceAnalysis, setApplianceAnalysis] = useState(null);
   const [activePlan, setActivePlan]               = useState(null);
   const [latestBill, setLatestBill]               = useState(null);
+
+  // ── Notification state (from v1) ──
+  const [notifications, setNotifications]   = useState([]);
+  const [showNotifModal, setShowNotifModal] = useState(false);
 
   const fetchData = useCallback(async () => {
     try {
@@ -170,6 +193,12 @@ const DashboardScreen = ({ navigation }) => {
         setActivePlan((planRes.data?.plans || [])[0] || null);
       } catch (_) {}
 
+      // ── Fetch notifications (from v1) ──
+      try {
+        const notifRes = await notificationsAPI.getAll(true);
+        setNotifications(notifRes.data || []);
+      } catch (_) {}
+
     } catch (err) {
       console.error('Dashboard fetch error:', err);
     } finally {
@@ -181,6 +210,14 @@ const DashboardScreen = ({ navigation }) => {
   useEffect(() => { fetchData(); }, [fetchData]);
 
   const onRefresh = () => { setRefreshing(true); fetchData(); };
+
+  // ── Mark all notifications read (from v1) ──
+  const handleMarkAllRead = async () => {
+    try {
+      await notificationsAPI.markAllRead();
+      setNotifications([]);
+    } catch (_) {}
+  };
 
   const firstName   = user?.full_name?.split(' ')[0] || user?.email?.split('@')[0] || 'User';
   const allAccounts = extractAccountNumbers(bills);
@@ -212,11 +249,35 @@ const DashboardScreen = ({ navigation }) => {
           <Text style={styles.headerGreeting}>Good day, {firstName} 👋</Text>
           <Text style={styles.headerSub}>ElecSmart Management System</Text>
         </View>
-        <TouchableOpacity style={styles.logoutBtn} onPress={logout}>
-          <View style={styles.logoutIconWrap}>
-            <Text style={styles.logoutIcon}>🚪</Text>
-          </View>
-        </TouchableOpacity>
+
+        {/* Header action buttons (from v1) */}
+        <View style={styles.headerRight}>
+          {/* Profile */}
+          <TouchableOpacity
+            style={styles.headerIconBtn}
+            onPress={() => navigation.navigate('Profile')}
+          >
+            <User size={22} color={C.textPrimary} strokeWidth={2} />
+          </TouchableOpacity>
+
+          {/* Bell with badge */}
+          <TouchableOpacity
+            style={styles.headerIconBtn}
+            onPress={() => setShowNotifModal(true)}
+          >
+            <Bell size={22} color={C.textPrimary} strokeWidth={2} />
+            {notifications.length > 0 && (
+              <View style={styles.notifBadge}>
+                <Text style={styles.notifBadgeText}>{notifications.length}</Text>
+              </View>
+            )}
+          </TouchableOpacity>
+
+          {/* Logout */}
+          <TouchableOpacity style={styles.logoutBtn} onPress={logout}>
+            <LogOut size={20} color={C.textSecondary} strokeWidth={2} />
+          </TouchableOpacity>
+        </View>
       </View>
 
       {/* ── ACCOUNT SELECTOR ── */}
@@ -275,10 +336,10 @@ const DashboardScreen = ({ navigation }) => {
 
           {/* ── METRIC TILES ── */}
           <View style={styles.metricRow}>
-            <MetricTile icon="⚡" value={totalAppliances ?? '—'}                              label="Appliances"   color={C.energy} />
-            <MetricTile icon="🔋" value={monthlyKwh ? monthlyKwh.toFixed(1) : '—'}           label="Monthly kWh"  color={C.solar}  />
-            <MetricTile icon="💰" value={estimatedCost ? formatCurrency(estimatedCost, 0) : '—'} label="Est. Cost" color={C.safety} />
-            <MetricTile icon="📅" value={dailyAvg ? `${dailyAvg.toFixed(0)} Rs` : '—'}       label="Daily Avg"    color={C.outage} />
+            <MetricTile icon="⚡" value={totalAppliances ?? '—'}                                    label="Appliances"  color={C.energy} />
+            <MetricTile icon="🔋" value={monthlyKwh ? monthlyKwh.toFixed(1) : '—'}                 label="Monthly kWh" color={C.solar}  />
+            <MetricTile icon="💰" value={estimatedCost ? formatCurrency(estimatedCost, 0) : '—'}   label="Est. Cost"   color={C.safety} />
+            <MetricTile icon="📅" value={dailyAvg ? `${dailyAvg.toFixed(0)} Rs` : '—'}             label="Daily Avg"   color={C.outage} />
           </View>
 
           {/* ════════════════════════════════
@@ -286,7 +347,6 @@ const DashboardScreen = ({ navigation }) => {
           ════════════════════════════════ */}
           <SLabel text="System Modules" />
 
-          {/* 1 · Energy Analysis & Bill Management */}
           <ModuleCard
             icon="⚡"
             title="Energy Analysis & Bill Management"
@@ -297,7 +357,6 @@ const DashboardScreen = ({ navigation }) => {
             onPress={() => navigation.navigate('Bills')}
           />
 
-          {/* 2 · Solar Power Recommendation */}
           <ModuleCard
             icon="☀️"
             title="Solar Power Recommendation"
@@ -308,7 +367,6 @@ const DashboardScreen = ({ navigation }) => {
             onPress={() => navigation.navigate('Solar')}
           />
 
-          {/* 3 · Outage Reporting & Management */}
           <ModuleCard
             icon="🔴"
             title="Outage Reporting & Management"
@@ -319,7 +377,6 @@ const DashboardScreen = ({ navigation }) => {
             onPress={() => navigation.navigate('Outage')}
           />
 
-          {/* 4 · Safety & Disaster Management ← navigates to SafetyManagementScreen */}
           <ModuleCard
             icon="🛡️"
             title="Safety & Disaster Management"
@@ -354,6 +411,27 @@ const DashboardScreen = ({ navigation }) => {
                 <Text style={styles.planMetaTxt}>
                   📅 {activePlan.planning_days} days  ·  🎯 {activePlan.target_daily_units?.toFixed(1)} kWh / day
                 </Text>
+                {/* Stop tracking button (from v1) */}
+                <TouchableOpacity
+                  onPress={() => {
+                    Alert.alert('Stop Tracking', 'End this plan and start a new period?', [
+                      { text: 'Cancel', style: 'cancel' },
+                      {
+                        text: 'End Plan',
+                        style: 'destructive',
+                        onPress: async () => {
+                          try {
+                            await analysisAPI.endPlan(activePlan.id);
+                            fetchData();
+                          } catch (_) {}
+                        },
+                      },
+                    ]);
+                  }}
+                  style={styles.stopBtnCompact}
+                >
+                  <Text style={styles.stopBtnCompactText}>Stop tracking</Text>
+                </TouchableOpacity>
               </GlowCard>
             </>
           )}
@@ -370,6 +448,56 @@ const DashboardScreen = ({ navigation }) => {
       )}
 
       <View style={{ height: 48 }} />
+
+      {/* ════════════════════════════════
+          NOTIFICATIONS MODAL  (from v1)
+      ════════════════════════════════ */}
+      <Modal visible={showNotifModal} animationType="slide" transparent>
+        <TouchableOpacity
+          style={styles.overlay}
+          activeOpacity={1}
+          onPress={() => setShowNotifModal(false)}
+        >
+          <View style={styles.notifSheet}>
+            <View style={styles.sheetHandle} />
+            <View style={styles.sheetHeader}>
+              <Text style={styles.sheetTitle}>Notifications</Text>
+              <TouchableOpacity onPress={handleMarkAllRead}>
+                <Text style={styles.markReadText}>Mark all as read</Text>
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView style={styles.notifList} showsVerticalScrollIndicator={false}>
+              {notifications.length === 0 ? (
+                <View style={styles.emptyNotifWrap}>
+                  <Text style={styles.emptyNotifIcon}>🔔</Text>
+                  <Text style={styles.emptyNotif}>All caught up! No unread notifications.</Text>
+                </View>
+              ) : (
+                notifications.map((n) => (
+                  <View
+                    key={n.id}
+                    style={[styles.notifCard, { borderLeftColor: getNotifColor(n.type) }]}
+                  >
+                    <Text style={styles.notifTitle}>{n.title}</Text>
+                    <Text style={styles.notifMsg}>{n.message}</Text>
+                    <Text style={styles.notifDate}>
+                      {new Date(n.created_at).toLocaleDateString()}
+                    </Text>
+                  </View>
+                ))
+              )}
+            </ScrollView>
+
+            <TouchableOpacity
+              style={styles.closeBtn}
+              onPress={() => setShowNotifModal(false)}
+            >
+              <Text style={styles.closeBtnText}>Close</Text>
+            </TouchableOpacity>
+          </View>
+        </TouchableOpacity>
+      </Modal>
     </ScrollView>
   );
 };
@@ -397,18 +525,30 @@ const styles = StyleSheet.create({
   container:     { flex: 1, backgroundColor: C.bg },
   scrollContent: { paddingHorizontal: 18, paddingTop: 52, paddingBottom: 32 },
 
-  /* header */
+  /* ── header ── */
   header: {
     flexDirection: 'row', justifyContent: 'space-between',
     alignItems: 'flex-start', marginBottom: 20,
   },
   headerGreeting: { fontSize: 24, fontWeight: '800', color: C.textPrimary, letterSpacing: -0.5 },
   headerSub:      { fontSize: 12, color: C.textMuted, marginTop: 3, letterSpacing: 0.3 },
-  logoutBtn:      { padding: 4, marginTop: 2 },
-  logoutIconWrap: { backgroundColor: C.bg3, borderRadius: 10, padding: 8, borderWidth: 1, borderColor: C.border },
-  logoutIcon:     { fontSize: 18 },
+  headerRight:    { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  headerIconBtn:  { padding: 8, position: 'relative' },
+  logoutBtn: {
+    padding: 8, borderRadius: 10,
+    backgroundColor: C.bg3, borderWidth: 1, borderColor: C.border,
+  },
 
-  /* glow card */
+  /* notification badge */
+  notifBadge: {
+    position: 'absolute', top: 4, right: 4,
+    backgroundColor: C.danger, width: 16, height: 16,
+    borderRadius: 8, justifyContent: 'center', alignItems: 'center',
+    borderWidth: 2, borderColor: C.bg,
+  },
+  notifBadgeText: { color: '#fff', fontSize: 8, fontWeight: '900' },
+
+  /* ── glow card ── */
   glowCard: {
     backgroundColor: C.card, borderRadius: 20, overflow: 'hidden',
     shadowColor: '#000', shadowOffset: { width: 0, height: 8 },
@@ -418,7 +558,7 @@ const styles = StyleSheet.create({
   glowStripe:  { height: 3 },
   glowContent: { padding: 18 },
 
-  /* bill hero */
+  /* ── bill hero ── */
   billHeroTop:     { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 },
   billHeroMonth:   { fontSize: 18, fontWeight: '700', color: C.textPrimary },
   billHeroAcct:    { fontSize: 12, color: C.textMuted, marginTop: 2 },
@@ -430,7 +570,7 @@ const styles = StyleSheet.create({
   analyseBtn:      { borderRadius: 12, borderWidth: 1, paddingVertical: 12, alignItems: 'center', marginTop: 2 },
   analyseBtnText:  { fontSize: 14, fontWeight: '700', letterSpacing: 0.2 },
 
-  /* metrics */
+  /* ── metrics ── */
   metricRow:   { flexDirection: 'row', gap: 8, marginBottom: 24 },
   metricTile:  {
     flex: 1, backgroundColor: C.card, borderRadius: 14, borderWidth: 1,
@@ -442,14 +582,14 @@ const styles = StyleSheet.create({
   metricValue: { fontSize: 14, fontWeight: '800', letterSpacing: -0.3 },
   metricLabel: { fontSize: 10, color: C.textMuted, marginTop: 2, textAlign: 'center' },
 
-  /* section label */
-  sLabel:      { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10, marginTop: 4 },
-  sLabelLeft:  { flexDirection: 'row', alignItems: 'center', gap: 7 },
-  sLabelDot:   { width: 5, height: 5, borderRadius: 3, backgroundColor: C.energy },
-  sLabelText:  { fontSize: 11, fontWeight: '700', color: C.textMuted, letterSpacing: 1.2, textTransform: 'uppercase' },
-  sLabelAction:{ fontSize: 13, fontWeight: '600', color: C.energy },
+  /* ── section label ── */
+  sLabel:       { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10, marginTop: 4 },
+  sLabelLeft:   { flexDirection: 'row', alignItems: 'center', gap: 7 },
+  sLabelDot:    { width: 5, height: 5, borderRadius: 3, backgroundColor: C.energy },
+  sLabelText:   { fontSize: 11, fontWeight: '700', color: C.textMuted, letterSpacing: 1.2, textTransform: 'uppercase' },
+  sLabelAction: { fontSize: 13, fontWeight: '600', color: C.energy },
 
-  /* module card */
+  /* ── module card ── */
   moduleCard: {
     flexDirection: 'row', alignItems: 'stretch',
     backgroundColor: C.card, borderRadius: 18, borderWidth: 1,
@@ -471,13 +611,21 @@ const styles = StyleSheet.create({
   moduleBadgeText: { fontSize: 10, fontWeight: '800', letterSpacing: 0.4 },
   moduleArrow:     { fontSize: 22, fontWeight: '300', lineHeight: 24, marginTop: 2 },
 
-  /* plan */
+  /* ── plan ── */
   planRow:         { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 },
   planAmount:      { fontSize: 22, fontWeight: '800', letterSpacing: -0.5 },
   planAmountLabel: { fontSize: 12, color: C.textMuted, marginTop: 2 },
-  planMetaTxt:     { fontSize: 13, color: C.textSecondary },
+  planMetaTxt:     { fontSize: 13, color: C.textSecondary, marginBottom: 10 },
+  stopBtnCompact:  {
+    alignSelf: 'flex-start',
+    paddingVertical: 5, paddingHorizontal: 10,
+    borderRadius: 8,
+    backgroundColor: '#EF444415',
+    borderWidth: 1, borderColor: '#EF444430',
+  },
+  stopBtnCompactText: { color: '#EF4444', fontSize: 11, fontWeight: '800' },
 
-  /* quick actions */
+  /* ── quick actions ── */
   qaGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 20 },
   qaTile: {
     width: '47.5%', backgroundColor: C.card, borderRadius: 16, borderWidth: 1,
@@ -488,6 +636,45 @@ const styles = StyleSheet.create({
   qaIconWrap: { width: 50, height: 50, borderRadius: 15, justifyContent: 'center', alignItems: 'center', marginBottom: 8 },
   qaIconText: { fontSize: 24 },
   qaLabel:    { fontSize: 13, fontWeight: '600', color: C.textPrimary, textAlign: 'center' },
+
+  /* ── notifications modal ── */
+  overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.65)', justifyContent: 'flex-end' },
+  notifSheet: {
+    backgroundColor: C.bg2,
+    borderTopLeftRadius: 28, borderTopRightRadius: 28,
+    padding: 20, paddingTop: 12,
+    minHeight: '50%', maxHeight: '82%',
+    shadowColor: '#000', shadowOffset: { width: 0, height: -8 },
+    shadowOpacity: 0.5, shadowRadius: 20, elevation: 20,
+    borderWidth: 1, borderColor: C.border,
+  },
+  sheetHandle: {
+    width: 38, height: 4, borderRadius: 2,
+    backgroundColor: C.border, alignSelf: 'center', marginBottom: 14,
+  },
+  sheetHeader: {
+    flexDirection: 'row', justifyContent: 'space-between',
+    alignItems: 'center', marginBottom: 16,
+  },
+  sheetTitle:    { color: C.textPrimary, fontSize: 20, fontWeight: '800' },
+  markReadText:  { color: C.energy, fontSize: 13, fontWeight: '600' },
+  notifList:     { flex: 1 },
+  emptyNotifWrap:{ alignItems: 'center', paddingTop: 40 },
+  emptyNotifIcon:{ fontSize: 40, marginBottom: 12 },
+  emptyNotif:    { color: C.textSecondary, textAlign: 'center', fontSize: 14, fontWeight: '500' },
+  notifCard: {
+    backgroundColor: C.bg3, padding: 14, borderRadius: 14,
+    marginBottom: 10, borderLeftWidth: 4,
+    borderWidth: 1, borderColor: C.border,
+  },
+  notifTitle: { color: C.textPrimary, fontSize: 15, fontWeight: '700', marginBottom: 4 },
+  notifMsg:   { color: C.textSecondary, fontSize: 13, lineHeight: 18 },
+  notifDate:  { color: C.textMuted, fontSize: 11, marginTop: 8, textAlign: 'right' },
+  closeBtn: {
+    backgroundColor: C.energy, padding: 15, borderRadius: 16,
+    alignItems: 'center', marginTop: 14,
+  },
+  closeBtnText: { color: C.bg, fontSize: 16, fontWeight: '800', letterSpacing: 0.3 },
 });
 
 export default DashboardScreen;

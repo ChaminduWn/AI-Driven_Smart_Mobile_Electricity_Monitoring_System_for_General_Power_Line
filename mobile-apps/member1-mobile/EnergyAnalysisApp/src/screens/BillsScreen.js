@@ -1,15 +1,18 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
-  View, Text, ScrollView, StyleSheet, RefreshControl, TouchableOpacity, Alert,
+  View, Text, ScrollView, StyleSheet, RefreshControl, TouchableOpacity, Alert, Platform,
 } from 'react-native';
 import * as DocumentPicker from 'expo-document-picker';
 import { billsAPI } from '../api/billsAPI';
+import { analysisAPI } from '../api/analysisAPI';
 import { useAccount } from '../contexts/AccountContext';
 import {
   SectionHeader, EmptyState, LoadingScreen, Card, PrimaryButton,
+  Field, Divider, // Assume Field is available or use View/Text
 } from '../components/SharedComponents';
 import { COLORS, SPACING, RADIUS, FONTS, SHADOW } from '../utils/theme';
 import { formatCurrency, formatDate, formatMonthYear } from '../utils/helpers';
+import { Modal, TextInput } from 'react-native';
 
 const BillsScreen = ({ navigation }) => {
   const { selectedAccount, addAccount } = useAccount();
@@ -17,6 +20,15 @@ const BillsScreen = ({ navigation }) => {
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const [showManualModal, setShowManualModal] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [manualForm, setManualForm] = useState({
+    current_meter_reading: '',
+    past_bill_date: new Date().toISOString().split('T')[0],
+    past_bill_amount: '',
+    past_bill_units: '',
+    past_bill_days: '30'
+  });
 
   const fetchBills = useCallback(async () => {
     try {
@@ -124,6 +136,42 @@ const BillsScreen = ({ navigation }) => {
     ]);
   };
 
+  const handleManualSubmit = async () => {
+    const { current_meter_reading, past_bill_units, past_bill_amount, past_bill_days, past_bill_date } = manualForm;
+    if (!current_meter_reading || !past_bill_units || !past_bill_amount) {
+      Alert.alert('Incomplete', 'Please fill in reading, units and amount.');
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      const res = await analysisAPI.saveManualBill({
+        current_meter_reading: parseInt(current_meter_reading) || 0,
+        past_bill_units: parseInt(past_bill_units) || 0,
+        past_bill_amount: parseFloat(past_bill_amount.toString().replace(/[^0-9.]/g, '')) || 0,
+        past_bill_days: parseInt(past_bill_days) || 30,
+        past_bill_date: past_bill_date
+      });
+
+      if (res.data.success) {
+        Alert.alert('✅ Success', 'Manual bill data saved.');
+        setShowManualModal(false);
+        fetchBills();
+        setManualForm({
+          current_meter_reading: '',
+          past_bill_date: new Date().toISOString().split('T')[0],
+          past_bill_amount: '',
+          past_bill_units: '',
+          past_bill_days: '30'
+        });
+      }
+    } catch (err) {
+      Alert.alert('Error', err.response?.data?.detail || 'Failed to save manual bill.');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   const filteredBills = selectedAccount
     ? bills.filter((b) => b.account_number === selectedAccount)
     : bills;
@@ -158,16 +206,83 @@ const BillsScreen = ({ navigation }) => {
         <View style={{ height: 100 }} />
       </ScrollView>
 
-      {/* Upload FAB */}
+      {/* Upload & Manual Area */}
       <View style={styles.fabArea}>
-        <PrimaryButton
-          label={uploading ? 'Extracting...' : '📤 Upload Bill'}
-          onPress={handleUpload}
-          loading={uploading}
-          disabled={uploading}
-          style={styles.fab}
-        />
+        <View style={styles.fabRow}>
+          <PrimaryButton
+            label={uploading ? 'Extracting...' : '📤 Upload Bill (AI)'}
+            style={[styles.fab, { flex: 1.2, marginRight: 8 }]}
+            onPress={handleUpload}
+            loading={uploading}
+          />
+          <PrimaryButton
+            label="⌨️ Manual Entry"
+            style={[styles.fab, { flex: 0.8, backgroundColor: COLORS.secondary }]}
+            onPress={() => setShowManualModal(true)}
+          />
+        </View>
+        <Text style={{ color: COLORS.textMuted, fontSize: 11, textAlign: 'center', marginTop: 8 }}>
+          Add past months' data to improve AI accuracy 📈
+        </Text>
       </View>
+
+      {/* Manual Bill Modal */}
+      <Modal visible={showManualModal} animationType="slide" transparent>
+        <TouchableOpacity
+          style={styles.overlay}
+          activeOpacity={1}
+          onPress={() => setShowManualModal(false)}
+        >
+          <TouchableOpacity style={styles.bottomSheet} activeOpacity={1}>
+            <Text style={styles.sheetTitle}>Manual Bill Entry</Text>
+            <Text style={styles.sheetSubtitle}>Enter data as shown in your bill</Text>
+
+            <ScrollView>
+              <ManualInput
+                label="Current Meter Reading"
+                value={manualForm.current_meter_reading}
+                onChangeText={(v) => setManualForm({ ...manualForm, current_meter_reading: v })}
+                placeholder="e.g. 15200"
+                keyboardType="numeric"
+              />
+              <ManualInput
+                label="Units Consumed (kWh)"
+                value={manualForm.past_bill_units}
+                onChangeText={(v) => setManualForm({ ...manualForm, past_bill_units: v })}
+                placeholder="e.g. 120"
+                keyboardType="numeric"
+              />
+              <ManualInput
+                label="Total Charge (Rs.)"
+                value={manualForm.past_bill_amount}
+                onChangeText={(v) => setManualForm({ ...manualForm, past_bill_amount: v })}
+                placeholder="e.g. 4500"
+                keyboardType="numeric"
+              />
+              <ManualInput
+                label="Billing Days"
+                value={manualForm.past_bill_days}
+                onChangeText={(v) => setManualForm({ ...manualForm, past_bill_days: v })}
+                placeholder="30"
+                keyboardType="numeric"
+              />
+              <ManualInput
+                label="Bill Date (YYYY-MM-DD)"
+                value={manualForm.past_bill_date}
+                onChangeText={(v) => setManualForm({ ...manualForm, past_bill_date: v })}
+                placeholder="2024-03-08"
+              />
+
+              <PrimaryButton
+                label="Save Bill Data"
+                onPress={handleManualSubmit}
+                loading={submitting}
+                style={{ marginTop: SPACING.lg }}
+              />
+            </ScrollView>
+          </TouchableOpacity>
+        </TouchableOpacity>
+      </Modal>
     </View>
   );
 };
@@ -193,6 +308,20 @@ const BillCard = ({ bill, onPress, onDelete }) => (
       </TouchableOpacity>
     </View>
   </TouchableOpacity>
+);
+
+const ManualInput = ({ label, value, onChangeText, placeholder, keyboardType = 'default' }) => (
+  <View style={styles.inputContainer}>
+    <Text style={styles.inputLabel}>{label}</Text>
+    <TextInput
+      style={styles.input}
+      value={value}
+      onChangeText={onChangeText}
+      placeholder={placeholder}
+      placeholderTextColor={COLORS.textMuted}
+      keyboardType={keyboardType}
+    />
+  </View>
 );
 
 const styles = StyleSheet.create({
@@ -227,8 +356,32 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.bg1,
     borderTopWidth: 1,
     borderTopColor: COLORS.border,
+    paddingBottom: Platform.OS === 'ios' ? 34 : SPACING.lg,
   },
+  fabRow: { flexDirection: 'row' },
   fab: { borderRadius: RADIUS.lg },
+  overlay: { flex: 1, backgroundColor: COLORS.overlay, justifyContent: 'flex-end' },
+  bottomSheet: {
+    backgroundColor: COLORS.bg2,
+    borderTopLeftRadius: RADIUS.xl,
+    borderTopRightRadius: RADIUS.xl,
+    padding: SPACING.xl,
+    maxHeight: '90%',
+    ...SHADOW.lg,
+  },
+  sheetTitle: { color: COLORS.textPrimary, fontSize: 20, ...FONTS.bold, textAlign: 'center' },
+  sheetSubtitle: { color: COLORS.textSecondary, fontSize: 13, textAlign: 'center', marginBottom: SPACING.xl },
+  inputContainer: { marginBottom: SPACING.md },
+  inputLabel: { color: COLORS.textSecondary, fontSize: 12, marginBottom: 4, ...FONTS.medium },
+  input: {
+    backgroundColor: COLORS.bg3,
+    color: COLORS.textPrimary,
+    borderRadius: RADIUS.md,
+    padding: SPACING.md,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    ...FONTS.regular,
+  },
 });
 
 export default BillsScreen;

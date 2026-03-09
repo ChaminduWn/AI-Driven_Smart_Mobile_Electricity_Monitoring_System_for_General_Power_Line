@@ -43,7 +43,9 @@ class RecommendationEngine:
         status = current_status.get('status', 'on_track')
         
         if status != 'over_budget' and variance_units <= 0:
-            return [] # No specific reduction needed if on track
+            # We still want to provide tips for staying efficient!
+            # But maybe fewer/less urgent ones
+            pass
             
         # 2. Get NILM breakdown to see where the energy is going
         # We'll use the current units_used as the basis for disaggregation
@@ -61,18 +63,26 @@ class RecommendationEngine:
         )
         
         # 3. Calculate target reduction
-        # How much do we need to reduce DAILY to get back to budget?
+        # We want to show tips if they are over current target OR projected total
         days_remaining = projection.get('days_remaining', 30)
-        budget_variance = projection.get('budget_variance', 0) # Cost-based variance
+        cost_variance = projection.get('budget_variance', 0)
         
-        if budget_variance <= 0:
-            return []
+        # Base the reduction on whichever is more "alarming": 
+        # current variance or projected total variance
+        reduction_target_cost = max(cost_variance, current_status.get('variance_cost', 0))
+        
+        if reduction_target_cost <= 0:
+            # Provide proactive tips even if on track
+            reduction_target_cost = 100 # Nominal target for tips
             
-        # Estimate units reduction needed based on cost variance (rough estimate)
-        # Assuming average rate from NILM or current status
-        avg_rate = current_status.get('actual_cost', 0) / total_kwh if total_kwh > 0 else 1.0
-        units_reduction_needed = budget_variance / avg_rate if avg_rate > 0 else 0
-        daily_units_reduction = units_reduction_needed / days_remaining if days_remaining > 0 else 0
+        # Estimate units reduction needed
+        # Use target rate if actual rate is too low/high or the plan is very new
+        target_rate = current_status.get('expected_cost', 0) / (current_status.get('expected_units', 1) or 1)
+        actual_rate = current_status.get('actual_cost', 0) / (total_kwh or 1) if total_kwh > 0 else target_rate
+        avg_rate = (actual_rate + target_rate) / 2
+        
+        units_reduction_needed = reduction_target_cost / avg_rate if avg_rate > 0 else 0
+        daily_units_reduction = units_reduction_needed / days_remaining if days_remaining > 0 else units_reduction_needed / 7
         
         # 4. Filter appliances that have the highest impact and are "reducible"
         breakdown = nilm_result.get('breakdown', [])
@@ -120,6 +130,26 @@ class RecommendationEngine:
                     'actionable_tip': self._get_actionable_tip(item.get('appliance_name'), reduction_hours)
                 })
         
+        if not recommendations and reduction_target_cost > 0:
+            # Fallback to general tips if no appliance-specific ones found
+            general_tips = [
+                {"appliance_name": "General", "category": "lighting", "actionable_tip": "Switch off unused lights and use energy-efficient LED bulbs."},
+                {"appliance_name": "General", "category": "vampire_load", "actionable_tip": "Unplug electronics like chargers and TVs when not in use to stop 'vampire' power drain."},
+                {"appliance_name": "General", "category": "other", "actionable_tip": "Shift heavy appliance usage (irons, washing machines) to off-peak hours if possible."},
+                {"appliance_name": "General", "category": "cooking", "actionable_tip": "Use a lid while cooking and utilize residual heat to finish your meals."}
+            ]
+            for tip in general_tips:
+                recommendations.append({
+                    'appliance_id': None,
+                    'appliance_name': tip['appliance_name'],
+                    'category': tip['category'],
+                    'impact_percentage': 0,
+                    'suggested_reduction_kwh': 0,
+                    'suggested_reduction_hours': 0,
+                    'potential_monthly_saving': 0,
+                    'actionable_tip': tip['actionable_tip']
+                })
+
         return recommendations[:4] # Return top 4 most impactful recommendations
 
     def _get_actionable_tip(self, appliance_name: str, reduction_hours: float) -> str:
