@@ -1,6 +1,16 @@
 import React, { useEffect, useState } from 'react';
-import { Grid, Paper, Typography, Box } from '@mui/material';
-import { ElectricBolt, ReportProblem, WbSunny, Security } from '@mui/icons-material';
+import {
+  Grid,
+  Paper,
+  Typography,
+  Box,
+} from '@mui/material';
+import {
+  ElectricBolt,
+  ReportProblem,
+  WbSunny,
+  Security,
+} from '@mui/icons-material';
 
 export default function Dashboard() {
   const [stats, setStats] = useState({
@@ -12,7 +22,6 @@ export default function Dashboard() {
 
   useEffect(() => {
     // Fetch dashboard stats from all services
-    // This is a placeholder - implement actual API calls
     setStats({
       totalHouseholds: 150,
       activeOutages: 12,
@@ -37,20 +46,28 @@ export default function Dashboard() {
         {cards.map((card, index) => (
           <Grid item xs={12} sm={6} md={3} key={index}>
             <Paper
+              elevation={2}
               sx={{
                 p: 3,
                 display: 'flex',
                 flexDirection: 'column',
                 alignItems: 'center',
-                bgcolor: card.color,
+                background: `linear-gradient(135deg, ${card.color} 0%, ${card.color}dd 100%)`,
                 color: 'white',
+                borderRadius: 2,
+                transition: 'transform 0.2s',
+                '&:hover': {
+                  transform: 'translateY(-4px)',
+                },
               }}
             >
-              <Box sx={{ fontSize: 40 }}>{card.icon}</Box>
-              <Typography variant="h4" sx={{ mt: 2 }}>
+              <Box sx={{ fontSize: 48, mb: 1 }}>{card.icon}</Box>
+              <Typography variant="h3" fontWeight="bold" sx={{ mb: 1 }}>
                 {card.value}
               </Typography>
-              <Typography variant="body2">{card.title}</Typography>
+              <Typography variant="body1" sx={{ opacity: 0.9, textAlign: 'center' }}>
+                {card.title}
+              </Typography>
             </Paper>
           </Grid>
         ))}
