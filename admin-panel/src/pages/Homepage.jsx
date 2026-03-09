@@ -2,6 +2,9 @@ import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import postTransparentImg from '../img/post_transparent.png';
+import imgSlsea from "../assets/Picture5.jpg";
+import imgSurya from "../assets/Picture6.png";
+import imgMinistry from "../assets/Picture7.png";
 
 const features = [
   {
@@ -529,6 +532,24 @@ export default function Home() {
             </div>
           </div>
         </motion.div>
+      </section>
+
+      {/* ── FOOTER LOGOS ── */}
+      <section style={{ padding: "0 24px 60px", textAlign: "center" }}>
+        <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: "2px", color: "#64748B", textTransform: "uppercase", marginBottom: 32 }}>
+          Partner Institutions & Acknowledgements
+        </div>
+        <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "center", alignItems: "center", gap: 32 }}>
+          {[
+            { name: "SLSEA", img: imgSlsea },
+            { name: "Surya Bala", img: imgSurya },
+            { name: "Ministry of Energy", img: imgMinistry }
+          ].map(({ name, img }) => (
+            <div key={name} style={{ background: "white", border: "1.5px solid #E2E8F0", borderRadius: 16, padding: "20px 24px", display: "flex", justifyContent: "center", alignItems: "center", width: 220, height: 120, boxShadow: "0 4px 12px rgba(0,0,0,0.03)" }}>
+              <img src={img} alt={name} title={name} style={{ maxWidth: "100%", maxHeight: 85, objectFit: "contain" }} />
+            </div>
+          ))}
+        </div>
       </section>
 
       <style>{`
