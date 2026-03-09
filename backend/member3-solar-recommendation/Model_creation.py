@@ -23,13 +23,35 @@ def load_and_prepare_data():
     print("\n📊 LOADING DATA...")
 
     # 1. Climate Data
-    climate_df = pd.read_excel('Climate Impact Ffor solar recomendation System.xlsx')
-    climate_df = climate_df.dropna(how='all')
-    if str(climate_df.iloc[0, 0]) == 'District':
-        climate_df = climate_df.iloc[1:].reset_index(drop=True)
-
-    climate_df.columns = ['District', 'Jan_Mar_GHI', 'Apr_Jun_GHI', 'Jul_Sep_GHI',
-                          'Oct_Dec_GHI', 'Avg_Temp', 'Annual_Rain', 'Wind_Stress', 'Weather_Impact']
+    CLIMATE_FILE = 'Climate Impact Ffor solar recomendation System.xlsx'
+    if os.path.exists(CLIMATE_FILE):
+        print(f"   ✓ Loading climate data from {CLIMATE_FILE}")
+        climate_df = pd.read_excel(CLIMATE_FILE)
+        climate_df = climate_df.dropna(how='all')
+        if str(climate_df.iloc[0, 0]) == 'District':
+            climate_df = climate_df.iloc[1:].reset_index(drop=True)
+        climate_df.columns = ['District', 'Jan_Mar_GHI', 'Apr_Jun_GHI', 'Jul_Sep_GHI',
+                              'Oct_Dec_GHI', 'Avg_Temp', 'Annual_Rain', 'Wind_Stress', 'Weather_Impact']
+    else:
+        print("   ✓ Loading embedded climate database (Excel not found)")
+        climate_df = pd.DataFrame([
+            ["Colombo",      5.2, 5.0, 4.8, 5.1, 28.5, 2390, "Low",      "Low"],
+            ["Kandy",        4.8, 4.6, 4.4, 4.7, 24.0, 1900, "Medium",   "Medium"],
+            ["Galle",        5.1, 4.9, 4.7, 5.0, 27.5, 2300, "Low",      "Low"],
+            ["Jaffna",       5.8, 5.6, 5.4, 5.7, 30.0, 1000, "High",     "Medium"],
+            ["Anuradhapura", 5.5, 5.3, 5.1, 5.4, 30.5,  900, "Medium",   "Low"],
+            ["Kurunegala",   5.2, 5.0, 4.8, 5.1, 29.0, 1500, "Medium",   "Low"],
+            ["Batticaloa",   5.4, 5.2, 5.0, 5.3, 29.5, 1650, "High",     "Medium"],
+            ["Badulla",      4.5, 4.3, 4.1, 4.4, 20.0, 2100, "High",     "High"],
+            ["Ratnapura",    4.6, 4.4, 4.2, 4.5, 26.0, 3700, "Medium",   "High"],
+            ["Hambantota",   5.9, 6.0, 6.2, 5.1, 33.5, 1100, "Very High","Very Low"],
+            ["Gampaha",      5.4, 4.6, 4.8, 4.3, 32.0, 2100, "Medium",   "High"],
+            ["Kalutara",     5.2, 4.3, 4.5, 4.1, 30.5, 3200, "High",     "Very High"],
+            ["Matale",       4.9, 4.3, 4.5, 4.1, 30.2, 1800, "Low",      "Medium"],
+            ["Nuwara Eliya", 4.2, 3.7, 3.5, 3.4, 15.8, 2500, "Med-High", "Very High"],
+            ["Matara",       5.2, 4.4, 4.5, 4.2, 30.5, 2400, "High",     "High"],
+        ], columns=['District', 'Jan_Mar_GHI', 'Apr_Jun_GHI', 'Jul_Sep_GHI', 'Oct_Dec_GHI',
+                    'Avg_Temp', 'Annual_Rain', 'Wind_Stress', 'Weather_Impact'])
 
     for col in ['Jan_Mar_GHI', 'Apr_Jun_GHI', 'Jul_Sep_GHI', 'Oct_Dec_GHI', 'Avg_Temp', 'Annual_Rain']:
         climate_df[col] = pd.to_numeric(climate_df[col], errors='coerce')
@@ -40,64 +62,78 @@ def load_and_prepare_data():
     print(f"   ✓ Climate data: {len(climate_df)} districts")
 
     # 2. Products Data
-    products_excel = pd.read_excel('Panel & Inverter details.xlsx', sheet_name=None)
-    product_frames = []
-    for sheet_name, df in products_excel.items():
-        df = df.dropna(how='all')
-        if df.empty: continue
-        df['Type'] = 'Inverter' if 'Inverter' in sheet_name or 'Phase Type' in df.columns else 'Panel'
-        product_frames.append(df)
-    products_df = pd.concat(product_frames, ignore_index=True) if product_frames else pd.DataFrame()
+    PRODUCTS_FILE = 'Panel & Inverter details.xlsx'
+    if os.path.exists(PRODUCTS_FILE):
+        products_excel = pd.read_excel(PRODUCTS_FILE, sheet_name=None)
+        product_frames = []
+        for sheet_name, df in products_excel.items():
+            df = df.dropna(how='all')
+            if df.empty: continue
+            df['Type'] = 'Inverter' if 'Inverter' in sheet_name or 'Phase Type' in df.columns else 'Panel'
+            product_frames.append(df)
+        products_df = pd.concat(product_frames, ignore_index=True) if product_frames else pd.DataFrame()
+    else:
+        print(f"   ⚠️  Warning: {PRODUCTS_FILE} not found. System will use limited logic.")
+        products_df = pd.DataFrame(columns=['Company', 'Brand/Model', 'Type', 'Size', 'Warranty (Years)', 'Price (LKR/Est.)'])
 
-    if 'Size' in products_df.columns:
-        products_df['Size_KW'] = pd.to_numeric(products_df['Size'].astype(str).str.extract(r'(\d+)')[0], errors='coerce')
-    if 'Warranty (Years)' in products_df.columns:
-        products_df['Warranty_Years'] = pd.to_numeric(products_df['Warranty (Years)'], errors='coerce')
-    if 'Price (LKR/Est.)' in products_df.columns:
-        products_df['Price_LKR'] = pd.to_numeric(products_df['Price (LKR/Est.)'], errors='coerce')
+    if not products_df.empty:
+        if 'Size' in products_df.columns:
+            products_df['Size_KW'] = pd.to_numeric(products_df['Size'].astype(str).str.extract(r'(\d+)')[0], errors='coerce')
+        if 'Warranty (Years)' in products_df.columns:
+            products_df['Warranty_Years'] = pd.to_numeric(products_df['Warranty (Years)'], errors='coerce')
+        if 'Price (LKR/Est.)' in products_df.columns:
+            products_df['Price_LKR'] = pd.to_numeric(products_df['Price (LKR/Est.)'], errors='coerce')
 
-    products_df['Product_ID'] = products_df['Company'] + "_" + products_df['Brand/Model']
-    products_df['Product_ID'] = products_df['Product_ID'].str.replace(' ', '_')
+        products_df['Product_ID'] = products_df['Company'].astype(str) + "_" + products_df['Brand/Model'].astype(str)
+        products_df['Product_ID'] = products_df['Product_ID'].str.replace(' ', '_')
 
     panels_df    = products_df[products_df['Type'] == 'Panel'].copy()
     inverters_df = products_df[products_df['Type'] == 'Inverter'].copy()
 
     print(f"   ✓ Products: {len(panels_df)} panels, {len(inverters_df)} inverters")
 
-    # 3. Sales Data - THIS IS OUR TRAINING DATA
-    sales_df = pd.read_excel('Sales user details.xlsx')
-    sales_df = sales_df.dropna(how='all')
-    if str(sales_df.iloc[0, 0]) == 'ID':
-        sales_df = sales_df.iloc[1:].reset_index(drop=True)
+    # 3. Sales Data - TRAINING DATA
+    SALES_FILE = 'Sales user details.xlsx'
+    if os.path.exists(SALES_FILE):
+        sales_df = pd.read_excel(SALES_FILE)
+        sales_df = sales_df.dropna(how='all')
+        if not sales_df.empty and str(sales_df.iloc[0, 0]) == 'ID':
+            sales_df = sales_df.iloc[1:].reset_index(drop=True)
+    else:
+        print(f"   ⚠️  Warning: {SALES_FILE} not found. Cannot train new models without data.")
+        sales_df = pd.DataFrame(columns=['ID', 'City', 'Brand', 'Capacity_KW', 'Roof_Size_m2', 'Price_LKR'])
 
-    sales_df.columns = ['ID', 'City', 'Brand', 'Capacity_KW', 'Roof_Size_m2', 'Price_LKR']
+    if not sales_df.empty:
+        sales_df.columns = ['ID', 'City', 'Brand', 'Capacity_KW', 'Roof_Size_m2', 'Price_LKR']
+        sales_df['Capacity_KW']  = pd.to_numeric(sales_df['Capacity_KW'].astype(str).str.extract(r'(\d+)')[0], errors='coerce')
+        sales_df['Roof_Size_m2'] = pd.to_numeric(sales_df['Roof_Size_m2'].astype(str).str.extract(r'(\d+)')[0], errors='coerce')
+        sales_df['Price_LKR']    = pd.to_numeric(sales_df['Price_LKR'].astype(str).str.replace(r'[^\d]', '', regex=True), errors='coerce')
+        sales_df['City']         = sales_df['City'].astype(str).str.strip().str.title()
+        sales_df['Brand']        = sales_df['Brand'].astype(str).str.strip()
 
-    sales_df['Capacity_KW']  = pd.to_numeric(sales_df['Capacity_KW'].astype(str).str.extract(r'(\d+)')[0], errors='coerce')
-    sales_df['Roof_Size_m2'] = pd.to_numeric(sales_df['Roof_Size_m2'].astype(str).str.extract(r'(\d+)')[0], errors='coerce')
-    sales_df['Price_LKR']    = pd.to_numeric(sales_df['Price_LKR'].astype(str).str.replace(r'[^\d]', '', regex=True), errors='coerce')
-    sales_df['City']         = sales_df['City'].astype(str).str.strip().str.title()
-    sales_df['Brand']        = sales_df['Brand'].astype(str).str.strip()
-
-    sales_df = sales_df.dropna(subset=['Capacity_KW', 'Price_LKR', 'Brand'])
-    sales_df['Roof_Size_m2'] = sales_df['Roof_Size_m2'].fillna(sales_df['Capacity_KW'] * 5.5)
+        sales_df = sales_df.dropna(subset=['Capacity_KW', 'Price_LKR', 'Brand'])
+        sales_df['Roof_Size_m2'] = sales_df['Roof_Size_m2'].fillna(sales_df['Capacity_KW'] * 5.5)
 
     print(f"   ✓ Sales records: {len(sales_df)} transactions")
 
 
     print("\n🔗 MERGING SALES WITH CLIMATE DATA...")
-    training_df = sales_df.merge(climate_df, left_on='City', right_on='District', how='left')
-    training_df = training_df.dropna(subset=['Avg_GHI', 'Avg_Temp'])
+    if not sales_df.empty:
+        training_df = sales_df.merge(climate_df, left_on='City', right_on='District', how='left')
+        training_df = training_df.dropna(subset=['Avg_GHI', 'Avg_Temp'])
 
-    
-    temp_factor = 1 - (training_df['Avg_Temp'] - 25).clip(lower=0) * 0.004
-    training_df['Monthly_KWH'] = (
-        training_df['Capacity_KW'] * training_df['Avg_GHI'] * 30 * temp_factor * 0.85
-    )
- 
-    training_df['Daily_KWH'] = training_df['Monthly_KWH'] / 30
+        if not training_df.empty:
+            temp_factor = 1 - (training_df['Avg_Temp'] - 25).clip(lower=0) * 0.004
+            training_df['Monthly_KWH'] = (
+                training_df['Capacity_KW'] * training_df['Avg_GHI'] * 30 * temp_factor * 0.85
+            )
+            training_df['Daily_KWH'] = training_df['Monthly_KWH'] / 30
+    else:
+        training_df = pd.DataFrame()
 
     print(f"   ✓ Training samples: {len(training_df)} (after merging with climate)")
-    print(f"   ✓ Daily_KWH range: {training_df['Daily_KWH'].min():.1f} – {training_df['Daily_KWH'].max():.1f} kWh/day")
+    if not training_df.empty:
+        print(f"   ✓ Daily_KWH range: {training_df['Daily_KWH'].min():.1f} – {training_df['Daily_KWH'].max():.1f} kWh/day")
 
     return climate_df, panels_df, inverters_df, training_df
 
