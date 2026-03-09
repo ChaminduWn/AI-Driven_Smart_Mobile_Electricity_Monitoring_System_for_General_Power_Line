@@ -32,6 +32,13 @@ import SolarRecommendationScreen from '../screens/SolarRecommendationScreen';
 // ── ✅ NEW: Safety & Disaster Management ──────────────────────────────────────
 import SafetyManagementScreen from '../screens/SafetyManagementScreen';
 
+// ── Member 4 Integrated Screens ──────────────────────────────────────────────
+import SafetyWeatherScreen from '../screens/safety/WeatherScreen';
+import SafetyTipsScreen from '../screens/safety/SafetyTipsScreen';
+import SafetyEmergencyScreen from '../screens/safety/EmergencyScreen';
+import SafetyAppliancesScreen from '../screens/safety/SafetyAppliancesScreen';
+import SafetyAssistantScreen from '../screens/safety/AssisScreen';
+
 const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator();
 const AuthStack = createStackNavigator();
@@ -113,6 +120,31 @@ const DashboardStack = () => (
     <Stack.Screen
       name="Safety"
       component={SafetyManagementScreen}
+      options={{ headerShown: false }}
+    />
+    <Stack.Screen
+      name="SafetyWeather"
+      component={SafetyWeatherScreen}
+      options={{ headerShown: false }}
+    />
+    <Stack.Screen
+      name="SafetyTips"
+      component={SafetyTipsScreen}
+      options={{ headerShown: false }}
+    />
+    <Stack.Screen
+      name="SafetyEmergency"
+      component={SafetyEmergencyScreen}
+      options={{ headerShown: false }}
+    />
+    <Stack.Screen
+      name="SafetyAppliances"
+      component={SafetyAppliancesScreen}
+      options={{ headerShown: false }}
+    />
+    <Stack.Screen
+      name="SafetyAssistant"
+      component={SafetyAssistantScreen}
       options={{ headerShown: false }}
     />
     {/* Outage — placeholder until OutageScreen is created */}

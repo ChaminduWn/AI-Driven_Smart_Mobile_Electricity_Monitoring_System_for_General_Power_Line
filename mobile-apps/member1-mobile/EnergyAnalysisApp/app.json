@@ -39,7 +39,8 @@
         {
           "iCloudContainerEnvironment": "Production"
         }
-      ]
+      ],
+      "expo-font"
     ],
     "extra": {
       "eas": {
