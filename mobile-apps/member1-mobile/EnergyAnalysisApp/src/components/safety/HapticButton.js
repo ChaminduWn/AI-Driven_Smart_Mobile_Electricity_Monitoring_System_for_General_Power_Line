@@ -1,5 +1,5 @@
 import React, { useRef } from 'react';
-import { Animated, Pressable, Text } from 'react-native';
+import { Animated, Pressable, Text, Platform } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import PropTypes from 'prop-types';
 
@@ -7,11 +7,11 @@ export default function HapticButton({ children, onPress, scaleOnPress = 0.97, h
   const scale = useRef(new Animated.Value(1)).current;
 
   const handlePressIn = () => {
-    Animated.spring(scale, { toValue: scaleOnPress, useNativeDriver: true }).start();
+    Animated.spring(scale, { toValue: scaleOnPress, useNativeDriver: Platform.OS !== 'web' }).start();
   };
 
   const handlePressOut = () => {
-    Animated.spring(scale, { toValue: 1, friction: 5, useNativeDriver: true }).start();
+    Animated.spring(scale, { toValue: 1, friction: 5, useNativeDriver: Platform.OS !== 'web' }).start();
   };
 
   const handlePress = (e) => {

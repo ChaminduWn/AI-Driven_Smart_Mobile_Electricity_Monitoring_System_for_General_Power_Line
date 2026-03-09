@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   View, Text, ScrollView, StyleSheet, TouchableOpacity,
   Animated, RefreshControl, Alert, Modal,
-  TextInput, ActivityIndicator, Dimensions,
+  TextInput, ActivityIndicator, Dimensions, Platform,
 } from 'react-native';
 import { useAccount } from '../contexts/AccountContext';
 import { appliancesAPI } from '../api/appliancesAPI';
@@ -630,7 +630,7 @@ const CustomDropdown = ({ label, value, options, onSelect, placeholder }) => {
         </Text>
         <Text style={{ color: '#3D6654', fontSize: 12 }}>▼</Text>
       </TouchableOpacity>
-      
+
       <Modal visible={open} transparent animationType="fade" onRequestClose={() => setOpen(false)}>
         <TouchableOpacity style={{ flex: 1, backgroundColor: '#000000CC', justifyContent: 'center', padding: 20 }} activeOpacity={1} onPress={() => setOpen(false)}>
           <View style={{ backgroundColor: '#09100F', borderRadius: 16, maxHeight: Dimensions.get('window').width * 1.2, borderWidth: 1, borderColor: '#1F3B2E', overflow: 'hidden' }}>
@@ -677,7 +677,7 @@ const RecommendationFormView = ({ onSubmit, submitting, locations, onBack }) => 
       </View>
 
       <ScrollView contentContainerStyle={{ padding: 24, paddingBottom: 60 }} showsVerticalScrollIndicator={false}>
-        
+
         {/* Banner with icon bubble */}
         <View style={{ backgroundColor: C.teal + '11', borderRadius: 16, padding: 20, borderWidth: 1, borderColor: C.teal + '33', marginBottom: 24, flexDirection: 'row', alignItems: 'center', gap: 14 }}>
           <View style={{ backgroundColor: C.teal + '22', width: 44, height: 44, borderRadius: 12, justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: C.teal + '44' }}>
@@ -707,18 +707,18 @@ const RecommendationFormView = ({ onSubmit, submitting, locations, onBack }) => 
           </View>
         ))}
 
-        <CustomDropdown 
-          label="Preferred Brand (Optional)" 
-          value={mlForm.Preferred_Brand} 
-          options={BRANDS} 
+        <CustomDropdown
+          label="Preferred Brand (Optional)"
+          value={mlForm.Preferred_Brand}
+          options={BRANDS}
           onSelect={(v) => setMlForm(f => ({ ...f, Preferred_Brand: v }))}
           placeholder="Select a brand"
         />
 
-        <CustomDropdown 
-          label="Location (District)" 
-          value={mlForm.Location} 
-          options={locations} 
+        <CustomDropdown
+          label="Location (District)"
+          value={mlForm.Location}
+          options={locations}
           onSelect={(v) => setMlForm(f => ({ ...f, Location: v }))}
           placeholder="Select district"
         />
@@ -774,18 +774,18 @@ const MLConfigModal = ({ visible, onClose, onSubmit, submitting, locations }) =>
               </View>
             ))}
 
-            <CustomDropdown 
-              label="Preferred Brand (Optional)" 
-              value={mlForm.Preferred_Brand} 
-              options={BRANDS} 
+            <CustomDropdown
+              label="Preferred Brand (Optional)"
+              value={mlForm.Preferred_Brand}
+              options={BRANDS}
               onSelect={(v) => setMlForm(f => ({ ...f, Preferred_Brand: v }))}
               placeholder="Select a brand"
             />
 
-            <CustomDropdown 
-              label="Location (District)" 
-              value={mlForm.Location} 
-              options={locations} 
+            <CustomDropdown
+              label="Location (District)"
+              value={mlForm.Location}
+              options={locations}
               onSelect={(v) => setMlForm(f => ({ ...f, Location: v }))}
               placeholder="Select district"
             />
@@ -859,7 +859,7 @@ const SolarRecommendationScreen = ({ navigation }) => {
     } finally {
       setPageLoading(false);
       setRefreshing(false);
-      Animated.timing(fadeAnim, { toValue: 1, duration: 700, useNativeDriver: true }).start();
+      Animated.timing(fadeAnim, { toValue: 1, duration: 700, useNativeDriver: Platform.OS !== 'web' }).start();
     }
   }, [selectedAccount, panelIdx]);
 

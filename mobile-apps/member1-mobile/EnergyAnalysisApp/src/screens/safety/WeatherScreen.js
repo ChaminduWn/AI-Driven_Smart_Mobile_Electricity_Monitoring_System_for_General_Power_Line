@@ -63,8 +63,9 @@ export default function WeatherScreen({ navigation }) {
   return (
     <View style={{ flex: 1 }}>
       <Header title="Current Weather" leftAction={<Button icon="arrow-left" onPress={() => navigation.goBack()} />} />
-      <ScrollView contentContainerStyle={styles.container} refreshControl={<></>}>
-        {/* TODO: add pull-to-refresh later */}        {loading && (
+      <ScrollView contentContainerStyle={styles.container}>
+        {/* TODO: add pull-to-refresh later */}
+        {loading && (
           <>
             <SkeletonLoader height={120} style={{ borderRadius: 16, marginBottom: 12 }} />
             <SkeletonLoader height={20} style={{ width: '40%', marginBottom: 8 }} />

@@ -1,5 +1,5 @@
 import React, { useRef, useEffect } from 'react';
-import { Animated, View } from 'react-native';
+import { Animated, View, Platform } from 'react-native';
 import PropTypes from 'prop-types';
 
 export default function PulsingDot({ color = '#10B981', size = 8, speed = 1000 }) {
@@ -7,8 +7,8 @@ export default function PulsingDot({ color = '#10B981', size = 8, speed = 1000 }
   useEffect(() => {
     const anim = Animated.loop(
       Animated.sequence([
-        Animated.timing(scale, { toValue: 1.4, duration: speed, useNativeDriver: true }),
-        Animated.timing(scale, { toValue: 0.8, duration: speed, useNativeDriver: true }),
+        Animated.timing(scale, { toValue: 1.4, duration: speed, useNativeDriver: Platform.OS !== 'web' }),
+        Animated.timing(scale, { toValue: 0.8, duration: speed, useNativeDriver: Platform.OS !== 'web' }),
       ])
     );
     anim.start();

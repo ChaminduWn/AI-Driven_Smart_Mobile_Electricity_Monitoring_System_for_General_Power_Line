@@ -3,7 +3,7 @@ import storage from '../utils/storage';
 import { API_BASE } from '../config';
 
 // ─── Base URL (centralized) ──────────────────────────────────────────────────
-const BASE_URL = 'http://172.20.10.2:8000/api/v1';
+const BASE_URL = API_BASE;
 
 const apiClient = axios.create({
   baseURL: BASE_URL,

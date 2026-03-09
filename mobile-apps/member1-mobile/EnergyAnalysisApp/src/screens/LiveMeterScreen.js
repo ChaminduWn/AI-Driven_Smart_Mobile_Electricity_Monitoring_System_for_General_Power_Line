@@ -254,8 +254,8 @@ const AnomalyBanner = ({ anomalies }) => {
   const pulse = useRef(new Animated.Value(1)).current;
   useEffect(() => {
     Animated.loop(Animated.sequence([
-      Animated.timing(pulse, { toValue: 1.03, duration: 700, useNativeDriver: true }),
-      Animated.timing(pulse, { toValue: 1.00, duration: 700, useNativeDriver: true }),
+      Animated.timing(pulse, { toValue: 1.03, duration: 700, useNativeDriver: Platform.OS !== 'web' }),
+      Animated.timing(pulse, { toValue: 1.00, duration: 700, useNativeDriver: Platform.OS !== 'web' }),
     ])).start();
   }, []);
   if (!anomalies?.length) return null;

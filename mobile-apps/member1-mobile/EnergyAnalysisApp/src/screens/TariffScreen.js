@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import {
   View, Text, ScrollView, StyleSheet, TouchableOpacity,
-  TextInput, Animated, Easing, Dimensions, StatusBar,
+  TextInput, Animated, Easing, Dimensions, StatusBar, Platform,
 } from 'react-native';
 import { COLORS, SPACING, RADIUS, FONTS } from '../utils/theme';
 import { formatCurrency, calcCEB } from '../utils/helpers';
@@ -95,7 +95,7 @@ function SlabBar({ item, total, index, delay }) {
     const timeout = setTimeout(() => {
       Animated.parallel([
         Animated.spring(anim, { toValue: pct, friction: 8, useNativeDriver: false }),
-        Animated.timing(fade, { toValue: 1, duration: 350, useNativeDriver: true }),
+        Animated.timing(fade, { toValue: 1, duration: 350, useNativeDriver: Platform.OS !== 'web' }),
       ]).start();
     }, delay);
     return () => clearTimeout(timeout);
@@ -140,8 +140,8 @@ function ChargePill({ label, value, accent, delay }) {
   useEffect(() => {
     setTimeout(() => {
       Animated.parallel([
-        Animated.spring(scale, { toValue: 1, friction: 6, useNativeDriver: true }),
-        Animated.timing(opacity, { toValue: 1, duration: 300, useNativeDriver: true }),
+        Animated.spring(scale, { toValue: 1, friction: 6, useNativeDriver: Platform.OS !== 'web' }),
+        Animated.timing(opacity, { toValue: 1, duration: 300, useNativeDriver: Platform.OS !== 'web' }),
       ]).start();
     }, delay);
   }, [value]);
@@ -172,8 +172,8 @@ export default function TariffScreen() {
 
   const triggerPulse = () => {
     Animated.sequence([
-      Animated.timing(pulseAnim, { toValue: 0.96, duration: 80, useNativeDriver: true }),
-      Animated.spring(pulseAnim, { toValue: 1, friction: 5, useNativeDriver: true }),
+      Animated.timing(pulseAnim, { toValue: 0.96, duration: 80, useNativeDriver: Platform.OS !== 'web' }),
+      Animated.spring(pulseAnim, { toValue: 1, friction: 5, useNativeDriver: Platform.OS !== 'web' }),
     ]).start();
   };
 
@@ -183,7 +183,7 @@ export default function TariffScreen() {
     setResult(r);
     triggerPulse();
     resultAnim.setValue(0);
-    Animated.spring(resultAnim, { toValue: 1, friction: 7, tension: 50, useNativeDriver: true }).start();
+    Animated.spring(resultAnim, { toValue: 1, friction: 7, tension: 50, useNativeDriver: Platform.OS !== 'web' }).start();
   };
 
   const applyPreset = (p) => {
