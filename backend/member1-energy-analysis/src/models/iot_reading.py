@@ -115,3 +115,20 @@ class ApplianceEvent(Base):
     
     def __repr__(self):
         return f"<ApplianceEvent(id={self.id}, {self.from_appliance} -> {self.to_appliance})>"
+
+
+class IoTReading(Base):
+    """Raw readings from IoT devices"""
+    __tablename__ = "iot_readings"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    account_number = Column(String(100), index=True, nullable=False)
+    
+    voltage = Column(Float, nullable=False)
+    current = Column(Float, nullable=False)
+    power = Column(Float, nullable=False)
+    energy = Column(Float, nullable=False)
+    frequency = Column(Float, nullable=False)
+    power_factor = Column(Float, nullable=False)
+    
+    timestamp = Column(DateTime(timezone=True), server_default=func.now())

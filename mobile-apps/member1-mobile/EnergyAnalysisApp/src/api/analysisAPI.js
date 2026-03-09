@@ -41,6 +41,9 @@ export const analysisAPI = {
   deletePlan: (planId) =>
     apiClient.delete(`/analysis/plans/${planId}`),
 
+  endPlan: (planId) =>
+    apiClient.post(`/analysis/plans/${planId}/end`),
+
   // ── Meter Readings / Progress Tracking ─────────────────────────────────
   trackProgress: (planId, currentReading, readingDate, notes = null) =>
     apiClient.post('/analysis/track-progress', {

@@ -71,12 +71,12 @@ const cardStyles = StyleSheet.create({
 
 const RiskBadge = ({ risk }) => {
   const config = {
-    high:    { bg: '#EF444420', text: '#EF4444', label: 'HIGH RISK' },
-    medium:  { bg: '#F59E0B20', text: '#F59E0B', label: 'MEDIUM RISK' },
-    low:     { bg: '#10B98120', text: '#10B981', label: 'LOW RISK' },
-    danger:  { bg: '#EF444420', text: '#EF4444', label: 'DANGER' },
+    high: { bg: '#EF444420', text: '#EF4444', label: 'HIGH RISK' },
+    medium: { bg: '#F59E0B20', text: '#F59E0B', label: 'MEDIUM RISK' },
+    low: { bg: '#10B98120', text: '#10B981', label: 'LOW RISK' },
+    danger: { bg: '#EF444420', text: '#EF4444', label: 'DANGER' },
     warning: { bg: '#F59E0B20', text: '#F59E0B', label: 'WARNING' },
-    safe:    { bg: '#10B98120', text: '#10B981', label: 'SAFE' },
+    safe: { bg: '#10B98120', text: '#10B981', label: 'SAFE' },
     monitor: { bg: '#3B82F620', text: '#3B82F6', label: 'MONITORING' },
   };
   const c = config[risk] || config.monitor;
@@ -269,12 +269,17 @@ const scenStyles = StyleSheet.create({
 
 // ─── Empty / Error States ─────────────────────────────────────────────────
 
-const EmptyCard = ({ emoji, title, subtitle }) => (
+const EmptyCard = ({ emoji, title, subtitle, action, actionLabel }) => (
   <SectionCard>
     <View style={emptyStyles.container}>
       <Text style={emptyStyles.emoji}>{emoji}</Text>
       <Text style={emptyStyles.title}>{title}</Text>
       <Text style={emptyStyles.sub}>{subtitle}</Text>
+      {action && (
+        <TouchableOpacity style={emptyStyles.actionBtn} onPress={action}>
+          <Text style={emptyStyles.actionTxt}>{actionLabel || 'Get Started'}</Text>
+        </TouchableOpacity>
+      )}
     </View>
   </SectionCard>
 );
@@ -284,6 +289,16 @@ const emptyStyles = StyleSheet.create({
   emoji: { fontSize: 36, marginBottom: SPACING.md },
   title: { color: COLORS.textPrimary, fontSize: 15, ...FONTS.semiBold, textAlign: 'center' },
   sub: { color: COLORS.textMuted, fontSize: 13, textAlign: 'center', marginTop: 6, lineHeight: 19 },
+  actionBtn: {
+    marginTop: SPACING.lg,
+    paddingVertical: SPACING.sm,
+    paddingHorizontal: SPACING.xl,
+    backgroundColor: COLORS.primary + '20',
+    borderRadius: RADIUS.md,
+    borderWidth: 1,
+    borderColor: COLORS.primary + '40',
+  },
+  actionTxt: { color: COLORS.primary, fontSize: 13, ...FONTS.bold },
 });
 
 // ══════════════════════════════════════════════════════════════════════════════
@@ -541,6 +556,8 @@ const EfficiencyScoreTab = ({ data, loading }) => {
       emoji="🏆"
       title="Score Unavailable"
       subtitle="Upload a bill and complete your household profile to get your efficiency score."
+      action={() => navigation.navigate('Bills')}
+      actionLabel="Add Past Month Bill"
     />
   );
 
@@ -668,8 +685,8 @@ const EfficiencyScoreTab = ({ data, loading }) => {
 // ══════════════════════════════════════════════════════════════════════════════
 
 const TABS = [
-  { id: 'spike',      emoji: '⚡', label: 'Spike Alert' },
-  { id: 'tariff',     emoji: '📏', label: 'Tariff Watch' },
+  { id: 'spike', emoji: '⚡', label: 'Spike Alert' },
+  { id: 'tariff', emoji: '📏', label: 'Tariff Watch' },
   { id: 'efficiency', emoji: '🏆', label: 'Efficiency' },
 ];
 

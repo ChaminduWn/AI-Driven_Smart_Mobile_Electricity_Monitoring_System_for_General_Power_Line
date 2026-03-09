@@ -43,7 +43,9 @@ class RecommendationEngine:
         status = current_status.get('status', 'on_track')
         
         if status != 'over_budget' and variance_units <= 0:
-            return [] # No specific reduction needed if on track
+            # We still want to provide tips for staying efficient!
+            # But maybe fewer/less urgent ones
+            pass
             
         # 2. Get NILM breakdown to see where the energy is going
         # We'll use the current units_used as the basis for disaggregation
@@ -70,7 +72,8 @@ class RecommendationEngine:
         reduction_target_cost = max(cost_variance, current_status.get('variance_cost', 0))
         
         if reduction_target_cost <= 0:
-            return []
+            # Provide proactive tips even if on track
+            reduction_target_cost = 100 # Nominal target for tips
             
         # Estimate units reduction needed
         # Use target rate if actual rate is too low/high or the plan is very new

@@ -21,6 +21,7 @@ import AnalysisScreen from '../screens/AnalysisScreen';
 import NILMScreen from '../screens/NILMScreen';
 import SmartInsightsScreen from '../screens/SmartInsightsScreen';
 import LiveMeterScreen from '../screens/LiveMeterScreen';
+import ProfileScreen from '../screens/ProfileScreen';
 
 // ── ✅ NEW: Tariff Calculator Screen ──────────────────────────────────────────
 import TariffScreen from '../screens/TariffScreen';
@@ -31,11 +32,11 @@ const AuthStack = createStackNavigator();
 
 // ─── Tab config ───────────────────────────────────────────────────────────────
 const TAB_CONFIG = [
-  { name: 'Dashboard',     label: 'Home',    icon: '🏠' },
-  { name: 'Bills',         label: 'Bills',   icon: '📄' },
-  { name: 'Appliances',    label: 'Devices', icon: '⚡' },
-  { name: 'Tracking',      label: 'Track',   icon: '🎯' },
-  { name: 'SmartInsights', label: 'AI',      icon: '🤖' },
+  { name: 'Dashboard', label: 'Home', icon: '🏠' },
+  { name: 'Bills', label: 'Bills', icon: '📄' },
+  { name: 'Appliances', label: 'Devices', icon: '⚡' },
+  { name: 'Tracking', label: 'Track', icon: '🎯' },
+  { name: 'SmartInsights', label: 'AI', icon: '🤖' },
 ];
 
 // ─── Loading Screen ───────────────────────────────────────────────────────────
@@ -91,6 +92,11 @@ const DashboardStack = () => (
       name="NILM"
       component={NILMScreen}
       options={{ title: 'NILM Disaggregation' }}
+    />
+    <Stack.Screen
+      name="Profile"
+      component={ProfileScreen}
+      options={{ headerShown: false }}
     />
   </Stack.Navigator>
 );

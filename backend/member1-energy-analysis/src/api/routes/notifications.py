@@ -71,13 +71,27 @@ def mark_all_read(
     
     return {"success": True}
 
-def create_notification(db: Session, user_id: int, title: str, message: str, type: str = "info"):
+def create_notification(
+    db: Session, 
+    user_id: int, 
+    title: str, 
+    message: str, 
+    type: str = "info",
+    account_number: Optional[str] = None,
+    bill_id: Optional[int] = None,
+    plan_id: Optional[int] = None,
+    action_url: Optional[str] = None
+):
     """Helper to create a notification (Server Side)"""
     new_notif = Notification(
         user_id=user_id,
         title=title,
         message=message,
-        type=type
+        type=type,
+        account_number=account_number,
+        bill_id=bill_id,
+        plan_id=plan_id,
+        action_url=action_url
     )
     db.add(new_notif)
     db.commit()

@@ -18,4 +18,7 @@ export const authAPI = {
 
   googleLogin: (id_token) =>
     apiClient.post('/auth/google', { id_token }),
+
+  updateProfile: (payload) =>
+    apiClient.put('/auth/profile', payload),
 };

@@ -30,7 +30,7 @@ class DeviceSession(Base):
     appliance_description = Column(Text)
 
     status              = Column(String(32),  default="active")
-    test_duration_min   = Column(Float)
+    test_duration_min   = Column(Integer)
     actual_duration_min = Column(Float)
     started_at          = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
     ended_at            = Column(DateTime(timezone=True))

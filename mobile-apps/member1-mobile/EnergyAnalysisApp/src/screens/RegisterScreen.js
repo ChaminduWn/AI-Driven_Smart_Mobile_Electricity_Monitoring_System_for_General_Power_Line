@@ -181,8 +181,11 @@ const RegisterScreen = ({ navigation }) => {
       style={styles.flex}
     >
       <ScrollView
+        style={[styles.flex, Platform.OS === 'web' && { overflow: 'scroll' }]}
         contentContainerStyle={styles.container}
         keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={true}
+        alwaysBounceVertical={true}
       >
         <View style={styles.header}>
           <View style={styles.logoWrap}>
@@ -302,27 +305,32 @@ const RegisterScreen = ({ navigation }) => {
 
 const styles = StyleSheet.create({
   flex: { flex: 1, backgroundColor: COLORS.bg1 },
-  container: { flexGrow: 1, padding: SPACING.xl, paddingTop: SPACING.xxxl },
-  header: { alignItems: 'center', marginBottom: SPACING.xl },
+  container: {
+    flexGrow: 1,
+    padding: SPACING.lg,
+    paddingTop: Platform.OS === 'web' ? SPACING.xl : SPACING.xxl,
+    paddingBottom: SPACING.xxxl
+  },
+  header: { alignItems: 'center', marginBottom: SPACING.lg },
   logoWrap: {
-    width: 70, height: 70,
+    width: 60, height: 60,
     backgroundColor: COLORS.secondary,
-    borderRadius: RADIUS.xl,
+    borderRadius: RADIUS.lg,
     justifyContent: 'center', alignItems: 'center',
-    marginBottom: SPACING.md,
+    marginBottom: SPACING.sm,
     ...SHADOW.md,
   },
-  logoIcon: { fontSize: 36 },
-  title: { color: COLORS.textPrimary, fontSize: 26, ...FONTS.bold },
-  subtitle: { color: COLORS.textSecondary, fontSize: 14, marginTop: 4 },
+  logoIcon: { fontSize: 30 },
+  title: { color: COLORS.textPrimary, fontSize: 24, ...FONTS.bold },
+  subtitle: { color: COLORS.textSecondary, fontSize: 13, marginTop: 2 },
   form: {
     backgroundColor: COLORS.bg2,
     borderRadius: RADIUS.xl,
-    padding: SPACING.xl,
+    padding: SPACING.lg,
     ...SHADOW.md,
   },
   fieldWrap: { marginBottom: SPACING.md },
-  fieldLabel: { color: COLORS.textSecondary, fontSize: 13, ...FONTS.medium, marginBottom: 6 },
+  fieldLabel: { color: COLORS.textSecondary, fontSize: 13, ...FONTS.medium, marginBottom: 4 },
   input: {
     backgroundColor: COLORS.bg3,
     color: COLORS.textPrimary,

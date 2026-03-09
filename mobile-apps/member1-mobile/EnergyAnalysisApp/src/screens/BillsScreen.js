@@ -210,19 +210,20 @@ const BillsScreen = ({ navigation }) => {
       <View style={styles.fabArea}>
         <View style={styles.fabRow}>
           <PrimaryButton
-            label={uploading ? 'Extracting...' : '📤 Upload Bill'}
+            label={uploading ? 'Extracting...' : '📤 Upload Bill (AI)'}
+            style={[styles.fab, { flex: 1.2, marginRight: 8 }]}
             onPress={handleUpload}
             loading={uploading}
-            disabled={uploading}
-            style={[styles.fab, { flex: 1, marginRight: SPACING.sm }]}
           />
           <PrimaryButton
-            label="⌨️ Manual"
+            label="⌨️ Manual Entry"
+            style={[styles.fab, { flex: 0.8, backgroundColor: COLORS.secondary }]}
             onPress={() => setShowManualModal(true)}
-            color={COLORS.secondary}
-            style={[styles.fab, { flex: 1 }]}
           />
         </View>
+        <Text style={{ color: COLORS.textMuted, fontSize: 11, textAlign: 'center', marginTop: 8 }}>
+          Add past months' data to improve AI accuracy 📈
+        </Text>
       </View>
 
       {/* Manual Bill Modal */}

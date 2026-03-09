@@ -67,6 +67,19 @@ def _get_appliance_recommendations(db: Session, plan, current_status, projection
                     user_appliances=user_appliances,
                     account_number=plan.account_number
                 )
+            else:
+                # Fallback to general tips if no appliances added
+                projection_for_rec = {
+                    'days_remaining': max(1, plan.planning_days - int(days_elapsed)),
+                    'budget_variance': projection.get('budget_variance', 0),
+                    'projected_total_cost': projection.get('projected_total_cost', 0),
+                }
+                appliance_recommendations = recommendation_engine.generate_recommendations(
+                    current_status=current_status,
+                    projection=projection_for_rec,
+                    user_appliances=[],
+                    account_number=plan.account_number
+                )
         except Exception as e:
             import logging
             logging.getLogger(__name__).warning(f"Recommendation engine error: {e}")
@@ -407,30 +420,36 @@ def update_budget_plan(
     }
 
 
-@router.delete("/plans/{plan_id}")
-def delete_budget_plan(
+@router.post("/plans/{plan_id}/end")
+def end_budget_plan(
     plan_id: int,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_user_from_token)
 ):
     """
-    Delete a budget plan and its associated meter readings
+    Manually end a budget plan (e.g., when a new monthly bill is received)
     """
-    plan = db.query(BudgetPlan).filter(BudgetPlan.id == plan_id).first()
+    plan = db.query(BudgetPlan).filter(
+        BudgetPlan.id == plan_id,
+        BudgetPlan.user_id == current_user.id
+    ).first()
     
     if not plan:
-        raise HTTPException(status_code=404, detail="Plan not found")
+        raise HTTPException(status_code=404, detail="Active budget plan not found")
     
-    try:
-        db.delete(plan)
-        db.commit()
-        
-        return {
-            'success': True,
-            'message': 'Budget plan and associated readings deleted successfully'
-        }
-    except Exception as e:
-        db.rollback()
-        raise HTTPException(status_code=500, detail=f"Error deleting plan: {str(e)}")
+    plan.is_active = False
+    plan.status = 'completed'
+    plan.updated_at = datetime.now()
+    
+    db.commit()
+    
+    return {
+        'success': True,
+        'message': 'Budget plan ended successfully. You can now start a new plan for the next period.'
+    }
+
+
+@router.delete("/plans/{plan_id}")
 
 
 @router.put("/readings/{reading_id}")
@@ -880,6 +899,24 @@ def get_plans_by_account(
     
     plans = query.order_by(BudgetPlan.created_at.desc()).all()
     
+    # Auto-expire plans based on date
+    now = datetime.now()
+    active_plans = []
+    for p in plans:
+        if p.is_active and p.plan_end_date < now:
+            p.is_active = False
+            p.status = 'completed'
+            db.commit()
+            if not active_only:
+                active_plans.append(p)
+        else:
+            active_plans.append(p)
+    
+    if active_only:
+        plans = [p for p in active_plans if p.is_active]
+    else:
+        plans = active_plans
+
     return {
         'success': True,
         'count': len(plans),

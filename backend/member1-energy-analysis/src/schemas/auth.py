@@ -61,6 +61,16 @@ class UserProfileResponse(BaseModel):
         from_attributes = True
 
 
+class UserProfileUpdate(BaseModel):
+    """Schema for updating user profile."""
+    full_name: Optional[str] = Field(None, max_length=255)
+    phone_number: Optional[str] = Field(None, max_length=32)
+    address: Optional[str] = Field(None, max_length=500)
+    city: Optional[str] = Field(None, max_length=100)
+    country: Optional[str] = Field(None, max_length=100)
+    default_account_number: Optional[str] = Field(None, max_length=100)
+
+
 class TokenResponse(BaseModel):
     """Schema for authentication token response."""
     access_token: str

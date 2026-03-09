@@ -15,7 +15,7 @@ import AccountSelector from '../components/AccountSelector';
 import { COLORS, SPACING, RADIUS, FONTS, SHADOW } from '../utils/theme';
 import { formatCurrency, formatKwh, formatMonthYear, getStatusColor, getStatusLabel, extractAccountNumbers } from '../utils/helpers';
 import { Modal } from 'react-native';
-import { Bell, LogOut } from 'lucide-react-native';
+import { Bell, LogOut, User } from 'lucide-react-native';
 
 const DashboardScreen = ({ navigation }) => {
   const { user, logout } = useAuth();
@@ -107,6 +107,9 @@ const DashboardScreen = ({ navigation }) => {
           <Text style={styles.subGreeting}>Your energy overview</Text>
         </View>
         <View style={styles.headerRight}>
+          <TouchableOpacity style={styles.notifBtn} onPress={() => navigation.navigate('Profile')}>
+            <User size={24} color={COLORS.textPrimary} strokeWidth={2} />
+          </TouchableOpacity>
           <TouchableOpacity style={styles.notifBtn} onPress={() => setShowNotifModal(true)}>
             <Bell size={24} color={COLORS.textPrimary} strokeWidth={2} />
             {notifications.length > 0 && (
@@ -201,7 +204,7 @@ const DashboardScreen = ({ navigation }) => {
             <>
               <SectionHeader title="Active Budget Plan" action={() => navigation.navigate('Tracking')} actionLabel="View →" />
               <Card style={styles.planCard} accentColor={getStatusColor(activePlan.progress_status)}>
-                <View style={styles.planRow}>
+                <View style={[styles.planRow, { marginBottom: 8 }]}>
                   <View>
                     <Text style={styles.planTarget}>{formatCurrency(activePlan.target_budget)}</Text>
                     <Text style={styles.planLabel}>Target Budget</Text>
@@ -214,6 +217,26 @@ const DashboardScreen = ({ navigation }) => {
                 </View>
                 <View style={styles.planMeta}>
                   <Text style={styles.planMetaText}>📅 {activePlan.planning_days} days · 🎯 {activePlan.target_daily_units?.toFixed(1)} kWh/day</Text>
+                  <TouchableOpacity
+                    onPress={() => {
+                      Alert.alert('Stop Tracking', 'End this plan and start a new period?', [
+                        { text: 'Cancel', style: 'cancel' },
+                        {
+                          text: 'End Plan',
+                          style: 'destructive',
+                          onPress: async () => {
+                            try {
+                              await analysisAPI.endPlan(activePlan.id);
+                              fetchData();
+                            } catch (_) { }
+                          }
+                        }
+                      ]);
+                    }}
+                    style={styles.stopBtnCompact}
+                  >
+                    <Text style={styles.stopBtnCompactText}>Stop tracking</Text>
+                  </TouchableOpacity>
                 </View>
               </Card>
             </>
@@ -380,6 +403,19 @@ const styles = StyleSheet.create({
     alignItems: 'center', marginTop: SPACING.lg,
   },
   closeBtnText: { color: '#fff', fontSize: 16, ...FONTS.bold },
+  stopBtnCompact: {
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+    borderRadius: 6,
+    backgroundColor: '#EF444415',
+    borderWidth: 1,
+    borderColor: '#EF444430',
+  },
+  stopBtnCompactText: {
+    color: '#EF4444',
+    fontSize: 10,
+    ...FONTS.bold,
+  },
 });
 
 export default DashboardScreen;

@@ -92,7 +92,7 @@ class MeterReading(Base):
     
     # Calculated at time of reading
     units_consumed_so_far = Column(Integer, nullable=False)
-    days_elapsed = Column(Float, nullable=False)
+    days_elapsed = Column(Integer, nullable=False)
     actual_cost_so_far = Column(Float, nullable=False)
     expected_cost_so_far = Column(Float, nullable=False)
     

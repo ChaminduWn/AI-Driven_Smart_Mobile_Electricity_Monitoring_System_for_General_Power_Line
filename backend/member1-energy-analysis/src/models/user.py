@@ -88,6 +88,10 @@ class Notification(Base):
     type = Column(String(50), default="info") # info, success, warning, danger
     
     is_read = Column(Boolean, default=False)
+    account_number = Column(String(100), nullable=True)
+    bill_id = Column(Integer, nullable=True)
+    plan_id = Column(Integer, nullable=True)
+    action_url = Column(String(500), nullable=True)
     
     # Metadata
     created_at = Column(DateTime(timezone=True), server_default=func.now())

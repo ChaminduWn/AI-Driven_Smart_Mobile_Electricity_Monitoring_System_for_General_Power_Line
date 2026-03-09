@@ -346,6 +346,21 @@ const rc = StyleSheet.create({
   tipText: { color: '#94A3B8', fontSize: 13, lineHeight: 19 },
   stats: { flexDirection: 'row', backgroundColor: '#1E293B30', borderRadius: 10, padding: 10 },
   statItem: { flex: 1, alignItems: 'center' },
+  fabMax: { fontSize: 10, color: '#94A3B8' },
+  stopBtn: {
+    marginTop: 12,
+    paddingVertical: 8,
+    borderWidth: 1,
+    borderColor: '#EF444450',
+    borderRadius: 8,
+    alignItems: 'center',
+    backgroundColor: '#EF444410',
+  },
+  stopBtnText: {
+    color: '#EF4444',
+    fontSize: 12,
+    fontWeight: '700',
+  },
   statVal: { fontSize: 13, fontWeight: '800' },
   statLbl: { color: '#475569', fontSize: 9, marginTop: 2 },
   statDivider: { width: 1, backgroundColor: '#1E293B', marginVertical: 2 },
@@ -482,6 +497,33 @@ const TrackingScreen = ({ navigation }) => {
     }
   };
 
+  const handleStopTracking = async () => {
+    if (!selectedPlan) return;
+
+    Alert.alert(
+      'Stop Tracking',
+      'Are you sure you want to end this budget plan? This is usually done when you receive a new monthly bill.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Stop Tracking',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              setLoading(true);
+              await analysisAPI.endPlan(selectedPlan.id);
+              Alert.alert('Success', 'Budget plan ended. You can now create a new plan for the next month.');
+              await fetchData();
+            } catch (err) {
+              Alert.alert('Error', 'Failed to stop tracking');
+              setLoading(false);
+            }
+          }
+        }
+      ]
+    );
+  };
+
   const deleteReading = (readingId) => {
     Alert.alert('Delete Reading', 'Remove this meter reading?', [
       { text: 'Cancel', style: 'cancel' },
@@ -576,6 +618,10 @@ const TrackingScreen = ({ navigation }) => {
                       </Text>
                     </View>
                   </View>
+
+                  <TouchableOpacity style={s.stopBtn} onPress={handleStopTracking}>
+                    <Text style={s.stopBtnText}>Stop Tracking</Text>
+                  </TouchableOpacity>
 
                   <View style={s.planStats}>
                     {[
