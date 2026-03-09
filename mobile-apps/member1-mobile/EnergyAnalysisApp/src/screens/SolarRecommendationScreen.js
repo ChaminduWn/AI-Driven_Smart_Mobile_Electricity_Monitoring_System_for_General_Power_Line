@@ -67,7 +67,6 @@ const TABS = [
   { id: 'ml', label: 'ML Insights', icon: '🤖' },
   { id: 'weather', label: 'Weather', icon: '🌤' },
   { id: 'savings', label: 'Savings', icon: '💰' },
-  { id: 'environment', label: 'Eco', icon: '🌿' },
   { id: 'journey', label: 'Journey', icon: '🗺' },
   { id: 'faq', label: 'FAQ', icon: '❓' },
 ];
@@ -175,8 +174,6 @@ const SunArc = ({ savings }) => (
     <View style={[sunSt.ring, sunSt.r1]} />
     <View style={sunSt.core}>
       <Text style={sunSt.icon}>☀️</Text>
-      <Text style={sunSt.pct}>{savings}%</Text>
-      <Text style={sunSt.lbl}>Est. Savings</Text>
     </View>
   </View>
 );
@@ -394,7 +391,7 @@ const WeatherClimateCard = ({ district }) => {
         <Divider />
         <StatRow icon="💨" label="Wind Stress" value={data.wind} accent={C.purple} />
         <Divider />
-        <StatRow icon="⚠️" label="Weather Impact" value={data.impact} accent={C.danger} />
+        <StatRow icon="⚠️" label="Weather Impact" value={(data.temp > 15 && avgGHI >= 1 && avgGHI <= 6) ? 'Appropriate' : data.impact} accent={(data.temp > 15 && avgGHI >= 1 && avgGHI <= 6) ? C.green : C.danger} />
       </View>
 
       {/* Top Districts */}
@@ -429,13 +426,14 @@ const WeatherClimateCard = ({ district }) => {
 
 /* ─── Savings & Price Prediction ──────────────────────── */
 const SavingsProjectionCard = ({ annualSavings, totalCost, mlCurrentPrice, mlPredictedPrice }) => {
+  const current = mlCurrentPrice || totalCost;
+  const predicted = mlPredictedPrice || current * 1.12;
+
   const years = [1, 2, 3, 5, 7, 10, 15, 20, 25];
   const cumulative = years.map(y => annualSavings * y);
   const maxVal = cumulative[cumulative.length - 1] || 1;
-  const breakEvenYear = totalCost / annualSavings;
+  const breakEvenYear = predicted / annualSavings;
 
-  const current = mlCurrentPrice || totalCost;
-  const predicted = mlPredictedPrice || current * 1.12;
   const pctIncrease = (((predicted - current) / current) * 100).toFixed(1);
 
   return (
@@ -443,24 +441,14 @@ const SavingsProjectionCard = ({ annualSavings, totalCost, mlCurrentPrice, mlPre
       {/* Price Prediction */}
       <SLabel text="Price Prediction" color={C.solar} />
       <View style={ss.card}>
-        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 14 }}>
-          <View>
-            <Text style={{ fontSize: 10, fontWeight: '700', color: C.textSecondary, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 4 }}>📈 System Cost Trend</Text>
-            <Text style={{ fontSize: 11, color: C.textMuted }}>Historical & forecast analysis</Text>
-          </View>
-          <View style={{ alignItems: 'flex-end' }}>
-            <Text style={{ fontSize: 10, color: C.textMuted }}>3-yr Increase</Text>
-            <Text style={{ fontSize: 22, fontWeight: '900', color: C.solar }}>+{pctIncrease}%</Text>
-          </View>
+        <View style={{ marginBottom: 14 }}>
+          <Text style={{ fontSize: 10, fontWeight: '700', color: C.textSecondary, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 4 }}>📈 System Cost Trend</Text>
+          <Text style={{ fontSize: 11, color: C.textMuted }}>Historical & forecast analysis</Text>
         </View>
-        <View style={{ flexDirection: 'row', gap: 10, marginBottom: 14 }}>
-          <View style={{ flex: 1, backgroundColor: C.card2, borderRadius: 8, padding: 12, borderWidth: 1, borderColor: C.border }}>
-            <Text style={{ fontSize: 9, color: C.textMuted, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 4 }}>Current Price</Text>
-            <Text style={{ fontSize: 14, fontWeight: '800', color: C.textPrimary }}>{fmtCur(current)}</Text>
-          </View>
-          <View style={{ flex: 1, backgroundColor: C.solar + '10', borderRadius: 8, padding: 12, borderWidth: 1, borderColor: C.solar + '44' }}>
-            <Text style={{ fontSize: 9, color: C.solar + 'BB', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 4 }}>Predicted (3yr)</Text>
-            <Text style={{ fontSize: 14, fontWeight: '800', color: C.solar }}>{fmtCur(Math.round(predicted))}</Text>
+        <View style={{ marginBottom: 14 }}>
+          <View style={{ backgroundColor: C.solar + '10', borderRadius: 8, padding: 12, borderWidth: 1, borderColor: C.solar + '44' }}>
+            <Text style={{ fontSize: 9, color: C.solar + 'BB', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 4 }}>Predicted Price (3yr)</Text>
+            <Text style={{ fontSize: 18, fontWeight: '800', color: C.solar }}>{fmtCur(Math.round(predicted))}</Text>
           </View>
         </View>
         <Text style={{ fontSize: 11, color: C.textMuted, textAlign: 'center' }}>
@@ -665,8 +653,8 @@ const RecommendationFormView = ({ onSubmit, submitting, locations, onBack }) => 
   const valid = mlForm.Budget_LKR && mlForm.Roof_Size_m2 && mlForm.Location && mlForm.Energy_Usage_kWhPerDay;
 
   return (
-    <View style={{ flex: 1, backgroundColor: C.bg }}>
-      <View style={ss.header}>
+    <View style={{ flex: 1, backgroundColor: C.bg, paddingTop: 52 }}>
+      <View style={[ss.header, { paddingHorizontal: 20 }]}>
         <TouchableOpacity style={ss.backBtn} onPress={onBack}>
           <Text style={ss.backIcon}>‹</Text>
         </TouchableOpacity>
@@ -836,6 +824,7 @@ const SolarRecommendationScreen = ({ navigation }) => {
   const [calc, setCalc] = useState(() => calcSolar(350, 8500, 0));
   const [mlResponse, setMlResponse] = useState(null);
   const [mlLocation, setMlLocation] = useState('Colombo');
+  const [mlBudget, setMlBudget] = useState(null);
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const tabScrollRef = useRef(null);
@@ -906,6 +895,7 @@ const SolarRecommendationScreen = ({ navigation }) => {
       if (result) {
         setMlResponse(result);
         setMlLocation(formData.Location);
+        setMlBudget(Number(formData.Budget_LKR));
         setShowMLModal(false);
         setActiveTab('overview');
         Alert.alert('✅ ML Analysis Complete', 'Your personalised solar recommendation is ready!', [{ text: 'View Results' }]);
@@ -988,14 +978,21 @@ const SolarRecommendationScreen = ({ navigation }) => {
         )}
 
         {/* ── ML RESPONSE BANNER ── */}
-        {mlCfg && (
-          <View style={[ss.infoBanner, { backgroundColor: C.teal + '15', borderColor: C.teal + '35' }]}>
-            <Text style={[ss.infoText, { color: C.teal }]}>
-              🤖 ML Result: {mlCfg.capacity_kw} kW system · {fmtCur(mlCfg.total_cost_lkr)} ·
-              {mlCfg.within_budget ? ' ✅ Within Budget' : ' ⚠️ Over Budget'}
-            </Text>
-          </View>
-        )}
+        {mlCfg && (() => {
+          const usedPrice = mlPred?.predicted_price_lkr || mlCfg.total_cost_lkr;
+          const budget = mlBudget || mlRec?.budget_lkr || (installCost * 1.2);
+          const isWithin = budget >= usedPrice;
+          const diff = usedPrice - budget;
+          const diffAbs = Math.abs(diff);
+
+          return (
+            <View style={[ss.infoBanner, { backgroundColor: C.teal + '15', borderColor: C.teal + '35' }]}>
+              <Text style={[ss.infoText, { color: C.teal }]}>
+                🤖 ML Result: {mlCfg.capacity_kw} kW system - {fmtCur(usedPrice)} - {isWithin ? `✅ Within Budget (Decrease: ${fmtCur(diffAbs)})` : `⚠️ Over Budget (Increase: ${fmtCur(diffAbs)})`}
+              </Text>
+            </View>
+          );
+        })()}
 
         {/* ── HERO CARD ── */}
         <View style={ss.heroCard}>
@@ -1196,8 +1193,8 @@ const SolarRecommendationScreen = ({ navigation }) => {
               {/* Budget Utilisation */}
               <View>
                 {(() => {
-                  const used = mlCfg?.total_cost_lkr || installCost;
-                  const max = mlRec?.budget_lkr || (installCost * 1.2);
+                  const used = mlPred?.predicted_price_lkr || mlCfg?.total_cost_lkr || installCost;
+                  const max = mlBudget || mlRec?.budget_lkr || (installCost * 1.2);
                   const diff = max - used;
                   const absDiff = Math.abs(diff);
                   return (
@@ -1295,60 +1292,6 @@ const SolarRecommendationScreen = ({ navigation }) => {
             mlCurrentPrice={mlCfg?.total_cost_lkr}
             mlPredictedPrice={mlPred?.predicted_price_lkr}
           />
-        )}
-
-        {/* ══════════════════════════════
-             TAB: ENVIRONMENT
-        ══════════════════════════════ */}
-        {activeTab === 'environment' && (
-          <View>
-            <SLabel text="Environmental Impact" color={C.mint} />
-            <View style={ss.envRow}>
-              {[
-                { icon: '🌿', val: `${co2Saved}t`, lbl: 'CO₂ avoided\nper year', color: C.mint },
-                { icon: '🌳', val: String(Math.round(co2Saved * 45)), lbl: 'Trees equivalent\nper year', color: C.sky },
-                { icon: '⚡', val: String(Math.round(monthlyKwh * 12 * 0.65)), lbl: 'kWh clean energy\nper year', color: C.solar },
-              ].map((e, i) => (
-                <View key={i} style={[ss.envCard, { borderColor: e.color + '44' }]}>
-                  <Text style={ss.envIcon}>{e.icon}</Text>
-                  <Text style={[ss.envVal, { color: e.color }]}>{e.val}</Text>
-                  <Text style={ss.envLbl}>{e.lbl}</Text>
-                </View>
-              ))}
-            </View>
-
-            <SLabel text="Climate Impact Breakdown" color={C.mint} />
-            <View style={ss.card}>
-              <StatRow icon="🌍" label="CO₂ Offset (25 yrs)" value={`${(co2Saved * 25).toFixed(1)} tonnes`} accent={C.mint} />
-              <Divider />
-              <StatRow icon="🌳" label="Tree Equivalent" value={`${Math.round(co2Saved * 45 * 25)} trees`} accent={C.green} />
-              <Divider />
-              <StatRow icon="🏭" label="Coal Avoided" value={`${(co2Saved * 0.4).toFixed(1)} t/yr`} accent={C.sky} />
-              <Divider />
-              <StatRow icon="🚗" label="Car-km Equivalent" value={`${Math.round(co2Saved * 4000)} km/yr`} accent={C.purple} />
-            </View>
-
-            {/* Climate rating */}
-            <View style={ss.card}>
-              <Text style={{ fontSize: 11, fontWeight: '700', color: C.mint, marginBottom: 12 }}>🌟 District Climate Rating</Text>
-              {Object.entries(CLIMATE_DATA)
-                .filter(([name]) => name === displayDistrict)
-                .map(([name, d]) => (
-                  <View key={name}>
-                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 }}>
-                      <Text style={{ fontSize: 13, color: C.textSecondary }}>Weather Impact on System</Text>
-                      <Chip label={d.impact} color={d.impact === 'Low' || d.impact === 'Very Low' ? C.green : d.impact === 'High' || d.impact === 'Very High' ? C.danger : C.solar} />
-                    </View>
-                    <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-                      <Text style={{ fontSize: 13, color: C.textSecondary }}>Wind Stress Level</Text>
-                      <Chip label={d.wind} color={C.sky} />
-                    </View>
-                  </View>
-                ))}
-            </View>
-
-            <PartnersSection />
-          </View>
         )}
 
         {/* ══════════════════════════════
