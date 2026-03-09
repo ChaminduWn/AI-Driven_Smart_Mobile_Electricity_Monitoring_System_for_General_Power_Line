@@ -469,7 +469,6 @@ const TABS = [
   { key: 'ai', label: 'Safety AI', icon: '🤖' },
   { key: 'weather', label: 'Weather', icon: '🌤️' },
   { key: 'disaster', label: 'Disaster', icon: '🚨' },
-  { key: 'more', label: 'Advanced', icon: '🛡️' },
 ];
 
 const SafetyManagementScreen = ({ navigation }) => {

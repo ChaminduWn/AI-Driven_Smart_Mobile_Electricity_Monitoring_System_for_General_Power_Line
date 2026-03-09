@@ -3,7 +3,7 @@ import storage from '../utils/storage';
 import { API_BASE } from '../config';
 
 // ─── Base URL (centralized) ──────────────────────────────────────────────────
-const BASE_URL = API_BASE;
+const BASE_URL = 'http://172.20.10.2:8000/api/v1';
 
 const apiClient = axios.create({
   baseURL: BASE_URL,
@@ -60,7 +60,7 @@ apiClient.interceptors.response.use(
 
     if (error.response?.status === 401 && !originalRequest._retry && !isAuthEndpoint) {
       console.log('🔄 401 Unauthorized - attempting token refresh...');
-      
+
       if (isRefreshing) {
         console.log('   Already refresing token, queueing request');
         return new Promise((resolve, reject) => {
@@ -85,7 +85,7 @@ apiClient.interceptors.response.use(
         if (!refreshToken) {
           throw new Error('No refresh token — user must log in again');
         }
-        
+
         console.log('   Sending refresh request...');
         const res = await axios.post(`${BASE_URL}/auth/refresh`, {
           refresh_token: refreshToken,

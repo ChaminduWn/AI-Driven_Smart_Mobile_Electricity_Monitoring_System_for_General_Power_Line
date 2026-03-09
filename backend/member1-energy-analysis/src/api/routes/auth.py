@@ -8,6 +8,14 @@ from jose import jwt, JWTError
 from passlib.context import CryptContext
 from sqlalchemy.orm import Session
 import logging
+import bcrypt
+
+# Monkey patch bcrypt so that passlib can find __about__ in bcrypt >= 4.0.0
+if not hasattr(bcrypt, "__about__"):
+    class _About:
+        __version__ = getattr(bcrypt, "__version__", "4.0.0")
+    bcrypt.__about__ = _About()
+
 
 from src.config import settings
 from src.database import get_db
@@ -45,11 +53,11 @@ GOOGLE_IOS_CLIENT_ID      = settings.GOOGLE_IOS_CLIENT_ID
 # ─────────────────────────────────────────────────────────────────────────────
 
 def get_password_hash(password: str) -> str:
-    return pwd_context.hash(password)
+    return pwd_context.hash(password[:72])
 
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
-    return pwd_context.verify(plain_password, hashed_password)
+    return pwd_context.verify(plain_password[:72], hashed_password)
 
 
 # ─────────────────────────────────────────────────────────────────────────────

@@ -1,4 +1,5 @@
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
 
@@ -9,6 +10,15 @@ import faiss
 from pathlib import Path
 
 app = FastAPI(title="Electricity Safety Assistant API")
+
+# Add CORS middleware to allow Expo Web
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 EMBED_MODEL = "sentence-transformers/all-MiniLM-L6-v2"
 INDEX_DIR = Path("electricity_safety_db")

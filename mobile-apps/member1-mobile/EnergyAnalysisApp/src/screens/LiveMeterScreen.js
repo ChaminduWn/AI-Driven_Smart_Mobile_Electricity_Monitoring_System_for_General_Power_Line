@@ -18,6 +18,8 @@ import {
   StyleSheet, Animated, Dimensions, Alert, ActivityIndicator,
   FlatList, Platform, StatusBar, Share, PermissionsAndroid,
 } from 'react-native';
+import * as FileSystem from 'expo-file-system';
+import * as Sharing from 'expo-sharing';
 
 import { API_BASE, WS_BASE } from '../config';
 const POLL_INTERVAL_MS = 3000;
