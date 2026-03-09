@@ -9,38 +9,38 @@ import imgMinistry from "../assets/Picture7.png";
 const API_BASE = "http://localhost:5000";
 
 const C = {
-  bg:        "#060b14",
-  surface:   "#0d1424",
-  card:      "#111c2e",
-  border:    "#1a2d45",
-  accent:    "#f5a623",
+  bg: "#060b14",
+  surface: "#0d1424",
+  card: "#111c2e",
+  border: "#1a2d45",
+  accent: "#f5a623",
   accentDim: "#c17d0e",
-  teal:      "#22d3cc",
-  red:       "#f87171",
-  green:     "#4ade80",
-  purple:    "#a78bfa",
-  blue:      "#60a5fa",
-  textPri:   "#f0f4ff",
-  textSec:   "#8ea0bb",
+  teal: "#22d3cc",
+  red: "#f87171",
+  green: "#4ade80",
+  purple: "#a78bfa",
+  blue: "#60a5fa",
+  textPri: "#f0f4ff",
+  textSec: "#8ea0bb",
   textMuted: "#3e5470",
 };
 
 const CLIMATE_DATA = {
-  Colombo:      { Jan_Mar:5.2, Apr_Jun:5.0, Jul_Sep:4.8, Oct_Dec:5.1, temp:28.5, rain:2390, wind:"Low",      impact:"Low",      lat:6.9271,  lng:79.8612 },
-  Kandy:        { Jan_Mar:4.8, Apr_Jun:4.6, Jul_Sep:4.4, Oct_Dec:4.7, temp:24.0, rain:1900, wind:"Medium",   impact:"Medium",   lat:7.2906,  lng:80.6337 },
-  Galle:        { Jan_Mar:5.1, Apr_Jun:4.9, Jul_Sep:4.7, Oct_Dec:5.0, temp:27.5, rain:2300, wind:"Low",      impact:"Low",      lat:6.0535,  lng:80.2210 },
-  Jaffna:       { Jan_Mar:5.8, Apr_Jun:5.6, Jul_Sep:5.4, Oct_Dec:5.7, temp:30.0, rain:1000, wind:"High",     impact:"Medium",   lat:9.6615,  lng:80.0255 },
-  Anuradhapura: { Jan_Mar:5.5, Apr_Jun:5.3, Jul_Sep:5.1, Oct_Dec:5.4, temp:30.5, rain:900,  wind:"Medium",   impact:"Low",      lat:8.3114,  lng:80.4037 },
-  Kurunegala:   { Jan_Mar:5.2, Apr_Jun:5.0, Jul_Sep:4.8, Oct_Dec:5.1, temp:29.0, rain:1500, wind:"Medium",   impact:"Low",      lat:7.4818,  lng:80.3609 },
-  Batticaloa:   { Jan_Mar:5.4, Apr_Jun:5.2, Jul_Sep:5.0, Oct_Dec:5.3, temp:29.5, rain:1650, wind:"High",     impact:"Medium",   lat:7.7170,  lng:81.7000 },
-  Badulla:      { Jan_Mar:4.5, Apr_Jun:4.3, Jul_Sep:4.1, Oct_Dec:4.4, temp:20.0, rain:2100, wind:"High",     impact:"High",     lat:6.9934,  lng:81.0550 },
-  Ratnapura:    { Jan_Mar:4.6, Apr_Jun:4.4, Jul_Sep:4.2, Oct_Dec:4.5, temp:26.0, rain:3700, wind:"Medium",   impact:"High",     lat:6.6828,  lng:80.3992 },
-  Hambantota:   { Jan_Mar:5.9, Apr_Jun:6.0, Jul_Sep:6.2, Oct_Dec:5.1, temp:33.5, rain:1100, wind:"Very High",impact:"Very Low", lat:6.1429,  lng:81.1212 },
-  Gampaha:      { Jan_Mar:5.4, Apr_Jun:4.6, Jul_Sep:4.8, Oct_Dec:4.3, temp:32.0, rain:2100, wind:"Medium",   impact:"High",     lat:7.0840,  lng:80.0098 },
-  Kalutara:     { Jan_Mar:5.2, Apr_Jun:4.3, Jul_Sep:4.5, Oct_Dec:4.1, temp:30.5, rain:3200, wind:"High",     impact:"Very High",lat:6.5854,  lng:79.9607 },
-  Matale:       { Jan_Mar:4.9, Apr_Jun:4.3, Jul_Sep:4.5, Oct_Dec:4.1, temp:30.2, rain:1800, wind:"Low",      impact:"Medium",   lat:7.4675,  lng:80.6234 },
-  "Nuwara Eliya":{ Jan_Mar:4.2,Apr_Jun:3.7, Jul_Sep:3.5, Oct_Dec:3.4, temp:15.8, rain:2500, wind:"Med-High", impact:"Very High",lat:6.9497,  lng:80.7891 },
-  Matara:       { Jan_Mar:5.2, Apr_Jun:4.4, Jul_Sep:4.5, Oct_Dec:4.2, temp:30.5, rain:2400, wind:"High",     impact:"High",     lat:5.9549,  lng:80.5550 },
+  Colombo: { Jan_Mar: 5.2, Apr_Jun: 5.0, Jul_Sep: 4.8, Oct_Dec: 5.1, temp: 28.5, rain: 2390, wind: "Low", impact: "Low", lat: 6.9271, lng: 79.8612 },
+  Kandy: { Jan_Mar: 4.8, Apr_Jun: 4.6, Jul_Sep: 4.4, Oct_Dec: 4.7, temp: 24.0, rain: 1900, wind: "Medium", impact: "Medium", lat: 7.2906, lng: 80.6337 },
+  Galle: { Jan_Mar: 5.1, Apr_Jun: 4.9, Jul_Sep: 4.7, Oct_Dec: 5.0, temp: 27.5, rain: 2300, wind: "Low", impact: "Low", lat: 6.0535, lng: 80.2210 },
+  Jaffna: { Jan_Mar: 5.8, Apr_Jun: 5.6, Jul_Sep: 5.4, Oct_Dec: 5.7, temp: 30.0, rain: 1000, wind: "High", impact: "Medium", lat: 9.6615, lng: 80.0255 },
+  Anuradhapura: { Jan_Mar: 5.5, Apr_Jun: 5.3, Jul_Sep: 5.1, Oct_Dec: 5.4, temp: 30.5, rain: 900, wind: "Medium", impact: "Low", lat: 8.3114, lng: 80.4037 },
+  Kurunegala: { Jan_Mar: 5.2, Apr_Jun: 5.0, Jul_Sep: 4.8, Oct_Dec: 5.1, temp: 29.0, rain: 1500, wind: "Medium", impact: "Low", lat: 7.4818, lng: 80.3609 },
+  Batticaloa: { Jan_Mar: 5.4, Apr_Jun: 5.2, Jul_Sep: 5.0, Oct_Dec: 5.3, temp: 29.5, rain: 1650, wind: "High", impact: "Medium", lat: 7.7170, lng: 81.7000 },
+  Badulla: { Jan_Mar: 4.5, Apr_Jun: 4.3, Jul_Sep: 4.1, Oct_Dec: 4.4, temp: 20.0, rain: 2100, wind: "High", impact: "High", lat: 6.9934, lng: 81.0550 },
+  Ratnapura: { Jan_Mar: 4.6, Apr_Jun: 4.4, Jul_Sep: 4.2, Oct_Dec: 4.5, temp: 26.0, rain: 3700, wind: "Medium", impact: "High", lat: 6.6828, lng: 80.3992 },
+  Hambantota: { Jan_Mar: 5.9, Apr_Jun: 6.0, Jul_Sep: 6.2, Oct_Dec: 5.1, temp: 33.5, rain: 1100, wind: "Very High", impact: "Very Low", lat: 6.1429, lng: 81.1212 },
+  Gampaha: { Jan_Mar: 5.4, Apr_Jun: 4.6, Jul_Sep: 4.8, Oct_Dec: 4.3, temp: 32.0, rain: 2100, wind: "Medium", impact: "High", lat: 7.0840, lng: 80.0098 },
+  Kalutara: { Jan_Mar: 5.2, Apr_Jun: 4.3, Jul_Sep: 4.5, Oct_Dec: 4.1, temp: 30.5, rain: 3200, wind: "High", impact: "Very High", lat: 6.5854, lng: 79.9607 },
+  Matale: { Jan_Mar: 4.9, Apr_Jun: 4.3, Jul_Sep: 4.5, Oct_Dec: 4.1, temp: 30.2, rain: 1800, wind: "Low", impact: "Medium", lat: 7.4675, lng: 80.6234 },
+  "Nuwara Eliya": { Jan_Mar: 4.2, Apr_Jun: 3.7, Jul_Sep: 3.5, Oct_Dec: 3.4, temp: 15.8, rain: 2500, wind: "Med-High", impact: "Very High", lat: 6.9497, lng: 80.7891 },
+  Matara: { Jan_Mar: 5.2, Apr_Jun: 4.4, Jul_Sep: 4.5, Oct_Dec: 4.2, temp: 30.5, rain: 2400, wind: "High", impact: "High", lat: 5.9549, lng: 80.5550 },
 };
 
 const fmt = (n) => n != null ? `Rs. ${Number(n).toLocaleString("en-LK")}` : "—";
@@ -188,7 +188,7 @@ function PricePredictionGraph({ currentPrice, predictedPrice }) {
             return (
               <>
                 <polyline points={pts4.join(" ")} fill="none" stroke={C.accent} strokeWidth="2.5" strokeLinecap="round" />
-                <polyline points={`0,100 ${pts4.join(" ")} ${(3/6)*340},100`} fill="url(#priceGrad)" stroke="none" />
+                <polyline points={`0,100 ${pts4.join(" ")} ${(3 / 6) * 340},100`} fill="url(#priceGrad)" stroke="none" />
               </>
             );
           })()}
@@ -201,7 +201,7 @@ function PricePredictionGraph({ currentPrice, predictedPrice }) {
             return (
               <>
                 <polyline points={pts4.join(" ")} fill="none" stroke={C.teal} strokeWidth="2" strokeDasharray="6,3" strokeLinecap="round" />
-                <polyline points={`${(3/6)*340},100 ${pts4.join(" ")} 340,100`} fill="url(#predGrad)" stroke="none" />
+                <polyline points={`${(3 / 6) * 340},100 ${pts4.join(" ")} 340,100`} fill="url(#predGrad)" stroke="none" />
               </>
             );
           })()}
@@ -216,7 +216,7 @@ function PricePredictionGraph({ currentPrice, predictedPrice }) {
               </g>
             );
           })}
-          <line x1={(3/6)*340} y1="0" x2={(3/6)*340} y2="100" stroke={C.accent} strokeWidth="1" strokeDasharray="3,3" opacity="0.5" />
+          <line x1={(3 / 6) * 340} y1="0" x2={(3 / 6) * 340} y2="100" stroke={C.accent} strokeWidth="1" strokeDasharray="3,3" opacity="0.5" />
         </svg>
         <div style={{ display: "flex", gap: 16, marginTop: 8 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 10, color: C.textSec }}>
@@ -367,7 +367,7 @@ function SavingsChart({ monthlySavings, totalCost }) {
           return (
             <div key={y} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 3 }}>
               <div style={{ fontSize: 8, color: isAboveBreakEven ? C.green : C.textMuted, fontWeight: isAboveBreakEven ? 700 : 400 }}>
-                {cumulative[i] >= 1000000 ? `${(cumulative[i]/1000000).toFixed(1)}M` : `${(cumulative[i]/1000).toFixed(0)}k`}
+                {cumulative[i] >= 1000000 ? `${(cumulative[i] / 1000000).toFixed(1)}M` : `${(cumulative[i] / 1000).toFixed(0)}k`}
               </div>
               <div style={{ width: "100%", height: `${barHeight}px`, background: isAboveBreakEven ? `linear-gradient(to top, ${C.green}cc, ${C.green}44)` : `linear-gradient(to top, ${C.teal}66, ${C.teal}22)`, borderRadius: "3px 3px 0 0", border: `1px solid ${isAboveBreakEven ? C.green : C.teal}44`, position: "relative", transition: "height 1s ease" }}>
                 {y >= Math.ceil(breakEvenYear) && y - 1 < breakEvenYear && (
@@ -394,6 +394,13 @@ function SavingsChart({ monthlySavings, totalCost }) {
 // ─── ReportButton ─────────────────────────────────────────────────────
 function ReportButton({ cfg, rec, ml, fin, clim, form }) {
   const handleDownload = () => {
+    const budgetLKR = Number(form?.Budget_LKR) || 1;
+    const panelPrice = rec?.products?.panel?.Price_LKR || 0;
+    const predPrice = (ml?.predicted_price_lkr || 0) + panelPrice;
+    const isWithinBudget = predPrice <= budgetLKR;
+    const budgetDiff = Math.abs(budgetLKR - predPrice);
+    const diffWord = predPrice <= budgetLKR ? "Decrease" : "Increase";
+
     const lines = [
       "═══════════════════════════════════════════════════",
       "        SOLAR POWER RECOMMENDATION REPORT",
@@ -405,7 +412,8 @@ function ReportButton({ cfg, rec, ml, fin, clim, form }) {
       `System Capacity: ${cfg?.capacity_kw} kW`,
       `Panel: ${cfg?.panel_brand_model}`,
       `Total Cost: ${fmt(cfg?.total_cost_lkr)}`,
-      `Budget Status: ${cfg?.within_budget ? "✓ Within Budget" : "✗ Over Budget"}`,
+      `Predicted Price: ${fmt(predPrice)}`,
+      `Budget Status: ${isWithinBudget ? "✓ Within Budget" : "✗ Over Budget"} (${diffWord}: ${fmt(budgetDiff)})`,
       "",
       "── ML PREDICTIONS ──",
       `Predicted Capacity: ${ml?.predicted_capacity_kw} kW`,
@@ -528,10 +536,10 @@ function ProgressBar({ value, max, color }) {
   );
 }
 
-function StatusBadge({ ok }) {
+function StatusBadge({ ok, text }) {
   return (
     <span style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "4px 10px", borderRadius: 99, fontSize: 10, fontWeight: 700, background: ok ? "rgba(74,222,128,0.1)" : "rgba(248,113,113,0.1)", color: ok ? C.green : C.red, border: `1px solid ${ok ? "rgba(74,222,128,0.25)" : "rgba(248,113,113,0.25)"}` }}>
-      <span style={{ fontSize: 8 }}>●</span>{ok ? "Within Budget" : "Over Budget"}
+      <span style={{ fontSize: 8 }}>●</span>{text || (ok ? "Within Budget" : "Over Budget")}
     </span>
   );
 }
@@ -573,15 +581,15 @@ const EMAIL_KEY = "solar_auth_email";
 
 // ─── AuthScreen ───────────────────────────────────────────────────────
 function AuthScreen({ onAuth }) {
-  const [mode, setMode]         = useState("login");
-  const [email, setEmail]       = useState("");
+  const [mode, setMode] = useState("login");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [confirm, setConfirm]   = useState("");
-  const [loading, setLoading]   = useState(false);
-  const [error, setError]       = useState(null);
-  const [success, setSuccess]   = useState(null);
+  const [confirm, setConfirm] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [success, setSuccess] = useState(null);
   const [showPass, setShowPass] = useState(false);
-  const [focused, setFocused]   = useState(null);
+  const [focused, setFocused] = useState(null);
 
   const iStyle = (field) => ({
     width: "100%", padding: "11px 14px", borderRadius: 8,
@@ -683,8 +691,8 @@ function AuthScreen({ onAuth }) {
 // ─── HistoryPanel ─────────────────────────────────────────────────────
 function HistoryPanel({ token, onClose }) {
   const [predictions, setPredictions] = useState([]);
-  const [loading, setLoading]         = useState(true);
-  const [error, setError]             = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     fetch(`${API_BASE}/predictions`, { headers: { Authorization: `Bearer ${token}` } })
@@ -745,10 +753,10 @@ export default function Member3Dashboard() {
   const [authToken, setAuthToken] = useState(() => sessionStorage.getItem(TOKEN_KEY));
   const [authEmail, setAuthEmail] = useState(() => sessionStorage.getItem(EMAIL_KEY) || "");
   const [showHistory, setShowHistory] = useState(false);
-  const [form, setForm]     = useState({ Budget_LKR: "", Roof_Size_m2: "", Location: "", Preferred_Brand: "", Energy_Usage_kWhPerDay: "" });
-  const [loading, setLoading]   = useState(false);
+  const [form, setForm] = useState({ Budget_LKR: "", Roof_Size_m2: "", Location: "", Preferred_Brand: "", Energy_Usage_kWhPerDay: "" });
+  const [loading, setLoading] = useState(false);
   const [response, setResponse] = useState(null);
-  const [error, setError]       = useState(null);
+  const [error, setError] = useState(null);
   const [apiOnline, setApiOnline] = useState(null);
   const [activeTab, setActiveTab] = useState("overview");
 
@@ -768,7 +776,7 @@ export default function Member3Dashboard() {
   const handleLogout = async () => {
     try {
       await fetch(`${API_BASE}/auth/logout`, { method: "POST", headers: { Authorization: `Bearer ${authToken}` } });
-    } catch (_) {}
+    } catch (_) { }
     sessionStorage.removeItem(TOKEN_KEY);
     sessionStorage.removeItem(EMAIL_KEY);
     setAuthToken(null);
@@ -801,18 +809,25 @@ export default function Member3Dashboard() {
     }
   };
 
-  const cfg  = response?.recommended_configuration;
-  const rec  = response?.recommendations;
-  const ml   = rec?.ml_predictions;
-  const fin  = rec?.financial_analysis;
+  const cfg = response?.recommended_configuration;
+  const rec = response?.recommendations;
+  const ml = rec?.ml_predictions;
+  const fin = rec?.financial_analysis;
   const clim = rec?.climate_data;
 
+  const budgetLKR = Number(form.Budget_LKR) || 1;
+  const panelPrice = rec?.products?.panel?.Price_LKR || 0;
+  const predPrice = (ml?.predicted_price_lkr || 0) + panelPrice;
+  const isWithinBudget = predPrice <= budgetLKR;
+  const budgetDiff = Math.abs(budgetLKR - predPrice);
+  const diffWord = predPrice <= budgetLKR ? "Decrease" : "Increase";
+
   const TABS = [
-    { id: "overview", label: "Overview",   icon: "⚡" },
-    { id: "3d",       label: "3D View",    icon: "🔆" },
-    { id: "price",    label: "Price Trend",icon: "📈" },
-    { id: "weather",  label: "Weather",    icon: "🌤" },
-    { id: "savings",  label: "Savings",    icon: "💰" },
+    { id: "overview", label: "Overview", icon: "⚡" },
+    { id: "3d", label: "3D View", icon: "🔆" },
+    { id: "price", label: "Price Trend", icon: "📈" },
+    { id: "weather", label: "Weather", icon: "🌤" },
+    { id: "savings", label: "Savings", icon: "💰" },
   ];
 
   return (
@@ -915,7 +930,7 @@ export default function Member3Dashboard() {
                     <div style={{ fontSize: 11, color: C.textSec, marginTop: 2 }}>Recommended for {rec?.location || form.Location}</div>
                   </div>
                   <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
-                    <StatusBadge ok={cfg.within_budget} />
+                    <StatusBadge ok={isWithinBudget} text={`${isWithinBudget ? "Within Budget" : "Over Budget"} (${diffWord}: ${fmt(budgetDiff)})`} />
                     <div style={{ padding: "5px 12px", background: "rgba(245,166,35,0.1)", border: "1px solid rgba(245,166,35,0.3)", borderRadius: 99, fontSize: 13, fontWeight: 700, color: C.accent }}>{fmt(cfg.total_cost_lkr)}</div>
                   </div>
                 </div>
@@ -942,7 +957,7 @@ export default function Member3Dashboard() {
                           <Chip label="Predicted Capacity" value={`${ml.predicted_capacity_kw} kW`} accent={C.teal} />
                           <Chip label="Constrained Cap." value={`${ml.constrained_capacity_kw} kW`} accent={C.teal} />
                           <Chip label="Recommended Brand" value={ml.predicted_brand || "—"} />
-                          <Chip label="Predicted Price" value={fmt(ml.predicted_price_lkr)} accent={C.accent} />
+                          <Chip label="Predicted Price" value={fmt(predPrice)} accent={C.accent} />
                         </div>
                       </Section>
                     )}
@@ -962,10 +977,10 @@ export default function Member3Dashboard() {
                         </div>
                         <div>
                           <div style={{ display: "flex", justifyContent: "space-between", fontSize: 10, color: C.textSec, marginBottom: 5 }}>
-                            <span style={{ fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.08em" }}>Budget utilisation</span>
-                            <span>{fmt(cfg.total_cost_lkr)} / {fmt(form.Budget_LKR)}</span>
+                            <span style={{ fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.08em" }}>Budget utilisation <span style={{ textTransform: "none", color: isWithinBudget ? C.green : C.red }}>({diffWord}: {fmt(budgetDiff)})</span></span>
+                            <span>{fmt(predPrice)} / {fmt(form.Budget_LKR)}</span>
                           </div>
-                          <ProgressBar value={cfg.total_cost_lkr} max={Number(form.Budget_LKR)} color={cfg.within_budget ? C.green : C.red} />
+                          <ProgressBar value={predPrice} max={Number(form.Budget_LKR) || 1} color={isWithinBudget ? C.green : C.red} />
                         </div>
                       </Section>
                     )}
@@ -1001,7 +1016,7 @@ export default function Member3Dashboard() {
                 {/* Tab: Price Trend */}
                 {activeTab === "price" && (
                   <div className="fade-up">
-                    <PricePredictionGraph currentPrice={cfg.total_cost_lkr} predictedPrice={ml?.predicted_price_lkr} />
+                    <PricePredictionGraph currentPrice={cfg.total_cost_lkr} predictedPrice={predPrice} />
                   </div>
                 )}
 
