@@ -39,6 +39,48 @@ export const EmptyState = ({ icon = '📭', title, subtitle, action, actionLabel
   </View>
 );
 
+// ─── Premium Empty State ──────────────────────────────────────────────────────
+export const PremiumEmptyState = ({ icon, title, subtitle, features = [], action, actionLabel, footer }) => (
+  <View style={styles.premiumEmptyContainer}>
+    <View style={styles.premiumEmptyCard}>
+      <View style={styles.premiumEmptyIconCircle}>
+        <Text style={styles.premiumEmptyIcon}>{icon}</Text>
+        <View style={styles.premiumEmptyIconBg} />
+      </View>
+      
+      <Text style={styles.premiumEmptyTitle}>{title}</Text>
+      <Text style={styles.premiumEmptySubtitle}>{subtitle}</Text>
+      
+      {features.length > 0 && (
+        <View style={styles.premiumEmptyFeatures}>
+          {features.map((f, i) => (
+            <View key={i} style={styles.premiumEmptyFeatureLine}>
+              <Text style={styles.premiumEmptyFeatureIcon}>{f.icon}</Text>
+              <Text style={styles.premiumEmptyFeatureText}>{f.text}</Text>
+            </View>
+          ))}
+        </View>
+      )}
+
+      {action && (
+        <TouchableOpacity 
+          style={styles.premiumEmptyCta} 
+          onPress={action}
+          activeOpacity={0.8}
+        >
+          <Text style={styles.premiumEmptyCtaText}>{actionLabel}</Text>
+          <Text style={styles.premiumEmptyCtaArrow}>→</Text>
+        </TouchableOpacity>
+      )}
+
+      {footer && <Text style={styles.premiumEmptyFooter}>{footer}</Text>}
+    </View>
+    
+    <View style={styles.premiumEmptyBlob1} />
+    <View style={styles.premiumEmptyBlob2} />
+  </View>
+);
+
 // ─── Stat Card ────────────────────────────────────────────────────────────────
 export const StatCard = ({ label, value, sub, color = COLORS.primary, icon }) => (
   <View style={[styles.statCard, { borderTopColor: color }]}>
@@ -347,4 +389,134 @@ const styles = StyleSheet.create({
   progressFill: {
     borderRadius: RADIUS.full,
   },
-});
+  // Premium Empty State
+  premiumEmptyContainer: {
+    padding: SPACING.xl,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flex: 1,
+    minHeight: 450,
+  },
+  premiumEmptyCard: {
+    backgroundColor: COLORS.bg2,
+    borderRadius: RADIUS.xl,
+    padding: SPACING.xxl,
+    alignItems: 'center',
+    width: '100%',
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    ...SHADOW.lg,
+    zIndex: 10,
+  },
+  premiumEmptyIconCircle: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: COLORS.primary + '20',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: SPACING.xl,
+    position: 'relative',
+  },
+  premiumEmptyIcon: {
+    fontSize: 40,
+    zIndex: 2,
+  },
+  premiumEmptyIconBg: {
+    position: 'absolute',
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: COLORS.primary,
+    opacity: 0.15,
+    zIndex: 1,
+  },
+  premiumEmptyTitle: {
+    color: COLORS.textPrimary,
+    fontSize: 22,
+    ...FONTS.bold,
+    textAlign: 'center',
+    marginBottom: SPACING.md,
+  },
+  premiumEmptySubtitle: {
+    color: COLORS.textSecondary,
+    fontSize: 14,
+    textAlign: 'center',
+    lineHeight: 22,
+    marginBottom: SPACING.xxl,
+  },
+  premiumEmptyFeatures: {
+    width: '100%',
+    marginBottom: SPACING.xxl,
+    gap: SPACING.md,
+  },
+  premiumEmptyFeatureLine: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: COLORS.bg1 + '50',
+    padding: SPACING.md,
+    borderRadius: RADIUS.lg,
+    borderWidth: 1,
+    borderColor: COLORS.border + '50',
+  },
+  premiumEmptyFeatureIcon: {
+    fontSize: 18,
+    marginRight: SPACING.md,
+  },
+  premiumEmptyFeatureText: {
+    color: COLORS.textPrimary,
+    fontSize: 13,
+    ...FONTS.semiBold,
+  },
+  premiumEmptyCta: {
+    backgroundColor: COLORS.primary,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: SPACING.lg,
+    paddingHorizontal: SPACING.xxl,
+    borderRadius: RADIUS.full,
+    width: '100%',
+    marginBottom: SPACING.xl,
+  },
+  premiumEmptyCtaText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    ...FONTS.bold,
+    marginRight: SPACING.sm,
+  },
+  premiumEmptyCtaArrow: {
+    color: '#FFFFFF',
+    fontSize: 18,
+    ...FONTS.bold,
+  },
+  premiumEmptyFooter: {
+    color: COLORS.textMuted,
+    fontSize: 12,
+    textAlign: 'center',
+    fontStyle: 'italic',
+    ...FONTS.medium,
+  },
+  premiumEmptyBlob1: {
+    position: 'absolute',
+    top: 20,
+    right: -10,
+    width: 140,
+    height: 140,
+    borderRadius: 70,
+    backgroundColor: COLORS.primary,
+    opacity: 0.08,
+    zIndex: 0,
+  },
+  premiumEmptyBlob2: {
+    position: 'absolute',
+    bottom: 20,
+    left: -10,
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: COLORS.secondary || COLORS.primary,
+    opacity: 0.08,
+    zIndex: 0,
+  },
+});

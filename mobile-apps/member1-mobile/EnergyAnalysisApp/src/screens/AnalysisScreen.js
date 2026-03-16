@@ -7,7 +7,7 @@ import { analysisAPI } from '../api/analysisAPI';
 import { appliancesAPI } from '../api/appliancesAPI';
 import { useAccount } from '../contexts/AccountContext';
 import {
-  Card, SectionHeader, EmptyState, LoadingScreen,
+  Card, SectionHeader, EmptyState, LoadingScreen, PremiumEmptyState,
 } from '../components/SharedComponents';
 import { COLORS, SPACING, RADIUS, FONTS } from '../utils/theme';
 import { formatCurrency, getPriorityColor } from '../utils/helpers';
@@ -182,7 +182,19 @@ const AnalysisScreen = ({ navigation }) => {
             {loadingRecs
               ? <LoadingScreen message="Loading tips..." />
               : recommendations.length === 0
-                ? <EmptyState icon="💡" title="No Recommendations" subtitle="Add appliances to get personalised energy tips." />
+                ? (
+                  <PremiumEmptyState 
+                    icon="💡" 
+                    title="No Savings Tips Yet" 
+                    subtitle="Add your appliances to help our AI analyze your consumption patterns and provide tailored recommendations." 
+                    features={[
+                      { icon: '📊', text: 'Daily Usage Breakdown' },
+                      { icon: '⚡', text: 'Potential Cost Savings' }
+                    ]}
+                    action={() => navigation.navigate('Appliances')}
+                    actionLabel="Add Devices"
+                  />
+                )
                 : recommendations.map((rec, i) => <RecommendationCard key={i} rec={rec} />)
             }
           </>
@@ -199,7 +211,19 @@ const AnalysisScreen = ({ navigation }) => {
             {loadingPlans
               ? <LoadingScreen message="Loading plans..." />
               : plans.length === 0
-                ? <EmptyState icon="📋" title="No Plans" subtitle="Create a budget plan from bill analysis." />
+                ? (
+                  <PremiumEmptyState 
+                    icon="📋" 
+                    title="No Active Plans" 
+                    subtitle="Budget plans are created by analyzing your past bills. Once created, you can track your progress here." 
+                    features={[
+                      { icon: '🧾', text: 'Bill Historical Analysis' },
+                      { icon: '🎯', text: 'Target Cost Setting' }
+                    ]}
+                    action={() => navigation.navigate('Bills')}
+                    actionLabel="Analyze a Bill"
+                  />
+                )
                 : plans.map((p) => (
                   <PlanCard
                     key={p.id} plan={p}

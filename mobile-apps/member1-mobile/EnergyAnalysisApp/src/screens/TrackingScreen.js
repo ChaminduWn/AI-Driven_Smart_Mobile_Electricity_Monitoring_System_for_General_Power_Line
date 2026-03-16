@@ -8,7 +8,7 @@ import { analysisAPI } from '../api/analysisAPI';
 import { useAccount } from '../contexts/AccountContext';
 import {
   Card, SectionHeader, EmptyState, LoadingScreen, PrimaryButton, SecondaryButton,
-  InfoRow, Divider, ProgressBar,
+  InfoRow, Divider, ProgressBar, PremiumEmptyState,
 } from '../components/SharedComponents';
 import { COLORS, SPACING, RADIUS, FONTS, SHADOW } from '../utils/theme';
 import { formatCurrency, formatDate, getStatusColor, getStatusLabel } from '../utils/helpers';
@@ -592,12 +592,18 @@ const TrackingScreen = ({ navigation }) => {
         }
       >
         {plans.length === 0 ? (
-          <EmptyState
+          <PremiumEmptyState
             icon="🎯"
-            title="No Active Budget Plan"
-            subtitle="Create a budget plan from a bill analysis to start tracking."
+            title="Master Your Energy Budget"
+            subtitle="Transform your energy bills into actionable goals. Track consumption in real-time and stop bill surprises before they happen."
+            features={[
+              { icon: '📊', text: 'Daily Reading Tracker' },
+              { icon: '🤖', text: 'AI-Powered Cost Projection' },
+              { icon: '⚡', text: 'Smart Appliance Recommendations' }
+            ]}
             action={() => navigation.navigate('Bills')}
-            actionLabel="View Bills"
+            actionLabel="Start Your First Plan"
+            footer="Analyze a past bill in the Bills tab to generate your custom budget plan."
           />
         ) : (
           <>
@@ -1135,4 +1141,4 @@ const s = StyleSheet.create({
   submitTxt: { color: '#060D18', fontSize: 16, fontWeight: '800' },
 });
 
-export default TrackingScreen;
+export default TrackingScreen;
