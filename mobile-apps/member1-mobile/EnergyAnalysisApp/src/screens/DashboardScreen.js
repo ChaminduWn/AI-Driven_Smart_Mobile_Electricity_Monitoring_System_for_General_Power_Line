@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   View, Text, ScrollView, StyleSheet, RefreshControl,
-  TouchableOpacity, Animated, Modal, Alert,
+  TouchableOpacity, Animated, Modal,
 } from 'react-native';
+import { universalAlert } from '../utils/alerts';
 import { useAuth } from '../contexts/AuthContext';
 import { useAccount } from '../contexts/AccountContext';
 import { billsAPI } from '../api/billsAPI';
@@ -160,7 +161,7 @@ const DashboardScreen = ({ navigation }) => {
   const [refreshing, setRefreshing] = useState(false);
   const [bills, setBills] = useState([]);
   const [applianceAnalysis, setApplianceAnalysis] = useState(null);
-  const [activePlan, setActivePlan] = useState(null);
+  const [activePlans, setActivePlans] = useState([]);
   const [latestBill, setLatestBill] = useState(null);
 
   // ── Notification state (from v1) ──
@@ -181,7 +182,8 @@ const DashboardScreen = ({ navigation }) => {
 
       const accountBills = allBills.filter((b) => b.account_number === account);
       const sorted = [...accountBills].sort((a, b) => new Date(b.bill_date) - new Date(a.bill_date));
-      setLatestBill(sorted[0] || null);
+      const activeBill = sorted.find((b) => b.is_active_for_dashboard);
+      setLatestBill(activeBill || sorted[0] || null);
 
       try {
         const appRes = await appliancesAPI.analyze(account);
@@ -190,7 +192,7 @@ const DashboardScreen = ({ navigation }) => {
 
       try {
         const planRes = await analysisAPI.getPlansByAccount(account, true);
-        setActivePlan((planRes.data?.plans || [])[0] || null);
+        setActivePlans(planRes.data?.plans || []);
       } catch (_) { }
 
       // ── Fetch notifications (from v1) ──
@@ -305,10 +307,10 @@ const DashboardScreen = ({ navigation }) => {
             <GlowCard accentColor={C.energy} style={{ marginBottom: 18 }}>
               <View style={styles.billHeroTop}>
                 <View>
-                  <Text style={styles.billHeroMonth}>{formatMonthYear(latestBill.bill_date)}</Text>
+                  <Text style={styles.billHeroMonth}>{latestBill.title || formatMonthYear(latestBill.bill_date)}</Text>
                   <Text style={styles.billHeroAcct}>Account  ·  {latestBill.account_number}</Text>
                 </View>
-                <Pill label="Latest" color={C.energy} />
+                <Pill label={latestBill.is_active_for_dashboard ? "Active" : "Latest"} color={C.energy} />
               </View>
               <View style={styles.billHeroNumbers}>
                 <View style={styles.billHeroNum}>
@@ -387,52 +389,88 @@ const DashboardScreen = ({ navigation }) => {
             onPress={() => navigation.navigate('SafetyTab')}
           />
 
-          {/* ── ACTIVE BUDGET PLAN ── */}
-          {activePlan && (
+          {/* ── ACTIVE BUDGET PLANS ── */}
+          {activePlans.length > 0 && (
             <>
               <SLabel
-                text="Active Budget Plan"
+                text="Active Budget Plans"
                 action={() => navigation.navigate('Tracking')}
-                actionLabel="View →"
+                actionLabel="View all →"
               />
-              <GlowCard accentColor={getStatusColor(activePlan.progress_status)} style={{ marginBottom: 16 }}>
-                <View style={styles.planRow}>
-                  <View>
-                    <Text style={[styles.planAmount, { color: getStatusColor(activePlan.progress_status) }]}>
-                      {formatCurrency(activePlan.target_budget)}
-                    </Text>
-                    <Text style={styles.planAmountLabel}>Target Budget</Text>
+              {activePlans.map(plan => (
+                <GlowCard key={plan.id} accentColor={getStatusColor(plan.progress_status)} style={{ marginBottom: 16 }}>
+                  <View style={styles.planRow}>
+                    <View>
+                      <Text style={[styles.planAmount, { color: getStatusColor(plan.progress_status) }]}>
+                        {formatCurrency(plan.target_budget)}
+                      </Text>
+                      <Text style={styles.planAmountLabel}>Target Budget</Text>
+                    </View>
+                    <Pill
+                      label={getStatusLabel(plan.progress_status)}
+                      color={getStatusColor(plan.progress_status)}
+                    />
                   </View>
-                  <Pill
-                    label={getStatusLabel(activePlan.progress_status)}
-                    color={getStatusColor(activePlan.progress_status)}
-                  />
-                </View>
-                <Text style={styles.planMetaTxt}>
-                  📅 {activePlan.planning_days} days  ·  🎯 {activePlan.target_daily_units?.toFixed(1)} kWh / day
-                </Text>
-                {/* Stop tracking button (from v1) */}
-                <TouchableOpacity
-                  onPress={() => {
-                    Alert.alert('Stop Tracking', 'End this plan and start a new period?', [
-                      { text: 'Cancel', style: 'cancel' },
-                      {
-                        text: 'End Plan',
-                        style: 'destructive',
-                        onPress: async () => {
-                          try {
-                            await analysisAPI.endPlan(activePlan.id);
-                            fetchData();
-                          } catch (_) { }
-                        },
-                      },
-                    ]);
-                  }}
-                  style={styles.stopBtnCompact}
-                >
-                  <Text style={styles.stopBtnCompactText}>Stop tracking</Text>
-                </TouchableOpacity>
-              </GlowCard>
+                  <Text style={styles.planMetaTxt}>
+                    📅 {plan.planning_days} days  ·  🎯 {plan.target_daily_units?.toFixed(1)} kWh / day
+                  </Text>
+                  
+                  {/* Action buttons */}
+                  <View style={{ flexDirection: 'row', gap: 10 }}>
+                    <TouchableOpacity
+                      onPress={() => {
+                        universalAlert('Stop Tracking', 'End this plan and start a new period?', [
+                          { text: 'Cancel', style: 'cancel' },
+                          {
+                            text: 'End Plan',
+                            style: 'destructive',
+                            onPress: async () => {
+                              try {
+                                const res = await analysisAPI.endPlan(plan.id);
+                                if (res.data?.success) {
+                                  universalAlert('Success', 'Budget plan ended successfully.');
+                                  fetchData();
+                                } else {
+                                  universalAlert('Notice', res.data?.message || 'Plan ended.');
+                                  fetchData();
+                                }
+                              } catch (err) {
+                                universalAlert('Error', 'Failed to end budget plan. Please try again.');
+                              }
+                            },
+                          },
+                        ]);
+                      }}
+                      style={styles.stopBtnCompact}
+                    >
+                      <Text style={styles.stopBtnCompactText}>Stop tracking</Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                      onPress={() => {
+                        universalAlert('Delete Plan', 'Are you sure you want to permanently delete this plan?', [
+                          { text: 'Cancel', style: 'cancel' },
+                          {
+                            text: 'Delete',
+                            style: 'destructive',
+                            onPress: async () => {
+                              try {
+                                const res = await analysisAPI.deletePlan(plan.id);
+                                if (res.data?.success) fetchData();
+                              } catch (err) {
+                                universalAlert('Error', 'Failed to delete plan.');
+                              }
+                            },
+                          },
+                        ]);
+                      }}
+                      style={[styles.stopBtnCompact, { backgroundColor: '#FF4D6D15', borderColor: '#FF4D6D30' }]}
+                    >
+                      <Text style={[styles.stopBtnCompactText, { color: '#FF4D6D' }]}>Delete</Text>
+                    </TouchableOpacity>
+                  </View>
+                </GlowCard>
+              ))}
             </>
           )}
 

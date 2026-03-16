@@ -1,6 +1,6 @@
 import React from 'react';
 import {
-  View, Text, ActivityIndicator, TouchableOpacity, StyleSheet,
+  View, Text, ActivityIndicator, TouchableOpacity, StyleSheet, Modal,
 } from 'react-native';
 import { COLORS, SPACING, RADIUS, FONTS, SHADOW } from '../utils/theme';
 
@@ -136,6 +136,53 @@ export const ProgressBar = ({ progress, color = COLORS.primary, height = 8 }) =>
     </View>
   );
 };
+
+// ─── Confirm Modal ────────────────────────────────────────────────────────────
+export const ConfirmModal = ({
+  visible,
+  title,
+  message,
+  onConfirm,
+  onCancel,
+  confirmLabel = 'Confirm',
+  cancelLabel = 'Cancel',
+  confirmColor = COLORS.primary,
+  isLoading = false,
+}) => (
+  <Modal
+    transparent
+    visible={visible}
+    animationType="fade"
+    onRequestClose={onCancel}
+  >
+    <View style={styles.modalOverlay}>
+      <View style={styles.modalContent}>
+        <Text style={styles.modalTitle}>{title}</Text>
+        <Text style={styles.modalMessage}>{message}</Text>
+        <View style={styles.modalActions}>
+          <TouchableOpacity
+            style={[styles.modalBtn, styles.modalBtnCancel]}
+            onPress={onCancel}
+            disabled={isLoading}
+          >
+            <Text style={styles.modalBtnCancelText}>{cancelLabel}</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.modalBtn, { backgroundColor: confirmColor }]}
+            onPress={onConfirm}
+            disabled={isLoading}
+          >
+            {isLoading ? (
+              <ActivityIndicator size="small" color="#fff" />
+            ) : (
+              <Text style={styles.modalBtnConfirmText}>{confirmLabel}</Text>
+            )}
+          </TouchableOpacity>
+        </View>
+      </View>
+    </View>
+  </Modal>
+);
 
 const styles = StyleSheet.create({
   center: {

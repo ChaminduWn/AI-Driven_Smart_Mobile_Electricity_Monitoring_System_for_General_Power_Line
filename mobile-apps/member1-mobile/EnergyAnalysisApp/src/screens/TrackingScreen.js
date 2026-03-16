@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
-  View, Text, ScrollView, StyleSheet, Alert, RefreshControl, TouchableOpacity,
+  View, Text, ScrollView, StyleSheet, RefreshControl, TouchableOpacity,
   Modal, TextInput, Platform, Animated, Easing, Dimensions,
 } from 'react-native';
+import { universalAlert } from '../utils/alerts';
 import { analysisAPI } from '../api/analysisAPI';
 import { useAccount } from '../contexts/AccountContext';
 import {
@@ -499,8 +500,9 @@ const TrackingScreen = ({ navigation }) => {
 
   const handleStopTracking = async () => {
     if (!selectedPlan) return;
+    console.log(`🔘 Stop tracking pressed (TrackingScreen): ${selectedPlan.id}`);
 
-    Alert.alert(
+    universalAlert(
       'Stop Tracking',
       'Are you sure you want to end this budget plan? This is usually done when you receive a new monthly bill.',
       [
@@ -509,13 +511,20 @@ const TrackingScreen = ({ navigation }) => {
           text: 'Stop Tracking',
           style: 'destructive',
           onPress: async () => {
+            console.log('🏃 Stopping tracking...');
             try {
               setLoading(true);
-              await analysisAPI.endPlan(selectedPlan.id);
-              Alert.alert('Success', 'Budget plan ended. You can now create a new plan for the next month.');
+              const res = await analysisAPI.endPlan(selectedPlan.id);
+              console.log('✅ End plan response:', res.data);
+              if (res.data?.success) {
+                universalAlert('Success', 'Budget plan ended. You can now create a new plan for the next month.');
+              } else {
+                universalAlert('Notice', res.data?.message || 'Plan ended.');
+              }
               await fetchData();
             } catch (err) {
-              Alert.alert('Error', 'Failed to stop tracking');
+              console.error('❌ Stop tracking error:', err);
+              universalAlert('Error', 'Failed to stop tracking');
               setLoading(false);
             }
           }
@@ -525,16 +534,21 @@ const TrackingScreen = ({ navigation }) => {
   };
 
   const deleteReading = (readingId) => {
-    Alert.alert('Delete Reading', 'Remove this meter reading?', [
+    console.log(`🔘 Delete reading pressed: ${readingId}`);
+    universalAlert('Delete Reading', 'Remove this meter reading?', [
       { text: 'Cancel', style: 'cancel' },
       {
         text: 'Delete', style: 'destructive',
         onPress: async () => {
+          console.log(`🏃 Deleting reading ID: ${readingId}...`);
           try {
-            await analysisAPI.deleteReading(readingId);
+            const res = await analysisAPI.deleteReading(readingId);
+            console.log('✅ Delete reading response:', res.data);
+            universalAlert('Success', 'Reading removed.');
             await fetchData();
-          } catch {
-            Alert.alert('Error', 'Could not delete reading.');
+          } catch (err) {
+            console.error('❌ Delete reading error:', err);
+            universalAlert('Error', 'Could not delete reading.');
           }
         },
       },
@@ -587,6 +601,34 @@ const TrackingScreen = ({ navigation }) => {
           />
         ) : (
           <>
+            {/* Plan Selector */}
+            {plans.length > 1 && (
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 16 }}>
+                {plans.map((p, idx) => {
+                  const isActive = selectedPlan?.id === p.id;
+                  return (
+                    <TouchableOpacity
+                      key={p.id}
+                      onPress={() => setSelectedPlan(p)}
+                      style={{
+                        paddingHorizontal: 16, paddingVertical: 8,
+                        borderRadius: 20, marginRight: 10,
+                        backgroundColor: isActive ? '#38BDF820' : '#1E293B40',
+                        borderWidth: 1, borderColor: isActive ? '#38BDF850' : '#1E293B',
+                      }}
+                    >
+                      <Text style={{
+                        color: isActive ? '#38BDF8' : '#94A3B8',
+                        fontSize: 13, fontWeight: isActive ? '700' : '600',
+                      }}>
+                        Plan {idx + 1} (Rs.{p.target_budget})
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </ScrollView>
+            )}
+
             {/* Tab Bar */}
             <View style={s.tabBar}>
               {[['status', '📊 Status'], ['analysis', '🤖 AI Analysis']].map(([k, l]) => (
@@ -619,9 +661,34 @@ const TrackingScreen = ({ navigation }) => {
                     </View>
                   </View>
 
-                  <TouchableOpacity style={s.stopBtn} onPress={handleStopTracking}>
-                    <Text style={s.stopBtnText}>Stop Tracking</Text>
-                  </TouchableOpacity>
+                  <View style={{ flexDirection: 'row', gap: 10, marginTop: 12 }}>
+                    <TouchableOpacity style={[s.stopBtn, { flex: 1, marginTop: 0 }]} onPress={handleStopTracking}>
+                      <Text style={s.stopBtnText}>Stop Tracking</Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                      style={[s.stopBtn, { flex: 1, marginTop: 0, backgroundColor: '#FF4D6D15', borderColor: '#FF4D6D30' }]}
+                      onPress={() => {
+                        universalAlert('Delete Plan', 'Are you sure you want to permanently delete this plan?', [
+                          { text: 'Cancel', style: 'cancel' },
+                          {
+                            text: 'Delete',
+                            style: 'destructive',
+                            onPress: async () => {
+                              try {
+                                const res = await analysisAPI.deletePlan(selectedPlan.id);
+                                if (res.data?.success) fetchData();
+                              } catch (err) {
+                                universalAlert('Error', 'Failed to delete plan.');
+                              }
+                            },
+                          },
+                        ]);
+                      }}
+                    >
+                      <Text style={[s.stopBtnText, { color: '#FF4D6D' }]}>Delete Plan</Text>
+                    </TouchableOpacity>
+                  </View>
 
                   <View style={s.planStats}>
                     {[

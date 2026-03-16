@@ -128,6 +128,19 @@ app.include_router(notifications.router,      prefix="/api/v1")
 logger.info(f"{settings.APP_NAME} v{settings.APP_VERSION} initialized")
 
 
+@app.get("/debug-routes")
+def list_routes():
+    import json
+    routes = []
+    for route in app.routes:
+        routes.append({
+            "path": route.path,
+            "name": route.name,
+            "methods": list(route.methods) if hasattr(route, "methods") else None
+        })
+    return {"routes": routes}
+
+
 @app.get("/")
 def root():
     return {

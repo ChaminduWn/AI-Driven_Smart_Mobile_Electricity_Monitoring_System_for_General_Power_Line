@@ -18,6 +18,7 @@ class BillExtractionService:
         file_name: str, 
         file_type: str,
         db: Session,
+        title: Optional[str] = None,
         user_id: Optional[int] = None
     ) -> Dict:
         """
@@ -50,6 +51,7 @@ class BillExtractionService:
                 file_type=file_type,
                 raw_text=raw_text,
                 parsed_data=parsed_data,
+                title=title,
                 user_id=user_id
             )
             
@@ -87,6 +89,7 @@ class BillExtractionService:
         file_type: str,
         raw_text: str,
         parsed_data: Dict,
+        title: Optional[str] = None,
         user_id: Optional[int] = None
     ) -> ElectricityBill:
         """Save extracted bill data to database"""
@@ -143,6 +146,7 @@ class BillExtractionService:
         # Create bill record
         bill = ElectricityBill(
             user_id=user_id,
+            title=title,
             file_name=file_name,
             file_path=file_path,
             file_type=file_type,

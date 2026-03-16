@@ -9,9 +9,10 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import {
-  View, Text, ScrollView, StyleSheet, Alert, TouchableOpacity,
+  View, Text, ScrollView, StyleSheet, TouchableOpacity,
   Modal, TextInput, RefreshControl, Platform, Animated,
 } from 'react-native';
+import { universalAlert } from '../utils/alerts';
 import * as ImagePicker from 'expo-image-picker';
 import { appliancesAPI } from '../api/appliancesAPI';
 import { useAccount } from '../contexts/AccountContext';
@@ -262,17 +263,38 @@ const AppliancesScreen = () => {
     }
   };
 
-  const deleteAppliance = (app) =>
-    Alert.alert('Remove Appliance', `Remove "${app.name}"?`, [
+  const deleteAppliance = (app) => {
+    console.log(`🔘 Remove appliance pressed: ${app.name} (ID: ${app.id})`);
+    const isAtLimit = appliances.length <= 5;
+    const title = isAtLimit ? '⚠️ Warning: Low Appliance Count' : 'Remove Appliance';
+    const message = isAtLimit
+      ? `Removing "${app.name}" will bring your appliance count to ${appliances.length - 1}.\n\nYour active budget plans will be STOPPED as at least 5 appliances are required for tracking. Continue?`
+      : `Remove "${app.name}"?`;
+
+    universalAlert(title, message, [
       { text: 'Cancel', style: 'cancel' },
       {
         text: 'Remove', style: 'destructive',
         onPress: async () => {
-          try { await appliancesAPI.delete(app.id); fetchData(); }
-          catch { Alert.alert('Error', 'Failed to remove appliance.'); }
+          console.log(`🏃 Deleting appliance ID: ${app.id}...`);
+          try {
+            const res = await appliancesAPI.delete(app.id);
+            console.log('✅ Delete appliance response:', res.data);
+            if (res.data?.warning) {
+              universalAlert('Tracking Stopped', res.data.warning);
+            } else {
+              universalAlert('Success', 'Appliance removed.');
+            }
+            fetchData();
+          }
+          catch (err) {
+            console.error('❌ Delete appliance error:', err);
+            universalAlert('Error', 'Failed to remove appliance.');
+          }
         },
       },
     ]);
+  };
 
   if (loading) return <LoadingScreen message="Loading appliances…" />;
 
@@ -574,7 +596,7 @@ const ar = StyleSheet.create({
   barTrack: { height: 3, backgroundColor: '#1E293B', borderRadius: 99, marginBottom: 8 },
   barFill: { height: 3, borderRadius: 99 },
   del: { alignSelf: 'flex-end' },
-  delTxt: { color: '#EF444466', fontSize: 12 },
+  delTxt: { color: '#EF4444', fontSize: 13, fontWeight: '600' },
 });
 
 // ─── ANALYSIS VIEW ────────────────────────────────────────────────────────────

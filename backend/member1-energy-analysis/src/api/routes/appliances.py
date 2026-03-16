@@ -449,10 +449,45 @@ def delete_appliance(
             db.delete(appliance)
             db.commit()
             message = "Appliance deleted permanently"
+            
+        # Check if appliance count fell below 5
+        from src.models.budget_plan import BudgetPlan
+        
+        remaining_count = db.query(HouseholdAppliance).filter(
+            HouseholdAppliance.user_id == current_user.id,
+            HouseholdAppliance.account_number == appliance.account_number,
+            HouseholdAppliance.is_active == True
+        ).count()
+        
+        plans_stopped = 0
+        warning = None
+        
+        if remaining_count < 5:
+            # Auto-stop active budget plans for this account
+            active_plans = db.query(BudgetPlan).filter(
+                BudgetPlan.user_id == current_user.id,
+                BudgetPlan.account_number == appliance.account_number,
+                BudgetPlan.is_active == True
+            ).all()
+            
+            for plan in active_plans:
+                plan.is_active = False
+                plan.status = 'stopped_insufficient_appliances'
+                plans_stopped += 1
+            
+            db.commit()
+            
+            if plans_stopped > 0:
+                warning = f"Appliance count is now {remaining_count} (below minimum of 5). {plans_stopped} active budget plan(s) have been stopped."
+            else:
+                warning = f"Appliance count is now {remaining_count}. You need at least 5 appliances to start a new budget plan."
         
         return {
             'success': True,
-            'message': message
+            'message': message,
+            'remaining_count': remaining_count,
+            'warning': warning,
+            'plans_stopped': plans_stopped
         }
         
     except Exception as e:

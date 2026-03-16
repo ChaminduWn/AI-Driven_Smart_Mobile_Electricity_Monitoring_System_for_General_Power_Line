@@ -20,11 +20,12 @@ export const analysisAPI = {
     apiClient.post('/analysis/save-manual-bill', data),
 
   // ── Budget Plans ────────────────────────────────────────────────────────
-  createBudgetPlan: (billId, targetBudget, planningDays = 30) =>
+  createBudgetPlan: (billId, targetBudget, planningDays = 30, planStartDate = null) =>
     apiClient.post('/analysis/create-budget-plan', {
       bill_id: billId,
       target_budget: targetBudget,
       planning_days: planningDays,
+      plan_start_date: planStartDate,
     }),
 
   getPlanById: (planId) =>
