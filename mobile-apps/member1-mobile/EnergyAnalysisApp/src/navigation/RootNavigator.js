@@ -88,8 +88,8 @@ const SafetyTopTabs = () => (
       tabBarInactiveTintColor: COLORS.textMuted,
       tabBarIndicatorStyle: { backgroundColor: COLORS.primary },
       tabBarLabelStyle: { fontSize: 11, fontWeight: '700', textTransform: 'capitalize' },
-      tabBarScrollEnabled: false,
-      tabBarItemStyle: { paddingHorizontal: 25, width: 'auto', minWidth: 150 },
+      tabBarScrollEnabled: true,
+      tabBarItemStyle: { paddingHorizontal: 12, width: 'auto' },
       tabBarContentContainerStyle: { justifyContent: 'center' }
     }}
   >

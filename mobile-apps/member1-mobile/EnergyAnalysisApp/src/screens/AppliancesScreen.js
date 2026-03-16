@@ -365,12 +365,13 @@ const AppliancesScreen = () => {
         </ScrollView>
 
         {/* ── FAB ── */}
-        <View style={s.fab}>
-          <TouchableOpacity style={s.fabBtn} onPress={() => setShowModal(true)} activeOpacity={0.85}>
-            <Text style={s.fabIcon}>＋</Text>
-            <Text style={s.fabTxt}>Add Appliance</Text>
-          </TouchableOpacity>
-        </View>
+        {tab === 'list' && (
+          <View style={s.fab}>
+            <TouchableOpacity style={s.fabBtn} onPress={() => setShowModal(true)} activeOpacity={0.85}>
+              <Text style={s.fabIcon}>＋</Text>
+            </TouchableOpacity>
+          </View>
+        )}
 
         {/* ── ADD MODAL ── */}
         <Modal visible={showModal} animationType="slide" onRequestClose={() => setShowModal(false)}>
@@ -724,7 +725,7 @@ const s = StyleSheet.create({
 
   header: {
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start',
-    paddingHorizontal: 20, paddingTop: 56, paddingBottom: 16,
+    paddingHorizontal: 20, paddingTop: 16, paddingBottom: 16,
     backgroundColor: '#060D18',
   },
   headerTitle: { color: '#F1F5F9', fontSize: 28, fontWeight: '900', letterSpacing: -0.5 },
@@ -757,16 +758,14 @@ const s = StyleSheet.create({
   progressFill: { height: 6, backgroundColor: '#38BDF8', borderRadius: 99 },
 
   fab: {
-    position: 'absolute', bottom: 0, left: 0, right: 0,
-    padding: 16, paddingBottom: 32,
-    backgroundColor: '#060D18CC', borderTopWidth: 1, borderTopColor: '#1E293B',
+    position: 'absolute', bottom: 24, right: 20,
   },
   fabBtn: {
-    backgroundColor: '#38BDF8', borderRadius: 16, paddingVertical: 16,
-    flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 10,
+    backgroundColor: '#38BDF8', borderRadius: 28, width: 56, height: 56,
+    justifyContent: 'center', alignItems: 'center',
+    shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 5, elevation: 6,
   },
-  fabIcon: { color: '#060D18', fontSize: 22, fontWeight: '900' },
-  fabTxt: { color: '#060D18', fontSize: 16, fontWeight: '800' },
+  fabIcon: { color: '#060D18', fontSize: 28, fontWeight: '900', marginTop: -2 },
 
   // MODAL
   modal: { flex: 1, backgroundColor: '#060D18' },

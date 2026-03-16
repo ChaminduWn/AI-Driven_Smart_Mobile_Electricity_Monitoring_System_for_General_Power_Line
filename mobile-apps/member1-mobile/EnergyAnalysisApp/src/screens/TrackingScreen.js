@@ -661,13 +661,26 @@ const TrackingScreen = ({ navigation }) => {
                     </View>
                   </View>
 
-                  <View style={{ flexDirection: 'row', gap: 10, marginTop: 12 }}>
-                    <TouchableOpacity style={[s.stopBtn, { flex: 1, marginTop: 0 }]} onPress={handleStopTracking}>
-                      <Text style={s.stopBtnText}>Stop Tracking</Text>
+                  <View style={{ flexDirection: 'row', gap: 12, marginTop: 6, marginBottom: 8 }}>
+                    <TouchableOpacity
+                      style={{
+                        flex: 1, paddingVertical: 12, borderRadius: 12, borderWidth: 1,
+                        borderColor: '#64748B40', backgroundColor: '#1E293B30',
+                        alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 6
+                      }}
+                      onPress={handleStopTracking}
+                      activeOpacity={0.7}
+                    >
+                      <Text style={{ fontSize: 16 }}>⏹️</Text>
+                      <Text style={{ color: '#F1F5F9', fontSize: 13, fontWeight: '700' }}>Stop Plan</Text>
                     </TouchableOpacity>
 
                     <TouchableOpacity
-                      style={[s.stopBtn, { flex: 1, marginTop: 0, backgroundColor: '#FF4D6D15', borderColor: '#FF4D6D30' }]}
+                      style={{
+                        flex: 1, paddingVertical: 12, borderRadius: 12, borderWidth: 1,
+                        borderColor: '#EF444440', backgroundColor: '#EF444415',
+                        alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 6
+                      }}
                       onPress={() => {
                         universalAlert('Delete Plan', 'Are you sure you want to permanently delete this plan?', [
                           { text: 'Cancel', style: 'cancel' },
@@ -685,8 +698,10 @@ const TrackingScreen = ({ navigation }) => {
                           },
                         ]);
                       }}
+                      activeOpacity={0.7}
                     >
-                      <Text style={[s.stopBtnText, { color: '#FF4D6D' }]}>Delete Plan</Text>
+                      <Text style={{ fontSize: 16 }}>🗑️</Text>
+                      <Text style={{ color: '#EF4444', fontSize: 13, fontWeight: '700' }}>Delete Plan</Text>
                     </TouchableOpacity>
                   </View>
 

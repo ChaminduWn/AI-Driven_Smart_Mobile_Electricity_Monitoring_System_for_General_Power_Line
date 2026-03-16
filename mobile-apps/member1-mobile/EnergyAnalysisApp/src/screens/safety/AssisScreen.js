@@ -115,9 +115,9 @@ const AssistantScreen = () => {
   );
 
   return (
-    <SafeAreaView style={styles.container}>
+    <View style={styles.container}>
       <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         style={styles.container}
         keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
       >
@@ -222,7 +222,7 @@ const AssistantScreen = () => {
           <Text style={styles.disclaimer}>⚡ Consult a licensed electrician for technical repairs</Text>
         </View>
       </KeyboardAvoidingView>
-    </SafeAreaView>
+    </View>
   );
 };
 
@@ -240,7 +240,7 @@ const styles = StyleSheet.create({
     borderBottomColor: C.accent,
     backgroundColor: C.card,
   },
-  headerTitleRow: { flexDirection: 'row', alignItems: 'center' },
+  headerTitleRow: { flexDirection: 'row', alignItems: 'center', flexShrink: 1 },
   headerIconBg: {
     width: 36,
     height: 36,
@@ -276,6 +276,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderRadius: 20,
+    flexShrink: 1, // Prevents long messages from bursting out of boundary
   },
   userBubble: {
     backgroundColor: C.accent,
