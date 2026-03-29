@@ -1,13 +1,15 @@
 /**
- * LiveMeterScreen.jsx  — EnergyIQ Appliance Tester (FIXED v2)
+ * LiveMeterScreen.jsx  — EnergyIQ Appliance Tester (FIXED v3)
  *
  * Fixes applied:
+ *  ✅ RelayControlCard imported and wired into MonitorScreen
+ *  ✅ getToken passed correctly to RelayControlCard
  *  ✅ WebSocket reconnect loop fixed — no rapid open/close spam
  *  ✅ Polling fallback when WS disconnects (every 3s via /iot/latest/:device_id)
  *  ✅ Stop button: POST to end session, then POLL /sessions/:id until completed
  *  ✅ All live metrics shown: power, voltage, current, PF, PQ, env, session stats
  *  ✅ Temperature/humidity displayed correctly (temperature_c, humidity_pct)
- *  ✅ Download JSON/CSV — actual file download via RNFS (no share sheet)
+ *  ✅ Download JSON/CSV — actual file download via expo-file-system
  *  ✅ Report screen shown after stop, even if WS session_ended never arrives
  *  ✅ Custom duration input alongside preset chips (any minutes user wants)
  */
@@ -16,15 +18,16 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity, TextInput,
   StyleSheet, Animated, Dimensions, Alert, ActivityIndicator,
-  FlatList, Platform, StatusBar, Share, PermissionsAndroid,
+  FlatList, Platform, StatusBar, Share,
 } from 'react-native';
 import * as FileSystem from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
 
 import { API_BASE, WS_BASE } from '../config';
+import RelayControlCard from '../components/RelayControlCard';
+
 const POLL_INTERVAL_MS = 3000;
 const WS_RECONNECT_MS = 6000;
-const CARD_INTERVAL_MS = 4000;
 const { width: SW } = Dimensions.get('window');
 
 // ─── AUTH ─────────────────────────────────────────────────────────────────────
@@ -97,15 +100,7 @@ const fmtF = (v, d = 1) => v != null && !isNaN(v) ? Number(v).toFixed(d) : '—'
 const safe = v => v != null && !isNaN(Number(v)) ? Number(v) : null;
 
 // ─── FILE DOWNLOAD HELPER ─────────────────────────────────────────────────────
-/**
- * Downloads exported session data as a real file to device storage.
- * Uses react-native-fs if available, falls back to Share.share as last resort.
- * No installation needed for Share fallback — but RNFS gives true file download.
- *
- * To get true file download (recommended): npm install react-native-fs
- */
 const downloadFile = async (content, filename, mimeType) => {
-  // ── Attempt 1: Browser Download (Web) ──────────────────────────────────────
   if (Platform.OS === 'web') {
     try {
       const blob = new Blob([content], { type: mimeType });
@@ -123,15 +118,12 @@ const downloadFile = async (content, filename, mimeType) => {
     }
   }
 
-  // ── Attempt 2: Storage Access Framework (SAF) - Best for Android ────────────
   if (Platform.OS === 'android') {
     try {
       const permissions = await FileSystem.StorageAccessFramework.requestDirectoryPermissionsAsync();
       if (permissions.granted) {
         const fileUri = await FileSystem.StorageAccessFramework.createFileAsync(
-          permissions.directoryUri,
-          filename,
-          mimeType
+          permissions.directoryUri, filename, mimeType
         );
         await FileSystem.writeAsStringAsync(fileUri, content, { encoding: FileSystem.EncodingType.UTF8 });
         Alert.alert('✅ Download Complete', 'The report has been saved to your selected folder.');
@@ -142,16 +134,14 @@ const downloadFile = async (content, filename, mimeType) => {
     }
   }
 
-  // ── Attempt 2: Sharing (Fallback for iOS or if SAF is declined) ───────────
   try {
     const path = FileSystem.cacheDirectory + filename;
     await FileSystem.writeAsStringAsync(path, content, { encoding: FileSystem.EncodingType.UTF8 });
-
     if (await Sharing.isAvailableAsync()) {
       await Sharing.shareAsync(path, {
-        mimeType: mimeType,
+        mimeType,
         UTI: mimeType === 'text/csv' ? 'public.comma-separated-values-text' : 'public.json',
-        dialogTitle: `Download Report`,
+        dialogTitle: 'Download Report',
       });
       return true;
     } else {
@@ -384,31 +374,25 @@ const SetupScreen = ({ account, deviceId, onStart, onBack }) => {
   const [form, setForm] = useState({
     appliance_name: '', appliance_brand: '', appliance_description: '', test_duration_min: '15',
   });
-  // Separate state for the custom duration text input
   const [customDuration, setCustomDuration] = useState('');
   const [loading, setLoading] = useState(false);
   const set = k => v => setForm(f => ({ ...f, [k]: v }));
 
-  // Preset chips — selecting one clears the custom input
   const selectPreset = (val) => {
     set('test_duration_min')(val);
     setCustomDuration('');
   };
 
-  // Typing custom duration — clears chip selection (uses 'custom' sentinel)
   const onCustomChange = (val) => {
-    // Only allow digits
     const cleaned = val.replace(/[^0-9]/g, '');
     setCustomDuration(cleaned);
     if (cleaned) {
       set('test_duration_min')('custom');
     } else {
-      // If cleared, fall back to last preset
       set('test_duration_min')('15');
     }
   };
 
-  // Resolve the actual minutes value
   const resolvedMinutes = () => {
     if (form.test_duration_min === 'custom') {
       return parseInt(customDuration) || 15;
@@ -470,11 +454,8 @@ const SetupScreen = ({ account, deviceId, onStart, onBack }) => {
           placeholder="e.g. 5 years old, side-by-side" placeholderTextColor={C.textMuted} multiline />
       </View>
 
-      {/* ── Test Duration ── */}
       <View style={{ marginBottom: 20 }}>
         <Text style={s.inputLabel}>Test Duration (minutes)</Text>
-
-        {/* Preset chips */}
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 6 }}>
           {DURATIONS.map(d => {
             const isActive = form.test_duration_min === d;
@@ -490,7 +471,6 @@ const SetupScreen = ({ account, deviceId, onStart, onBack }) => {
           })}
         </View>
 
-        {/* Custom duration row */}
         <View style={{ marginTop: 14, flexDirection: 'row', alignItems: 'center', gap: 12 }}>
           <View style={{ flex: 1, height: 1, backgroundColor: C.border }} />
           <Text style={{ color: C.textMuted, fontSize: 10, textTransform: 'uppercase', letterSpacing: 1 }}>OR ENTER CUSTOM</Text>
@@ -541,7 +521,6 @@ const SetupScreen = ({ account, deviceId, onStart, onBack }) => {
   );
 };
 
-// Setup screen local styles
 const su = StyleSheet.create({
   customRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 10 },
   customInputWrap: {
@@ -576,6 +555,7 @@ const MonitorScreen = ({ account, deviceId, sessionId, applianceName, plannedMin
   const [events, setEvents] = useState([]);
   const [stopping, setStopping] = useState(false);
   const [stopMsg, setStopMsg] = useState('');
+  const [testLoading, setTestLoading] = useState(false);
 
   const wsRef = useRef(null);
   const wsAlive = useRef(false);
@@ -595,7 +575,6 @@ const MonitorScreen = ({ account, deviceId, sessionId, applianceName, plannedMin
   // ── Auto-stop when duration reached ───────────────────────────────────────
   useEffect(() => {
     if (totalSec > 0 && elapsed >= totalSec && !stopping) {
-      console.log('⏰ Test duration reached! Auto-stopping session...');
       stopSession();
     }
   }, [elapsed, totalSec, stopping]);
@@ -604,7 +583,7 @@ const MonitorScreen = ({ account, deviceId, sessionId, applianceName, plannedMin
     if (!d || !mountedRef.current) return;
     setLive(d);
     setAnomalies(d.anomalies || []);
-    setReadings(r => d.read_count || r);
+    setReadings(r => d.session_read_count || d.read_count || r);
   }, []);
 
   const startPolling = useCallback(() => {
@@ -768,6 +747,14 @@ const MonitorScreen = ({ account, deviceId, sessionId, applianceName, plannedMin
 
     return (
       <View>
+        {/* ── RELAY CONTROL CARD ── inserted here, always visible during session */}
+        <Text style={panel.sectionTitle}>🔌 Relay Control</Text>
+        <RelayControlCard
+          deviceId={String(deviceId || '').replace(/:/g, '').toUpperCase()}
+          liveData={live}
+          token={getToken()}
+        />
+
         <Text style={panel.sectionTitle}>⚡ Electrical</Text>
         <View style={panel.card}>
           <MetricRow items={[
@@ -821,6 +808,33 @@ const MonitorScreen = ({ account, deviceId, sessionId, applianceName, plannedMin
           ]} />
         </View>
 
+        <TouchableOpacity 
+          style={[panel.testBtn, testLoading && { opacity: 0.6 }]} 
+          onPress={async () => {
+            if (testLoading) return;
+            setTestLoading(true);
+            try {
+              const r = await fetch(`${API_BASE}/iot/test-telegram`, { 
+                method: 'POST', 
+                headers: authHeaders() 
+              });
+              const d = await r.json();
+              Alert.alert(d.success ? '✅ Success' : '❌ Failed', d.message);
+            } catch (e) { 
+              Alert.alert('Error', 'Could not reach server. Check connection.'); 
+            } finally {
+              setTestLoading(false);
+            }
+          }}
+          disabled={testLoading}
+        >
+          {testLoading ? (
+            <ActivityIndicator color={C.accent} size="small" />
+          ) : (
+            <Text style={panel.testBtnTxt}>🔔 Test Telegram Alert</Text>
+          )}
+        </TouchableOpacity>
+
         {(temp !== null || hum !== null) && (
           <>
             <Text style={panel.sectionTitle}>🌡️ Environment</Text>
@@ -837,7 +851,7 @@ const MonitorScreen = ({ account, deviceId, sessionId, applianceName, plannedMin
         <Text style={panel.sectionTitle}>📡 Device</Text>
         <View style={panel.card}>
           <MetricRow items={[
-            { label: 'Read Count', value: `${d.read_count || 0}`, unit: '', color: C.textPrimary },
+            { label: 'Read Count', value: `${d.session_read_count || d.read_count || 0}`, unit: '', color: C.textPrimary },
             { label: 'Uptime', value: d.uptime_ms ? `${Math.floor(d.uptime_ms / 60000)}m` : '—', unit: '', color: C.textPrimary },
             { label: 'Avg PF', value: fmtF(d.avg_power_factor, 3), unit: '', color: pfColor(d.avg_power_factor) },
           ]} />
@@ -917,6 +931,11 @@ const panel = StyleSheet.create({
   },
   track: { height: 5, backgroundColor: C.border, borderRadius: 3, overflow: 'hidden', marginTop: 4, marginBottom: 8 },
   fill: { height: 5, borderRadius: 3 },
+  testBtn: { 
+    backgroundColor: '#0D1422', borderRadius: 10, paddingVertical: 10, 
+    alignItems: 'center', marginBottom: 12, borderWidth: 1, borderColor: C.accent + '30' 
+  },
+  testBtnTxt: { color: C.accent, fontSize: 12, fontWeight: '700' },
 });
 
 const mn = StyleSheet.create({
@@ -945,7 +964,7 @@ const mn = StyleSheet.create({
 // ─────────────────────────────────────────────────────────────────────────────
 const ReportScreen = ({ sessionData, onNewTest }) => {
   const [exporting, setExporting] = useState(false);
-  const [exportFmt, setExportFmt] = useState(null); // 'json' | 'csv' | null
+  const [exportFmt, setExportFmt] = useState(null);
 
   const health = (() => {
     try {
@@ -959,7 +978,6 @@ const ReportScreen = ({ sessionData, onNewTest }) => {
 
   const SEV = { HIGH: C.red, MEDIUM: C.orange, LOW: C.yellow, INFO: C.accent };
 
-  // ── Export: fetch from API then save to file ───────────────────────────────
   const doExport = async (fmt) => {
     setExporting(true);
     setExportFmt(fmt);
@@ -967,15 +985,12 @@ const ReportScreen = ({ sessionData, onNewTest }) => {
       const url = `${API_BASE}/iot/sessions/${st.id}/export?format=${fmt}`;
       const r = await fetch(url, { headers: authHeaders() });
       if (!r.ok) throw new Error(`Server returned ${r.status}`);
-
       const content = await r.text();
       const ts = new Date().toISOString().slice(0, 19).replace(/[T:]/g, '-');
       const safeName = (st.appliance_name || 'report').replace(/[^a-zA-Z0-9_-]/g, '_');
       const filename = `EnergyIQ_${safeName}_${ts}.${fmt}`;
       const mimeType = fmt === 'json' ? 'application/json' : 'text/csv';
-
       await downloadFile(content, filename, mimeType);
-
     } catch (e) {
       Alert.alert('Export Error', e.message || 'Failed to export report');
     } finally {
@@ -1119,18 +1134,14 @@ const ReportScreen = ({ sessionData, onNewTest }) => {
         </Text>
       </View>
 
-      {/* ── Download / Share ── */}
       <View style={rp.section}>
         <Text style={rp.secTitle}>📤  Download / Share</Text>
-
-        {/* Share text report */}
         <TouchableOpacity
           style={[rp.shareBtn, { backgroundColor: C.card, marginBottom: 10 }]}
           onPress={shareReport}>
           <Text style={{ color: C.textPrimary, fontWeight: '600' }}>📋  Share Text Report</Text>
         </TouchableOpacity>
 
-        {/* JSON + CSV download buttons */}
         <View style={{ flexDirection: 'row', gap: 10 }}>
           <TouchableOpacity
             style={[rp.exportBtn, exportFmt === 'json' && rp.exportBtnActive]}
@@ -1158,12 +1169,6 @@ const ReportScreen = ({ sessionData, onNewTest }) => {
         <Text style={{ color: C.textMuted, fontSize: 11, marginTop: 8 }}>
           {st.total_readings} readings  ·  {st.dataset_count || st.total_readings} rows in dataset
         </Text>
-
-        <View style={rp.rnfsHint}>
-          <Text style={{ color: C.textMuted, fontSize: 11 }}>
-            💡 Reports are saved directly to your phone's storage using standard Android/iOS protocols.
-          </Text>
-        </View>
       </View>
 
       <TouchableOpacity style={s.primaryBtn} onPress={onNewTest}>
@@ -1205,10 +1210,6 @@ const rp = StyleSheet.create({
     alignItems: 'center', borderWidth: 1, borderColor: C.border
   },
   exportBtnActive: { borderColor: C.accent, backgroundColor: '#00D4FF33' },
-  rnfsHint: {
-    marginTop: 10, backgroundColor: '#0F1A2A', borderRadius: 8,
-    padding: 10, borderWidth: 1, borderColor: C.border
-  },
 });
 
 // ─────────────────────────────────────────────────────────────────────────────

@@ -65,14 +65,17 @@ const RelayControlCard = ({ deviceId, liveData, token }) => {
   }, [safetyTripped]);
 
   const sendCommand = useCallback(async (cmd, extra = {}) => {
+    const cleanId = String(deviceId || '').replace(/:/g, '').toUpperCase();
+    console.log(`[RelayControl] Sending command: ${cmd} to ${cleanId}`, extra);
     setSending(true);
     try {
       const r = await fetch(`${API_BASE}/relay/command`, {
         method: 'POST',
         headers: authHeaders(token),
-        body: JSON.stringify({ device_id: deviceId, command: cmd, ...extra }),
+        body: JSON.stringify({ device_id: cleanId, command: cmd, ...extra }),
       });
       const d = await r.json();
+      console.log(`[RelayControl] Server response:`, d);
       if (!d.success) {
         Alert.alert('Command Failed', d.message || 'Check MQTT connection');
       }
@@ -109,10 +112,11 @@ const RelayControlCard = ({ deviceId, liveData, token }) => {
       Alert.alert('Invalid', 'Max amps must be between 0.5 and 9.0');
       return;
     }
+    const cleanId = String(deviceId || '').replace(/:/g, '').toUpperCase();
     const r = await fetch(`${API_BASE}/relay/set-limits`, {
       method: 'POST',
       headers: authHeaders(token),
-      body: JSON.stringify({ device_id: deviceId, max_w: w, max_a: a }),
+      body: JSON.stringify({ device_id: cleanId, max_w: w, max_a: a }),
     });
     const d = await r.json();
     Alert.alert(d.success ? '✅ Limits Updated' : '❌ Failed', d.message);

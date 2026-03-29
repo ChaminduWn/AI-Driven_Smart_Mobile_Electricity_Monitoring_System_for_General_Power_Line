@@ -30,6 +30,13 @@ appliance_events:   Dict[str, List[dict]]    = {}
 active_sessions:    Dict[str, Optional[int]] = {}
 last_seen:          Dict[str, datetime]      = {}
 last_env_readings:  Dict[str, dict]          = {}   # cache last good DHT values per device
+session_start_readings: Dict[str, int]       = {}   # baseline read_count when session started
+
+
+def _normalize_id(device_id: str) -> str:
+    """Standardize MAC IDs to Uppercase and no colons."""
+    if not device_id: return ""
+    return str(device_id).replace(":", "").upper()
 
 
 # ── Typical wattage reference database ───────────────────────────────────────
@@ -368,6 +375,7 @@ class IoTService:
 
     # ── Handle live reading ───────────────────────────────────────────────────
     def _handle_live_reading_sync(self, device_id: str, data: dict):
+        device_id = _normalize_id(device_id)
         last_seen[device_id] = datetime.now(timezone.utc)
         data = self._normalize(data)
 
@@ -388,6 +396,23 @@ class IoTService:
         data["server_time"] = datetime.now(timezone.utc).isoformat()
         data["device_id"]   = device_id
         data["anomalies"]   = self._detect_anomalies(device_id, data)
+
+        # ── Calculate session-relative reading count ──
+        # Fixes "top of page display with increasing previous test count"
+        start_count = session_start_readings.get(device_id, 0)
+        curr_count  = data.get("read_count", 0)
+
+        # Baseline capture: If a session is active but we missed the starting baseline
+        # (e.g. device was offline), capture the very FIRST reading that comes in.
+        if self.get_active_session(device_id) and start_count == 0:
+            start_count = curr_count
+            session_start_readings[device_id] = curr_count
+            logger.info(f"Session baseline captured on-the-fly: device={device_id} count={start_count}")
+
+        if start_count > 0:
+            data["session_read_count"] = max(1, curr_count - start_count + 1)
+        else:
+            data["session_read_count"] = curr_count  # fallback
 
         # ── ALERT HOOK 1: Safety Trip ──
         if data.get("safety_tripped"):
@@ -978,8 +1003,14 @@ Respond ONLY with valid JSON, no markdown, no preamble:
 
     # ── Public API ────────────────────────────────────────────────────────────
     def set_active_session(self, device_id: str, session_id: int, user_id: int = None):
+        device_id = _normalize_id(device_id)
         active_sessions[device_id] = session_id
-        logger.info(f"Active session set: device={device_id} session={session_id} user={user_id}")
+        
+        # Capture baseline read_count for relative session increments
+        latest = latest_readings.get(device_id, {})
+        session_start_readings[device_id] = latest.get("read_count", 0)
+        
+        logger.info(f"Active session set: device={device_id} session={session_id} user={user_id} start_count={session_start_readings[device_id]}")
 
     def get_active_session(self, device_id: str) -> Optional[int]:
         return active_sessions.get(device_id)
