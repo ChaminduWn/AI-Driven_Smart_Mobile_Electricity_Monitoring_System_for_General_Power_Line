@@ -142,7 +142,7 @@ const AppliancesScreen = () => {
     try {
       const { status } = await ImagePicker.requestCameraPermissionsAsync();
       if (status !== 'granted') {
-        Alert.alert('Permission required', 'Camera access is needed for AI scan.');
+        universalAlert('Permission required', 'Camera access is needed for AI scan.');
         return;
       }
 
@@ -158,7 +158,7 @@ const AppliancesScreen = () => {
       await recognizeAppliance(result.assets[0]);
     } catch (err) {
       console.error('Camera error:', err);
-      Alert.alert('Camera Error', 'Could not open camera. Try again.');
+      universalAlert('Camera Error', 'Could not open camera. Try again.');
     }
   };
 
@@ -206,17 +206,17 @@ const AppliancesScreen = () => {
           usage_times_per_day: (s.usage_times_per_day || 1).toString(),
           usage_frequency: s.usage_frequency || 'daily',
         });
-        Alert.alert(
+        universalAlert(
           '✅ Recognised!',
           `${s.appliance_name} — ${s.wattage}W\nPlease verify values before saving.`,
         );
       } else {
-        Alert.alert('Not Recognised', res.data?.message || 'Try a clearer photo or use a template.');
+        universalAlert('Not Recognised', res.data?.message || 'Try a clearer photo or use a template.');
       }
     } catch (err) {
       console.error('Scan error:', err?.response?.data || err);
       const detail = err?.response?.data?.detail;
-      Alert.alert('Scan Failed', detail ? JSON.stringify(detail) : 'Could not process image.');
+      universalAlert('Scan Failed', detail ? JSON.stringify(detail) : 'Could not process image.');
     } finally {
       setScanning(false);
     }
@@ -234,9 +234,9 @@ const AppliancesScreen = () => {
     });
 
   const saveAppliance = async () => {
-    if (!form.appliance_name.trim()) return Alert.alert('Required', 'Please enter an appliance name.');
-    if (!form.wattage || isNaN(parseInt(form.wattage))) return Alert.alert('Required', 'Please enter a valid wattage.');
-    if (!account) return Alert.alert('No Account', 'Upload a bill first to get an account number.');
+    if (!form.appliance_name.trim()) return universalAlert('Required', 'Please enter an appliance name.');
+    if (!form.wattage || isNaN(parseInt(form.wattage))) return universalAlert('Required', 'Please enter a valid wattage.');
+    if (!account) return universalAlert('No Account', 'Upload a bill first to get an account number.');
 
     setSavingApp(true);
     try {
@@ -251,13 +251,13 @@ const AppliancesScreen = () => {
         account_number: account,
       });
       if (res.data.success) {
-        Alert.alert('✅ Added!', `Monthly ~${res.data.monthly_kwh?.toFixed(1)} kWh`);
+        universalAlert('✅ Added!', `Monthly ~${res.data.monthly_kwh?.toFixed(1)} kWh`);
         setShowModal(false);
         setForm(emptyForm());
         fetchData();
       }
     } catch (err) {
-      Alert.alert('Error', err.response?.data?.detail || 'Failed to add appliance.');
+      universalAlert('Error', err.response?.data?.detail || 'Failed to add appliance.');
     } finally {
       setSavingApp(false);
     }

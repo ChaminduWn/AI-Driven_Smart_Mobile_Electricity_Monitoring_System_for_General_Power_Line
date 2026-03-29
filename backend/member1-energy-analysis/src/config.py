@@ -29,14 +29,21 @@ class Settings(BaseSettings):
     # Redis
     REDIS_URL: Optional[str] = None
 
+     # Gemini
+    GEMINI_API_KEY: Optional[str] = None
+
     # API
     API_V1_PREFIX: str = "/api/v1"
     CORS_ORIGINS: str = "http://localhost:3000,http://localhost:5173"
 
-    # Google OAuth — add Client IDs here as you get them
-    GOOGLE_CLIENT_ID: Optional[str] = None           # Web Client ID (now)
-    GOOGLE_ANDROID_CLIENT_ID: Optional[str] = None   # Android (later)
-    GOOGLE_IOS_CLIENT_ID: Optional[str] = None       # iOS (later)
+    # Google OAuth
+    GOOGLE_CLIENT_ID: Optional[str] = None
+    GOOGLE_ANDROID_CLIENT_ID: Optional[str] = None
+    GOOGLE_IOS_CLIENT_ID: Optional[str] = None
+
+    # Telegram
+    TELEGRAM_BOT_TOKEN: Optional[str] = None
+    TELEGRAM_CHAT_IDS: Optional[str] = None
 
     class Config:
         env_file = ".env"
@@ -50,6 +57,12 @@ class Settings(BaseSettings):
     @property
     def cors_origins_list(self) -> List[str]:
         return [origin.strip() for origin in self.CORS_ORIGINS.split(',')]
+
+    @property
+    def telegram_chat_ids_list(self) -> List[str]:
+        if not self.TELEGRAM_CHAT_IDS:
+            return []
+        return [cid.strip() for cid in self.TELEGRAM_CHAT_IDS.split(',')]
 
 
 settings = Settings()
