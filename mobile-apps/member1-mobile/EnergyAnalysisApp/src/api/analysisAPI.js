@@ -45,6 +45,9 @@ export const analysisAPI = {
   endPlan: (planId) =>
     apiClient.post(`/analysis/plans/${planId}/end`),
 
+  setPlanPriority: (planId) =>
+    apiClient.post(`/analysis/plans/${planId}/set-priority`),
+
   // ── Meter Readings / Progress Tracking ─────────────────────────────────
   trackProgress: (planId, currentReading, readingDate, notes = null) =>
     apiClient.post('/analysis/track-progress', {

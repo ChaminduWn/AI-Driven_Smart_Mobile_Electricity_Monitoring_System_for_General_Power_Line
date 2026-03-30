@@ -674,3 +674,49 @@ async def recognize_appliance_from_image(
                 except PermissionError:
                     # File will be cleaned up on next server restart
                     logger.warning(f"Could not delete temp file (still locked): {file_path}")
+
+class AIAnalysisRequest(BaseModel):
+    user_prompt: str
+
+@router.post("/ai-analysis/{account_number}")
+async def analyze_appliance_data_ai(
+    account_number: str,
+    request: AIAnalysisRequest,
+    db: Session = Depends(get_db)
+):
+    import httpx
+    import os
+    
+    # 1. Gather context
+    appliances = db.query(HouseholdAppliance).filter(
+        HouseholdAppliance.account_number == account_number,
+        HouseholdAppliance.is_active == True
+    ).all()
+    
+    context = "User Appliances:\n"
+    for a in appliances:
+        daily_kwh = a.daily_kwh if a.daily_kwh is not None else 0
+        context += f"- {a.appliance_name} ({a.wattage}W, uses {daily_kwh:.2f} kWh/day)\n"
+    
+    prompt = f"Context:\n{context}\n\nUser Question: {request.user_prompt}\n\nRespond briefly with actionable energy-saving advice."
+    
+    # 2. Call Gemini
+    GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+    if not GEMINI_API_KEY:
+        return {"success": False, "answer": "AI API Key is missing on the server. Please contact logic administrator."}
+
+    try:
+        async with httpx.AsyncClient() as client:
+            response = await client.post(
+                f"https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key={GEMINI_API_KEY}",
+                json={"contents": [{"parts": [{"text": prompt}]}]}
+            )
+            data = response.json()
+            if "candidates" in data and data["candidates"]:
+                answer = data["candidates"][0]["content"]["parts"][0]["text"]
+                return {"success": True, "answer": answer}
+            else:
+                return {"success": False, "answer": "I received an unexpected response structure from Gemini."}
+    except Exception as e:
+        logger.error(f"Gemini API Error: {e}")
+        return {"success": False, "answer": "I'm having trouble connecting to my AI brain right now. Try again later!"}

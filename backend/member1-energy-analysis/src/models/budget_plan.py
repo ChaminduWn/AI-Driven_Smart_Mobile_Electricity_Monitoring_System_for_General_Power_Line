@@ -60,6 +60,10 @@ class BudgetPlan(Base):
     last_check_date = Column(DateTime, nullable=True)
     current_progress_status = Column(String(50), default='on_track')
     
+    # Analytics & Priority
+    is_priority = Column(Boolean, default=False)
+    priority_set_at = Column(DateTime, nullable=True)
+    
     # Metadata
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())

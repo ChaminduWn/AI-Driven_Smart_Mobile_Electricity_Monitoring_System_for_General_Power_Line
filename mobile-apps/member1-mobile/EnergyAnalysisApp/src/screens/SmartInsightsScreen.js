@@ -549,14 +549,14 @@ const TariffWarningTab = ({ data, loading }) => {
 // TAB 3: EFFICIENCY SCORE
 // ══════════════════════════════════════════════════════════════════════════════
 
-const EfficiencyScoreTab = ({ data, loading }) => {
+const EfficiencyScoreTab = ({ data, loading, navigation }) => {
   if (loading) return <EmptyCard emoji="⏳" title="Calculating score..." subtitle="Please wait" />;
   if (!data) return (
     <EmptyCard
       emoji="🏆"
       title="Score Unavailable"
       subtitle="Upload a bill and complete your household profile to get your efficiency score."
-      action={() => navigation.navigate('Bills')}
+      action={navigation ? () => navigation.navigate('Bills') : undefined}
       actionLabel="Add Past Month Bill"
     />
   );
@@ -771,57 +771,90 @@ const SmartInsightsScreen = ({ navigation }) => {
     if (!selectedAccount) { setLoading(false); return; }
 
     try {
-      const insightsRes = await smartPredictionsAPI.getFullInsights(selectedAccount);
-      const insights = insightsRes.data;
-
-      setSpikeData(insights.spike_prediction);
-      setTariffData(insights.tariff_warning);
-      setEfficiencyData(insights.efficiency_score);
-      setAlertCount(insights.summary?.alert_count || 0);
-
+        // Try the combined endpoint first
+        const insightsRes = await smartPredictionsAPI.getFullInsights(selectedAccount);
+        const insights = insightsRes.data;
+        setSpikeData(insights.spike_prediction);
+        setTariffData(insights.tariff_warning);
+        setEfficiencyData(insights.efficiency_score);
+        setAlertCount(insights.summary?.alert_count || 0);
     } catch (err) {
-      try {
-        const billsRes = await billsAPI.getByAccount(selectedAccount);
-        const bills = (billsRes.data?.bills || []).map((b) => ({
-          kwh: b.total_units,
-          billing_month: new Date(b.bill_date).getMonth() + 1,
-          billing_year: new Date(b.bill_date).getFullYear(),
-          billing_days: b.billing_days || 30,
-          amount_rs: b.total_amount,
-          meter_start: b.meter_reading_start || 0,
-          meter_end: b.meter_reading_end || b.total_units,
-        }));
+        // Fallback: build data manually from bills
+        try {
+            const billsRes = await billsAPI.getByAccount(selectedAccount);
+            // ✅ FIX: correct field names from your ElectricityBill model
+            const bills = (billsRes.data?.data || []).map((b) => ({
+                kwh: b.units_consumed || 0,           // was b.total_units
+                billing_month: b.bill_date ? new Date(b.bill_date).getMonth() + 1 : 1,
+                billing_year: b.bill_date ? new Date(b.bill_date).getFullYear() : 2025,
+                billing_days: b.billing_period_days || 30,
+                amount_rs: b.total_charge || 0,       // was b.total_amount
+                meter_start: b.previous_reading || 0,
+                meter_end: b.current_reading || (b.units_consumed || 0),
+            })).filter(b => b.kwh > 0); // skip bills with no data
 
-        if (bills.length >= 2) {
-          const spikeRes = await smartPredictionsAPI.getSpikePrediction(bills);
-          setSpikeData(spikeRes.data);
-        }
+            if (bills.length >= 2) {
+                try {
+                    const spikeRes = await smartPredictionsAPI.getSpikePrediction(bills);
+                    setSpikeData(spikeRes.data);
+                } catch (spikeErr) {
+                    console.log('Spike prediction needs more bill history');
+                }
+            }
 
-        const plansRes = await analysisAPI.getPlansByAccount(selectedAccount, true);
-        const plan = plansRes.data?.plans?.[0];
-        if (plan) {
-          const readingsRes = await analysisAPI.getPlanReadings(plan.id);
-          const readings = (readingsRes.data?.readings || []).map((r) => ({
-            reading_value: r.current_reading,
-            reading_date: r.reading_date,
-            billing_period_start: plan.start_date,
-            billing_period_end: plan.end_date,
-          }));
-          if (readings.length > 0) {
-            const tariffRes = await smartPredictionsAPI.getTariffWarning(
-              readings, plan.start_reading || 0
-            );
-            setTariffData(tariffRes.data);
-          }
+            // Tariff warning from active plan readings
+            try {
+                const plansRes = await analysisAPI.getPlansByAccount(selectedAccount, true);
+                const plan = plansRes.data?.plans?.[0];
+                if (plan) {
+                    const readingsRes = await analysisAPI.getPlanReadings(plan.id);
+                    const rawReadings = readingsRes.data?.readings || [];
+                    if (rawReadings.length > 0) {
+                        const readings = rawReadings.map((r) => ({
+                            reading_value: r.reading_value,
+                            reading_date: r.reading_date,
+                            billing_period_start: plan.plan_start_date,
+                            billing_period_end: plan.plan_end_date,
+                        }));
+                        const startReading = plan.reference_bill_current_reading || 0;
+                        const tariffRes = await smartPredictionsAPI.getTariffWarning(
+                            readings, startReading
+                        );
+                        setTariffData(tariffRes.data);
+                    }
+                }
+            } catch (tariffErr) {
+                console.log('No tariff data available yet');
+            }
+
+            // Efficiency score from latest bill
+            if (bills.length > 0) {
+                try {
+                    const latestBill = bills[bills.length - 1];
+                    const effRes = await smartPredictionsAPI.getEfficiencyScore(
+                        {
+                            house_type: 1, total_people: 4, num_elderly: 0,
+                            num_children: 1, has_ac: 0, num_ac_units: 0,
+                            has_water_heater: 0, has_fridge: 1,
+                            has_washing_machine: 1, has_solar: 0,
+                            floor_area_category: 1, urban_rural: 1,
+                        },
+                        latestBill.kwh,
+                        latestBill.billing_month
+                    );
+                    setEfficiencyData(effRes.data);
+                } catch (effErr) {
+                    console.log('Efficiency score error:', effErr);
+                }
+            }
+        } catch (fallbackErr) {
+            console.error('Smart insights fallback error:', fallbackErr);
         }
-      } catch (fallbackErr) {
-        console.error('Smart insights error:', fallbackErr);
-      }
     } finally {
-      setLoading(false);
-      setRefreshing(false);
+        setLoading(false);
+        setRefreshing(false);
     }
-  }, [selectedAccount]);
+}, [selectedAccount]);
 
   useEffect(() => { loadData(); }, [loadData]);
 
@@ -870,7 +903,11 @@ const SmartInsightsScreen = ({ navigation }) => {
           <TariffWarningTab data={tariffData} loading={loading} />
         )}
         {activeTab === 'efficiency' && (
-          <EfficiencyScoreTab data={efficiencyData} loading={loading} />
+          <EfficiencyScoreTab 
+            data={efficiencyData} 
+            loading={loading} 
+            navigation={navigation}
+          />
         )}
         {activeTab === 'safety' && (
           <SafetyTab navigation={navigation} />

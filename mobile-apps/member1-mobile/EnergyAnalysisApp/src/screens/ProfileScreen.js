@@ -53,15 +53,18 @@ const ProfileScreen = ({ navigation }) => {
     ];
 
     useEffect(() => {
-        if (user?.default_account_number) {
-            fetchMembers();
+        // Wait until profile data is loaded AND has account number
+        const acctNum = profile.default_account_number || user?.default_account_number;
+        if (acctNum) {
+            fetchMembers(acctNum);
         }
-    }, [user]);
+    }, [profile.default_account_number]);
 
-    const fetchMembers = async () => {
+    const fetchMembers = async (accountNumber) => {
+        if (!accountNumber) return;
         setIsLoadingMembers(true);
         try {
-            const res = await householdAPI.getMembers(user.default_account_number);
+            const res = await householdAPI.getMembers(accountNumber);
             if (res.data.success) {
                 setMembers(res.data.members);
             }
@@ -91,16 +94,21 @@ const ProfileScreen = ({ navigation }) => {
             Alert.alert('Error', 'Please enter age');
             return;
         }
+        const acctNum = profile.default_account_number || user?.default_account_number;
+        if (!acctNum) {
+            Alert.alert('Error', 'Please save your account number first');
+            return;
+        }
         try {
             const res = await householdAPI.addMember({
                 ...newMember,
                 age: parseInt(newMember.age),
-                account_number: user.default_account_number,
+                account_number: acctNum,
             });
             if (res.data.success) {
                 setShowAddMember(false);
                 setNewMember({ member_type: 'adult_male', age: '', occupation_status: 'Working' });
-                fetchMembers();
+                fetchMembers(acctNum);
             }
         } catch (error) {
             Alert.alert('Error', 'Failed to add member');
@@ -108,9 +116,10 @@ const ProfileScreen = ({ navigation }) => {
     };
 
     const handleDeleteMember = async (id) => {
+        const acctNum = profile.default_account_number || user?.default_account_number;
         try {
             await householdAPI.deleteMember(id);
-            fetchMembers();
+            fetchMembers(acctNum);
         } catch (error) {
             Alert.alert('Error', 'Failed to delete member');
         }

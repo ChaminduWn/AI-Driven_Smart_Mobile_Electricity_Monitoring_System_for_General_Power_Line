@@ -67,17 +67,29 @@ async def _broadcast_telegram(text: str) -> int:
     return sum(results)
 
 
+import threading
+
 def send_telegram_sync(text: str) -> int:
-    """Synchronous wrapper — safe to call from non-async FastAPI routes."""
-    try:
-        loop = asyncio.get_event_loop()
-        if loop.is_running():
-            asyncio.ensure_future(_broadcast_telegram(text))
-            return -1  # scheduled
-        return loop.run_until_complete(_broadcast_telegram(text))
-    except Exception as e:
-        logger.error(f"send_telegram_sync error: {e}")
+    """Synchronous wrapper — safe to call from ANY context (sync or async FastAPI)."""
+    if not TELEGRAM_TOKEN:
+        logger.warning("TELEGRAM_BOT_TOKEN not set in .env")
         return 0
+    
+    result = [0]
+    
+    def run():
+        import asyncio
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        try:
+            result[0] = loop.run_until_complete(_broadcast_telegram(text))
+        finally:
+            loop.close()
+    
+    t = threading.Thread(target=run, daemon=True)
+    t.start()
+    t.join(timeout=10)  # wait max 10s
+    return result[0]
 
 
 # ─── Alert builders ───────────────────────────────────────────────────────────
@@ -217,7 +229,6 @@ class AlertEngine:
                 f"Score {health_score}/100 — {verdict}", "warning"
             )
 
-    # ── 6. Test alert (for setup verification) ────────────────────────────────
     def send_test_alert(self, chat_id: Optional[str] = None) -> bool:
         msg = (
             f"{SEVERITY_SUCCESS} <b>EnergyIQ Alert System Active</b>\n\n"
@@ -227,18 +238,23 @@ class AlertEngine:
             f"• Budget exceeded warnings\n"
             f"• Bill spike predictions\n"
             f"• Appliance health alerts\n\n"
-            f"🕐 {datetime.utcnow().strftime('%Y-%m-%d %H:%M UTC')}"
+            f"Test time: {datetime.utcnow().strftime('%Y-%m-%d %H:%M UTC')}"
         )
         if chat_id:
-            import asyncio
-            try:
-                loop = asyncio.get_event_loop()
-                if loop.is_running():
-                    asyncio.ensure_future(_send_telegram(chat_id, msg))
-                    return True
-                return loop.run_until_complete(_send_telegram(chat_id, msg))
-            except Exception:
-                return False
+            # Send to specific chat ID
+            result = [False]
+            def run():
+                import asyncio
+                loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(loop)
+                try:
+                    result[0] = loop.run_until_complete(_send_telegram(chat_id, msg))
+                finally:
+                    loop.close()
+            t = threading.Thread(target=run, daemon=True)
+            t.start()
+            t.join(timeout=10)
+            return result[0]
         return send_telegram_sync(msg) > 0
 
 

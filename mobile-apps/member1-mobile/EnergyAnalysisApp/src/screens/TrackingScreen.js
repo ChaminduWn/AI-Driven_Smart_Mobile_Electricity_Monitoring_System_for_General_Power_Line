@@ -533,6 +533,17 @@ const TrackingScreen = ({ navigation }) => {
     );
   };
 
+  const handleSetPriority = async () => {
+    if (!selectedPlan) return;
+    try {
+      await analysisAPI.setPlanPriority(selectedPlan.id);
+      fetchData(); // reload
+    } catch (e) {
+      console.error(e);
+      universalAlert('Error', 'Failed to set priority');
+    }
+  };
+
   const deleteReading = (readingId) => {
     console.log(`🔘 Delete reading pressed: ${readingId}`);
     universalAlert('Delete Reading', 'Remove this meter reading?', [
@@ -627,7 +638,7 @@ const TrackingScreen = ({ navigation }) => {
                         color: isActive ? '#38BDF8' : '#94A3B8',
                         fontSize: 13, fontWeight: isActive ? '700' : '600',
                       }}>
-                        Plan {idx + 1} (Rs.{p.target_budget})
+                        {p.is_priority ? '⭐ ' : ''}Plan {idx + 1} (Rs.{p.target_budget})
                       </Text>
                     </TouchableOpacity>
                   );
@@ -655,6 +666,11 @@ const TrackingScreen = ({ navigation }) => {
                     <View>
                       <Text style={s.planBudgetLabel}>Target Budget</Text>
                       <AnimatedNum value={selectedPlan.target_budget || 0} style={s.planBudget} />
+                      {!selectedPlan.is_priority && (
+                        <TouchableOpacity onPress={handleSetPriority} style={{ marginTop: 4 }}>
+                          <Text style={{ color: '#FBBF24', fontSize: 12, fontWeight: '600' }}>⭐ Set as Priority</Text>
+                        </TouchableOpacity>
+                      )}
                     </View>
                     <View style={[s.statusPill, {
                       backgroundColor: getStatusColor(selectedPlan.progress_status) + '25',

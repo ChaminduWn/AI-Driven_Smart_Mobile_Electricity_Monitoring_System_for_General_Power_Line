@@ -161,7 +161,7 @@ const pill = StyleSheet.create({
 });
 
 // ─── MAIN SCREEN ─────────────────────────────────────────────────────────────
-export default function TariffScreen() {
+export default function TariffScreen({ navigation }) {
   const [units, setUnits] = useState('');
   const [days, setDays] = useState('30');
   const [result, setResult] = useState(null);
@@ -201,6 +201,14 @@ export default function TariffScreen() {
       {/* HEADER */}
       <Animated.View style={[s.header, { transform: [{ scale: pulseAnim }] }]}>
         <View style={s.glow} />
+        {navigation && (
+          <TouchableOpacity 
+            onPress={() => navigation.goBack()} 
+            style={s.backBtn}
+          >
+            <Text style={s.backBtnText}>‹ Back</Text>
+          </TouchableOpacity>
+        )}
         <Text style={s.eyebrow}>⚡ CEYLON ELECTRICITY BOARD</Text>
         <Text style={s.title}>Tariff Calculator</Text>
         <View style={s.headerBadge}>
@@ -408,6 +416,8 @@ const s = StyleSheet.create({
     borderRadius: 110, backgroundColor: '#0EA5E9', opacity: 0.07,
   },
   eyebrow: { color: '#0EA5E9', fontSize: 10, fontWeight: '800', letterSpacing: 2.5, marginBottom: 10 },
+  backBtn: { marginBottom: 12 },
+  backBtnText: { color: '#0EA5E9', fontSize: 14, fontWeight: '600' },
   title: { color: '#F1F5F9', fontSize: 40, fontWeight: '700', lineHeight: 44, letterSpacing: 1.5 },
   headerBadge: {
     marginTop: 12, alignSelf: 'flex-start', backgroundColor: '#0F3460',

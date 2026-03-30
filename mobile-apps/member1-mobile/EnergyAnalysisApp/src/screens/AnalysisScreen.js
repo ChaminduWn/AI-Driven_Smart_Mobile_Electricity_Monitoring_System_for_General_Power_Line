@@ -149,16 +149,14 @@ const AnalysisScreen = ({ navigation }) => {
             <Text style={styles.featuresLabel}>WHAT'S INSIDE</Text>
             <View style={styles.featuresGrid}>
               {FEATURES.map(({ icon, label, desc }) => (
-                <TouchableOpacity
+                <View
                   key={label}
                   style={styles.featureCard}
-                  onPress={() => navigation.navigate('Tariff')}
-                  activeOpacity={0.8}
                 >
                   <Text style={styles.featureIcon}>{icon}</Text>
                   <Text style={styles.featureLabel}>{label}</Text>
                   <Text style={styles.featureDesc}>{desc}</Text>
-                </TouchableOpacity>
+                </View>
               ))}
             </View>
 
