@@ -14,11 +14,20 @@ sys.path.insert(0, str(project_root))
 from src.database import Base, engine
 from src.models import (
     ElectricityBill,
+    User,
+    UserProfile,
+    Notification,
     BudgetPlan,
     MeterReading,
     HouseholdAppliance,
     HouseholdMember,
-    TariffStructure
+    TariffStructure,
+    LiveMeterReading,
+    ApplianceEvent,
+    IoTReading,
+    DeviceSession,
+    DeviceReading,
+    DeviceApplianceEvent,
 )
 
 def create_all_tables():
@@ -31,12 +40,21 @@ def create_all_tables():
         Base.metadata.create_all(bind=engine)
         
         print("✓ Successfully created the following tables:")
+        print("  - users")
+        print("  - user_profiles")
+        print("  - notifications")
         print("  - electricity_bills")
         print("  - budget_plans")
         print("  - meter_readings")
         print("  - household_appliances")
         print("  - household_members")
         print("  - tariff_structures")
+        print("  - live_meter_readings")
+        print("  - appliance_events")
+        print("  - iot_readings")
+        print("  - device_sessions")
+        print("  - device_readings")
+        print("  - device_appliance_events")
         print("\n" + "=" * 60)
         print("✅ Database setup complete!")
         

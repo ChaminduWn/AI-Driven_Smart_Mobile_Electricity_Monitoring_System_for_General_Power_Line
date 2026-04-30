@@ -28,11 +28,3 @@ export const smartPredictionsAPI = {
   getFullInsights: (accountNumber) =>
     apiClient.get(`/smart/insights-summary/${accountNumber}`),
 };
-
-
-
-
-
-
-
-

@@ -4,6 +4,8 @@ import {
   RefreshControl, Animated, Dimensions,
 } from 'react-native';
 import { smartPredictionsAPI } from '../api/smartPredictionsAPI';
+import RelayControlCard from '../components/RelayControlCard';
+
 import { billsAPI } from '../api/billsAPI';
 import { analysisAPI } from '../api/analysisAPI';
 import { useAccount } from '../contexts/AccountContext';
@@ -684,7 +686,50 @@ const EfficiencyScoreTab = ({ data, loading, navigation }) => {
 // TAB 4: SAFETY ASSISTANT
 // ══════════════════════════════════════════════════════════════════════════════
 
+const IoTControlTab = ({ deviceId, token }) => {
+  if (!deviceId) return (
+    <EmptyCard 
+      emoji="📡" 
+      title="No Device Linked" 
+      subtitle="Connect an EnergyIQ IoT device in the Live Meter section to enable remote control."
+    />
+  );
+
+  return (
+    <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 40 }}>
+      <SectionCard>
+        <Text style={s.cardTitle}>Smart Device Control</Text>
+        <Text style={s.cardSub}>Remote relay management and safety configuration</Text>
+      </SectionCard>
+
+      <View style={{ marginHorizontal: SPACING.lg }}>
+        <RelayControlCard 
+          deviceId={deviceId} 
+          token={token} 
+          liveData={null} // Card will fetch its own if needed or wait for MQTT
+        />
+      </View>
+
+      <SectionCard style={{ marginTop: SPACING.md }}>
+        <Text style={s.sectionTitle}>Device Information</Text>
+        <View style={s.breakdownRow}>
+          <Text style={s.breakdownLabel}>MAC Address</Text>
+          <Text style={s.breakdownValue}>{deviceId}</Text>
+        </View>
+        <View style={s.breakdownRow}>
+          <Text style={s.breakdownLabel}>Status</Text>
+          <Text style={[s.breakdownValue, { color: COLORS.success }]}>Paired</Text>
+        </View>
+        <Text style={[s.cardSub, { marginTop: SPACING.md, fontSize: 11 }]}>
+          Tip: You can set custom safety limits (Wattage/Amperage) to protect your appliances from surges even when you are away.
+        </Text>
+      </SectionCard>
+    </ScrollView>
+  );
+};
+
 const SafetyTab = ({ navigation }) => {
+
   return (
     <ScrollView showsVerticalScrollIndicator={false}>
       <SectionCard>
@@ -753,8 +798,10 @@ const TABS = [
   { id: 'spike', emoji: '⚡', label: 'Spike Alert' },
   { id: 'tariff', emoji: '📏', label: 'Tariff Watch' },
   { id: 'efficiency', emoji: '🏆', label: 'Efficiency' },
+  { id: 'iot', emoji: '⚙️', label: 'IoT Control' },
   { id: 'safety',     emoji: '🛡️', label: 'Safety' },
 ];
+
 
 const SmartInsightsScreen = ({ navigation }) => {
   const { selectedAccount } = useAccount();
@@ -766,6 +813,19 @@ const SmartInsightsScreen = ({ navigation }) => {
   const [tariffData, setTariffData] = useState(null);
   const [efficiencyData, setEfficiencyData] = useState(null);
   const [alertCount, setAlertCount] = useState(0);
+  const [deviceId, setDeviceId] = useState(null);
+  const [token, setToken] = useState(null);
+
+  useEffect(() => {
+    const loadIoT = async () => {
+      const t = await require('@react-native-async-storage/async-storage').default.getItem('accessToken');
+      const d = await require('@react-native-async-storage/async-storage').default.getItem('last_iot_device');
+      setToken(t);
+      setDeviceId(d);
+    };
+    loadIoT();
+  }, []);
+
 
   const loadData = useCallback(async () => {
     if (!selectedAccount) { setLoading(false); return; }
@@ -908,6 +968,9 @@ const SmartInsightsScreen = ({ navigation }) => {
             loading={loading} 
             navigation={navigation}
           />
+        )}
+        {activeTab === 'iot' && (
+          <IoTControlTab deviceId={deviceId} token={token} />
         )}
         {activeTab === 'safety' && (
           <SafetyTab navigation={navigation} />

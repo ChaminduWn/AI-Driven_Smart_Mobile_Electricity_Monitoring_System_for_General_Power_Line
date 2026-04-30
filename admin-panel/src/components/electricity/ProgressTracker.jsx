@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, AreaChart, Area, LineChart, Line } from 'recharts';
 import { TrendingUp, TrendingDown, AlertTriangle, CheckCircle, Calendar, Zap, DollarSign, Target, Activity, AlertCircle, User, Trash2, Edit2, Download, Share2, Bell } from 'lucide-react';
+import { MEMBER1_API_BASE } from '../../config/apiBases';
 
-const API_BASE = 'http://localhost:8000/api/v1';
+const API_BASE = MEMBER1_API_BASE;
 
 const ProgressTracker = () => {
   const [availableAccounts, setAvailableAccounts] = useState([]);

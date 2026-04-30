@@ -28,10 +28,22 @@ router = APIRouter(prefix="/relay", tags=["Relay Control"])
 # ── Request models ────────────────────────────────────────────────────────────
 
 class RelayCommandRequest(BaseModel):
-    device_id: str = Field(..., description="Target ESP32 device MAC-based ID")
-    command: str = Field(..., description="relay_on | relay_off | reset_safety | reset_energy")
-    max_w: Optional[float] = Field(None, description="Custom max watts (for set_limits)")
-    max_a: Optional[float] = Field(None, description="Custom max amps (for set_limits)")
+    device_id: str = Field(..., description="MAC-style device ID, e.g. A1B2C3D4E5F6")
+    action: str    = Field(..., description="on | off | reset_safety | reset_energy | set_limits | safety_on | safety_off")
+    max_w:  Optional[float] = Field(None, description="Custom watt limit (set_limits only)")
+    max_a:  Optional[float] = Field(None, description="Custom amp limit  (set_limits only)")
+
+
+class RelayStateResponse(BaseModel):
+    device_id:      str
+    relay_on:       bool
+    safety_tripped: bool
+    safety_reason:  str
+    custom_max_w:   float
+    custom_max_a:   float
+    safety_enabled: bool
+    source:         str   # "live_reading" | "unknown"
+
 
 
 class RelayLimitsRequest(BaseModel):
@@ -43,30 +55,40 @@ class RelayLimitsRequest(BaseModel):
 # ── MQTT publisher helper ─────────────────────────────────────────────────────
 
 def _publish_relay_command(device_id: str, payload: dict) -> bool:
-    """Publish a command to the ESP32 via MQTT through iot_service."""
+    """
+    Publish a command to the ESP32 via MQTT.
+    Tries persistent client first, falls back to one-shot synchronous publish.
+    """
     device_id = _normalize_id(device_id)
-    if not iot_service.mqtt_client:
-        logger.error(f"MQTT client is None — Device: {device_id}")
-        return False
+    
+    # 1. Try persistent client from iot_service
+    if iot_service.mqtt_client and iot_service.mqtt_client.is_connected():
+        topic = f"energyiq/device/{device_id}/cmd"
+        try:
+            msg_info = iot_service.mqtt_client.publish(topic, json.dumps(payload), qos=1)
+            if msg_info.rc == 0:
+                logger.info(f"Relay cmd SUCCESS (persistent) → {topic}: {payload}")
+                return True
+        except Exception as e:
+            logger.error(f"Persistent MQTT publish EXCEPTION: {e}")
 
-    if not iot_service.mqtt_client.is_connected():
-        logger.error(f"MQTT client NOT connected — cmd dropped. Device: {device_id}")
-        return False
-
-    topic = f"energyiq/device/{device_id}/cmd"
+    # 2. Fallback: One-shot synchronous publish
     try:
-        msg_info = iot_service.mqtt_client.publish(topic, json.dumps(payload), qos=1)
-        # qos=1 ensures at least once delivery attempt
-        
-        if msg_info.rc == 0:
-            logger.info(f"Relay cmd SUCCESS → {topic}: {payload}")
-            return True
-        else:
-            logger.error(f"MQTT publish FAILED (rc={msg_info.rc}) for {device_id}")
-            return False
+        import paho.mqtt.publish as publish
+        topic = f"energyiq/device/{device_id}/cmd"
+        publish.single(
+            topic    = topic,
+            payload  = json.dumps(payload),
+            hostname = "broker.hivemq.com",
+            port     = 1883,
+            keepalive= 10,
+        )
+        logger.info(f"Relay cmd SUCCESS (one-shot) → {topic}: {payload}")
+        return True
     except Exception as e:
-        logger.error(f"MQTT publish EXCEPTION for {device_id}: {e}")
+        logger.error(f"One-shot MQTT publish FAILED: {e}")
         return False
+
 
 
 # ── Endpoints ─────────────────────────────────────────────────────────────────
@@ -75,33 +97,98 @@ def _publish_relay_command(device_id: str, payload: dict) -> bool:
 def send_relay_command(
     req: RelayCommandRequest,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),    # ← FIXED: consistent with iot.py
+    current_user: User = Depends(get_current_user),
 ):
     """
     Send a relay command to the ESP32 device via MQTT.
-
-    Commands:
-    - relay_on       — close relay (power appliance)
-    - relay_off      — open relay  (cut power)
-    - reset_safety   — clear safety latch after trip
-    - reset_energy   — zero session energy counter
-    - safety_enable  — re-enable safety monitoring
-    - safety_disable — disable safety monitoring (use with caution)
     """
-    VALID = {"relay_on", "relay_off", "reset_safety", "reset_energy",
-             "safety_enable", "safety_disable"}
-    if req.command not in VALID:
-        raise HTTPException(400, f"Unknown command. Valid: {sorted(VALID)}")
+    action = req.action.strip().lower()
+    device_id = _normalize_id(req.device_id)
 
-    payload = {"cmd": req.command}
-    ok = _publish_relay_command(req.device_id, payload)
+    ACTION_MAP = {
+        "on":           {"cmd": "relay_on"},
+        "off":          {"cmd": "relay_off"},
+        "relay_on":     {"cmd": "relay_on"},
+        "relay_off":    {"cmd": "relay_off"},
+        "reset_safety": {"cmd": "reset_safety"},
+        "reset_energy": {"cmd": "reset_energy"},
+        "safety_on":    {"cmd": "safety_enable"},
+        "safety_off":   {"cmd": "safety_disable"},
+        "safety_enable":  {"cmd": "safety_enable"},
+        "safety_disable": {"cmd": "safety_disable"},
+    }
+
+    if action == "set_limits":
+        if req.max_w is None and req.max_a is None:
+            raise HTTPException(422, "set_limits requires max_w or max_a")
+        payload = {"cmd": "set_limits"}
+        if req.max_w is not None: payload["max_w"] = req.max_w
+        if req.max_a is not None: payload["max_a"] = req.max_a
+    elif action in ACTION_MAP:
+        payload = ACTION_MAP[action]
+    else:
+        raise HTTPException(400, f"Unknown action '{action}'")
+
+    ok = _publish_relay_command(device_id, payload)
 
     return {
         "success": ok,
-        "device_id": req.device_id,
-        "command": req.command,
-        "message": "Command sent via MQTT" if ok else "MQTT unavailable — check broker connection. See server logs.",
+        "device_id": device_id,
+        "sent": payload,
+        "message": f"Command '{action}' sent" if ok else "MQTT publish failed",
     }
+
+
+@router.get("/state/{device_id}", response_model=RelayStateResponse)
+def get_relay_state(
+    device_id: str,
+    current_user: User = Depends(get_current_user),
+):
+    """Return the most recently received relay state for a device."""
+    from src.services.iot_service import latest_readings
+    
+    device_id = _normalize_id(device_id)
+    reading = latest_readings.get(device_id)
+
+    if not reading:
+        raise HTTPException(404, f"No live reading found for device {device_id}")
+
+    return RelayStateResponse(
+        device_id      = device_id,
+        relay_on       = bool(reading.get("relay_on", False)),
+        safety_tripped = bool(reading.get("safety_tripped", False)),
+        safety_reason  = str(reading.get("safety_reason", "")),
+        custom_max_w   = float(reading.get("custom_max_w", 2300)),
+        custom_max_a   = float(reading.get("custom_max_a", 9.0)),
+        safety_enabled = bool(reading.get("safety_enabled", True)),
+        source         = "live_reading",
+    )
+
+
+@router.post("/toggle/{device_id}")
+def relay_toggle(
+    device_id: str,
+    current_user: User = Depends(get_current_user),
+):
+    """Flips the relay state based on the last known reading."""
+    from src.services.iot_service import latest_readings
+
+    device_id = _normalize_id(device_id)
+    reading = latest_readings.get(device_id, {})
+    currently_on = bool(reading.get("relay_on", False))
+
+    new_action = "off" if currently_on else "on"
+    payload = {"cmd": f"relay_{new_action}"}
+    ok = _publish_relay_command(device_id, payload)
+
+    return {
+        "success":    ok,
+        "device_id":  device_id,
+        "was_on":     currently_on,
+        "now_on":     not currently_on,
+        "sent":       payload,
+    }
+
 
 
 @router.post("/set-limits")

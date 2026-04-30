@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { Camera, TrendingDown, TrendingUp, Zap, DollarSign, Calendar, AlertCircle, CheckCircle, Target, Activity, Trash2, Edit3 } from 'lucide-react';
+import { MEMBER1_API_BASE } from '../../config/apiBases';
 
-const API_BASE = 'http://localhost:8000/api/v1';
+const API_BASE = MEMBER1_API_BASE;
 
 const COLORS = {
   primary: '#3B82F6',

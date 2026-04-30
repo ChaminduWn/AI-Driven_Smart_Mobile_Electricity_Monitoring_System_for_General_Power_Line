@@ -13,6 +13,10 @@ import {
   ListItemButton,
   ListItemIcon,
   ListItemText,
+  Menu,
+  MenuItem,
+  Avatar,
+  Tooltip,
 } from '@mui/material';
 import {
   Menu as MenuIcon,
@@ -21,31 +25,55 @@ import {
   ReportProblem,
   WbSunny,
   Security,
+  AccountCircle,
+  ExitToApp,
 } from '@mui/icons-material';
+import { useAuth } from '../../contexts/AuthContext';
 
 const drawerWidth = 240;
 
 const menuItems = [
-  { text: 'Overview', icon: <DashboardIcon />, path: '/' },
-  { text: 'Energy Analysis', icon: <ElectricBolt />, path: '/member1' },
-  { text: 'Outage Reports', icon: <ReportProblem />, path: '/member2' },
-  { text: 'Solar Recommendations', icon: <WbSunny />, path: '/Solar Recommendations' },
-  { text: 'Safety Assistant', icon: <Security />, path: '/member4' },
+  { text: 'Overview', icon: <DashboardIcon />, path: '/d' },
+  { text: 'Profile', icon: <AccountCircle />, path: '/d/profile' },
+  { text: 'Energy Analysis', icon: <ElectricBolt />, path: '/d/analysis' },
+  { text: 'Live Monitoring', icon: <ReportProblem />, path: '/d/monitoring' },
+  { text: 'Solar Intelligence', icon: <WbSunny />, path: '/d/solar' },
+  { text: 'Safety Assistant', icon: <Security />, path: '/d/safety' },
 ];
 
 export default function DashboardLayout() {
+  const { logout, user } = useAuth();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [anchorEl, setAnchorEl] = useState(null);
   const navigate = useNavigate();
 
   const handleDrawerToggle = () => {
     setMobileOpen(!mobileOpen);
   };
 
+  const handleProfileMenuOpen = (event) => {
+    setAnchorEl(event.currentTarget);
+  };
+
+  const handleProfileMenuClose = () => {
+    setAnchorEl(null);
+  };
+
+  const handleProfile = () => {
+    handleProfileMenuClose();
+    navigate('/d/profile');
+  };
+
+  const handleLogoutClick = async () => {
+    handleProfileMenuClose();
+    await logout();
+  };
+
   const drawer = (
     <div>
       <Toolbar>
         <Typography variant="h6" noWrap component="div">
-          
+          EnergyIQ Admin
         </Typography>
       </Toolbar>
       <Divider />
@@ -58,6 +86,17 @@ export default function DashboardLayout() {
             </ListItemButton>
           </ListItem>
         ))}
+      </List>
+      <Divider />
+      <List>
+        <ListItem disablePadding>
+          <ListItemButton onClick={logout}>
+            <ListItemIcon>
+              <ExitToApp />
+            </ListItemIcon>
+            <ListItemText primary="Logout" />
+          </ListItemButton>
+        </ListItem>
       </List>
     </div>
   );
@@ -83,6 +122,55 @@ export default function DashboardLayout() {
           <Typography variant="h6" noWrap component="div">
             Electricity Management System
           </Typography>
+          <Box sx={{ flexGrow: 1 }} />
+          <Box sx={{ display: 'flex', alignItems: 'center' }}>
+            <Typography variant="body2" sx={{ mr: 1, display: { xs: 'none', sm: 'block' } }}>
+              {user?.name || user?.email || 'Admin'}
+            </Typography>
+            <Tooltip title="Account settings">
+              <IconButton
+                onClick={handleProfileMenuOpen}
+                size="small"
+                sx={{ ml: 1 }}
+                aria-controls={anchorEl ? 'account-menu' : undefined}
+                aria-haspopup="true"
+                aria-expanded={anchorEl ? 'true' : undefined}
+              >
+                <Avatar>
+                  {(user?.name || user?.email || 'A')[0].toUpperCase()}
+                </Avatar>
+              </IconButton>
+            </Tooltip>
+          </Box>
+          <Menu
+            anchorEl={anchorEl}
+            id="account-menu"
+            open={Boolean(anchorEl)}
+            onClose={handleProfileMenuClose}
+            onClick={handleProfileMenuClose}
+            PaperProps={{
+              elevation: 2,
+              sx: {
+                mt: 1.5,
+                minWidth: 150,
+              },
+            }}
+            transformOrigin={{ horizontal: 'right', vertical: 'top' }}
+            anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
+          >
+            <MenuItem onClick={handleProfile}>
+              <ListItemIcon>
+                <AccountCircle fontSize="small" />
+              </ListItemIcon>
+              Profile
+            </MenuItem>
+            <MenuItem onClick={handleLogoutClick}>
+              <ListItemIcon>
+                <ExitToApp fontSize="small" />
+              </ListItemIcon>
+              Logout
+            </MenuItem>
+          </Menu>
         </Toolbar>
       </AppBar>
       <Box

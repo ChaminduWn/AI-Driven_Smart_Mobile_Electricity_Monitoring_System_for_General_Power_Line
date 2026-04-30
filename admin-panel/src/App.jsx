@@ -1,9 +1,12 @@
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, Outlet, useLocation } from 'react-router-dom';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
+
+// Context
+import { AuthProvider, useAuth } from './contexts/AuthContext';
 
 // Layout
 import DashboardLayout from './components/common/DashboardLayout';
@@ -11,15 +14,18 @@ import PublicLayout from './components/common/PublicLayout';
 
 // Pages
 import Dashboard from './pages/Dashboard';
-import Member1Dashboard from './pages/Member1Dashboard';
-import Member2Dashboard from './pages/Member2Dashboard';
-import Member3Dashboard from './pages/Member3Dashboard';
-import Member4Dashboard from './pages/Member4Dashboard';
-import Login from './pages/Login';
+import DashboardPage from './pages/DashboardPage';
+import AnalysisPage from './pages/AnalysisPage';
+import SafetyPage from './pages/SafetyPage';
+import LiveMeterPage from './pages/LiveMeterPage';
 
 import Home from './pages/Homepage';
 import MobileAppView from './pages/MobileAppView';
-
+import LoginPage from './pages/LoginPage';
+import RegisterPage from './pages/RegisterPage';
+import UserLoginPage from './pages/UserLoginPage';
+import UserRegisterPage from './pages/UserRegisterPage';
+import ProfilePage from './pages/ProfilePage';
 
 const theme = createTheme({
   palette: {
@@ -29,40 +35,67 @@ const theme = createTheme({
   },
 });
 
+function ProtectedRoute() {
+  const { isAuthenticated, loading } = useAuth();
+  const location = useLocation();
+
+  if (loading) return <div style={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>Loading...</div>;
+
+  const redirectTo = location.pathname.startsWith('/admin') ? '/admin/login' : '/login';
+  return isAuthenticated ? <Outlet /> : <Navigate to={redirectTo} replace />;
+}
+
 function App() {
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
 
       <Router>
-        <Routes>
-          
-          <Route element={<PublicLayout />}>
-            <Route path="/" element={<Home />} />
+        <AuthProvider>
+          <Routes>
+            <Route element={<PublicLayout />}>
+              <Route path="/" element={<Home />} />
 
-            {/* Direct member route */}
-            <Route path="/Energy Analysis" element={<Member1Dashboard />}/>
-            <Route path="/Outage Tracking" element={<Member2Dashboard />} />
-            <Route path="/Solar Intelligence" element={<Member3Dashboard />} />
-            <Route path="/Safety Assistant" element={<Member4Dashboard />} />
-          </Route>
+              {/* Public Modules */}
+              <Route path="/Solar Intelligence" element={<AnalysisPage />} />
+              <Route path="/Safety Assistant" element={<SafetyPage />} />
 
-          <Route path="/app" element={<MobileAppView />} />
+              {/* Protected Modules */}
+              <Route element={<ProtectedRoute />}>
+                <Route path="/Energy Analysis" element={<AnalysisPage />}/>
+                <Route path="/Outage Tracking" element={<LiveMeterPage />} />
+                <Route path="/profile" element={<ProfilePage />} />
+              </Route>
+              
+              <Route path="/login" element={<UserLoginPage />} />
+              <Route path="/register" element={<UserRegisterPage />} />
+              <Route path="/admin/login" element={<LoginPage />} />
+              <Route path="/admin/register" element={<RegisterPage />} />
+              
+              {/* Legacy Route Redirects */}
+              <Route path="/user/login" element={<Navigate to="/login" replace />} />
+              <Route path="/user/register" element={<Navigate to="/register" replace />} />
+            </Route>
 
-          {/* Dashboard Layout Routes */}
-          <Route path="/d" element={<DashboardLayout />}>
-            <Route index element={<Dashboard />} />
-            <Route path="member1" element={<Member1Dashboard />} />
-            <Route path="member2" element={<Member2Dashboard />} />
-            <Route path="solar-recommendations" element={<Member3Dashboard />} />
-            <Route path="member4" element={<Member4Dashboard />} />
-            <Route path="electricity" element={<Member1Dashboard />} />
-            <Route path="homepage" element={<Home/>} />
-          </Route>
+            <Route path="/app" element={<MobileAppView />} />
 
-          {/* Redirect unknown routes */}
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
+            {/* Dashboard Layout Routes */}
+            <Route path="/d" element={<ProtectedRoute />}>
+              <Route element={<DashboardLayout />}>
+                <Route index element={<DashboardPage />} />
+                <Route path="analysis" element={<AnalysisPage />} />
+                <Route path="monitoring" element={<LiveMeterPage />} />
+                <Route path="solar" element={<AnalysisPage />} />
+                <Route path="safety" element={<SafetyPage />} />
+                <Route path="profile" element={<ProfilePage />} />
+                <Route path="homepage" element={<Home/>} />
+              </Route>
+            </Route>
+
+            {/* Redirect unknown routes */}
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+        </AuthProvider>
       </Router>
 
       <ToastContainer position="top-right" autoClose={3000} />

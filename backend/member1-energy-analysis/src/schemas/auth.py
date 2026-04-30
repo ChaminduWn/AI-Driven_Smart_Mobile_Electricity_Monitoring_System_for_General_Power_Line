@@ -12,6 +12,7 @@ class UserRegisterRequest(BaseModel):
     password: str = Field(..., min_length=8, max_length=128)
     full_name: Optional[str] = Field(None, max_length=255)
     default_account_number: Optional[str] = Field(None, max_length=100)
+    admin_code: Optional[str] = Field(None, description="Optional passcode to register as admin")
 
     @validator('password')
     def validate_password(cls, v):
@@ -55,6 +56,7 @@ class UserProfileResponse(BaseModel):
     phone_number: Optional[str]
     full_name: Optional[str]
     default_account_number: Optional[str]
+    is_admin: bool = False
     created_at: datetime
 
     class Config:

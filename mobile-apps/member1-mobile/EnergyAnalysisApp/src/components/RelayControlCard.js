@@ -1,14 +1,11 @@
 /**
- * RelayControlCard.jsx
+ * RelayControlCard.js
  * 
  * Drop-in component for LiveMeterScreen (MonitorScreen section).
  * Shows relay ON/OFF toggle, safety status, custom power limits,
  * and safety event log.
  * 
- * Usage in LiveMeterScreen MonitorScreen:
- *   import RelayControlCard from '../components/RelayControlCard';
- *   ...
- *   <RelayControlCard deviceId={deviceId} liveData={live} token={getToken()} />
+ * UPDATED: Matches new Backend Relay API (action instead of command)
  */
 
 import React, { useState, useEffect, useCallback } from 'react';
@@ -29,10 +26,9 @@ const authHeaders = (token) => ({
   'Authorization': `Bearer ${token}`,
 });
 
-// ─── Main Component ────────────────────────────────────────────────────────
-
 const RelayControlCard = ({ deviceId, liveData, token }) => {
   const [relayOn, setRelayOn] = useState(false);
+  const [safetyEnabled, setSafetyEnabled] = useState(true);
   const [safetyTripped, setSafetyTripped] = useState(false);
   const [safetyReason, setSafetyReason] = useState('');
   const [customMaxW, setCustomMaxW] = useState('2300');
@@ -45,6 +41,7 @@ const RelayControlCard = ({ deviceId, liveData, token }) => {
   useEffect(() => {
     if (!liveData) return;
     setRelayOn(liveData.relay_on ?? false);
+    setSafetyEnabled(liveData.safety_enabled ?? true);
     setSafetyTripped(liveData.safety_tripped ?? false);
     setSafetyReason(liveData.safety_reason ?? '');
     if (liveData.custom_max_w) setCustomMaxW(String(liveData.custom_max_w));
@@ -64,15 +61,15 @@ const RelayControlCard = ({ deviceId, liveData, token }) => {
     return () => loop.stop();
   }, [safetyTripped]);
 
-  const sendCommand = useCallback(async (cmd, extra = {}) => {
+  const sendCommand = useCallback(async (action, extra = {}) => {
     const cleanId = String(deviceId || '').replace(/:/g, '').toUpperCase();
-    console.log(`[RelayControl] Sending command: ${cmd} to ${cleanId}`, extra);
+    console.log(`[RelayControl] Sending action: ${action} to ${cleanId}`, extra);
     setSending(true);
     try {
       const r = await fetch(`${API_BASE}/relay/command`, {
         method: 'POST',
         headers: authHeaders(token),
-        body: JSON.stringify({ device_id: cleanId, command: cmd, ...extra }),
+        body: JSON.stringify({ device_id: cleanId, action: action, ...extra }),
       });
       const d = await r.json();
       console.log(`[RelayControl] Server response:`, d);
@@ -98,7 +95,11 @@ const RelayControlCard = ({ deviceId, liveData, token }) => {
       );
       return;
     }
-    await sendCommand(value ? 'relay_on' : 'relay_off');
+    await sendCommand(value ? 'on' : 'off');
+  };
+
+  const toggleSafety = async (value) => {
+    await sendCommand(value ? 'safety_on' : 'safety_off');
   };
 
   const applyLimits = async () => {
@@ -112,14 +113,7 @@ const RelayControlCard = ({ deviceId, liveData, token }) => {
       Alert.alert('Invalid', 'Max amps must be between 0.5 and 9.0');
       return;
     }
-    const cleanId = String(deviceId || '').replace(/:/g, '').toUpperCase();
-    const r = await fetch(`${API_BASE}/relay/set-limits`, {
-      method: 'POST',
-      headers: authHeaders(token),
-      body: JSON.stringify({ device_id: cleanId, max_w: w, max_a: a }),
-    });
-    const d = await r.json();
-    Alert.alert(d.success ? '✅ Limits Updated' : '❌ Failed', d.message);
+    await sendCommand('set_limits', { max_w: w, max_a: a });
     setShowLimits(false);
   };
 
@@ -161,6 +155,26 @@ const RelayControlCard = ({ deviceId, liveData, token }) => {
         </View>
       </View>
 
+      {/* Safety Status */}
+      <View style={s.row}>
+        <View>
+          <Text style={s.label}>Hardware Safety</Text>
+          <Text style={[s.stateText, { color: safetyEnabled ? C.accent : C.yellow }]}>
+            {safetyEnabled ? '🛡️ Enabled & Monitoring' : '⚠️ Disabled (Warning)'}
+          </Text>
+        </View>
+        <View style={s.toggleArea}>
+          <Switch
+            value={safetyEnabled}
+            onValueChange={toggleSafety}
+            disabled={sending}
+            trackColor={{ false: '#1F2D45', true: '#004A5F' }}
+            thumbColor={safetyEnabled ? C.accent : C.textSec}
+            ios_backgroundColor="#1F2D45"
+          />
+        </View>
+      </View>
+
       {/* Power usage bar */}
       {relayOn && (
         <View style={s.usageWrap}>
@@ -183,7 +197,7 @@ const RelayControlCard = ({ deviceId, liveData, token }) => {
       <View style={s.actions}>
         <TouchableOpacity
           style={[s.actionBtn, { borderColor: C.red + '60' }]}
-          onPress={() => sendCommand('relay_off')}
+          onPress={() => sendCommand('off')}
           disabled={sending}
         >
           <Text style={[s.actionTxt, { color: C.red }]}>⏹ Cut Power</Text>
@@ -246,8 +260,6 @@ const RelayControlCard = ({ deviceId, liveData, token }) => {
     </View>
   );
 };
-
-// ─── Styles ───────────────────────────────────────────────────────────────────
 
 const s = StyleSheet.create({
   wrap: {

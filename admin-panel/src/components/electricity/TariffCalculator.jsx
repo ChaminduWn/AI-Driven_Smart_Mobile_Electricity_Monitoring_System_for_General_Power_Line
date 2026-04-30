@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { Calculator, Zap, DollarSign, AlertCircle, TrendingUp, TrendingDown } from 'lucide-react';
+import { MEMBER1_API_BASE } from '../../config/apiBases';
 
-const API_BASE = 'http://localhost:8000/api/v1';
+const API_BASE = MEMBER1_API_BASE;
 
 const TariffCalculator = () => {
   const [calcUnits, setCalcUnits] = useState(100);

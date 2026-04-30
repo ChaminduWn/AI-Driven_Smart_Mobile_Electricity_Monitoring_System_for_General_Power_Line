@@ -125,11 +125,19 @@ def register_user(payload: UserRegisterRequest, db: Session = Depends(get_db)):
             if db.query(User).filter(User.phone_number == payload.phone_number).first():
                 raise HTTPException(status_code=400, detail="Phone number is already registered")
 
+        is_admin_user = False
+        if payload.admin_code:
+            if payload.admin_code == 'EMSCORE-ADMIN':
+                is_admin_user = True
+            else:
+                raise HTTPException(status_code=400, detail="Invalid admin authorization code")
+
         user = User(
             email=payload.email,
             phone_number=payload.phone_number,
             hashed_password=get_password_hash(payload.password),
             is_active=True,
+            is_admin=is_admin_user,
         )
         db.add(user)
         db.flush()
@@ -159,6 +167,7 @@ def register_user(payload: UserRegisterRequest, db: Session = Depends(get_db)):
                 phone_number=user.phone_number,
                 full_name=profile.full_name,
                 default_account_number=profile.default_account_number,
+                is_admin=user.is_admin,
                 created_at=user.created_at,
             ),
         )
@@ -200,6 +209,7 @@ def login_user(payload: UserLoginRequest, db: Session = Depends(get_db)):
                 phone_number=user.phone_number,
                 full_name=profile.full_name if profile else None,
                 default_account_number=profile.default_account_number if profile else None,
+                is_admin=user.is_admin,
                 created_at=user.created_at,
             ),
         )
@@ -248,6 +258,7 @@ def refresh_token(payload: RefreshTokenRequest, db: Session = Depends(get_db)):
             phone_number=user.phone_number,
             full_name=profile.full_name if profile else None,
             default_account_number=profile.default_account_number if profile else None,
+            is_admin=user.is_admin,
             created_at=user.created_at,
         ),
     )
@@ -283,6 +294,7 @@ def login_user_form(
             phone_number=user.phone_number,
             full_name=profile.full_name if profile else None,
             default_account_number=profile.default_account_number if profile else None,
+            is_admin=user.is_admin,
             created_at=user.created_at,
         ),
     )
@@ -417,6 +429,7 @@ def google_login(payload: GoogleLoginRequest, db: Session = Depends(get_db)):
                 phone_number=user.phone_number,
                 full_name=profile.full_name if profile else None,
                 default_account_number=profile.default_account_number if profile else None,
+                is_admin=user.is_admin,
                 created_at=user.created_at,
             ),
         )
@@ -442,6 +455,7 @@ def get_me(current_user: User = Depends(get_user_from_token)):
         phone_number=current_user.phone_number,
         full_name=profile.full_name if profile else None,
         default_account_number=profile.default_account_number if profile else None,
+        is_admin=current_user.is_admin,
         created_at=current_user.created_at,
     )
 
@@ -487,6 +501,7 @@ def update_profile(
             phone_number=current_user.phone_number,
             full_name=profile.full_name,
             default_account_number=profile.default_account_number,
+            is_admin=current_user.is_admin,
             created_at=current_user.created_at,
         )
     except Exception as e:

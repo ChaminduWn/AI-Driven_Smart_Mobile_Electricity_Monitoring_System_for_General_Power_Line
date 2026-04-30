@@ -1249,7 +1249,11 @@ const LiveMeterScreen = () => {
       </View>
 
       {screen === 'SCAN' && (
-        <ScanScreen onSelect={id => { setDeviceId(id); setScreen('SETUP'); }} />
+        <ScanScreen onSelect={id => { 
+          setDeviceId(id); 
+          setScreen('SETUP'); 
+          require('@react-native-async-storage/async-storage').default.setItem('last_iot_device', id);
+        }} />
       )}
       {screen === 'SETUP' && deviceId && (
         <SetupScreen
