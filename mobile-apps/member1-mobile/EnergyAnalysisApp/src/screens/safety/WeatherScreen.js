@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
-import { View, StyleSheet, ScrollView } from 'react-native';
+import { View, StyleSheet, ScrollView, TouchableOpacity, Platform } from 'react-native';
 import { Text, Button, ActivityIndicator } from 'react-native-paper';
 import * as Location from 'expo-location';
 import Header from '../../components/safety/Header';
@@ -15,15 +15,18 @@ import SkeletonLoader from '../../components/safety/SkeletonLoader';
 import HeroWeatherCard from '../../components/safety/HeroWeatherCard';
 import SmartRiskIndicator from '../../components/safety/SmartRiskIndicator';
 
+import { COLORS, SPACING, RADIUS, FONTS, SHADOW } from '../../utils/theme';
+import { ArrowLeft, CloudRain, Sun, Cloud, CloudLightning } from 'lucide-react-native';
+
 const C = {
-  bg: '#1a1a2e',
-  card: '#16213e',
-  surface: '#2a2a4e',
-  accent: '#FFD700',
-  textPrimary: '#ffffff',
-  textSecondary: '#dddddd',
-  textMuted: '#bbbbbb',
-  border: '#FFD700',
+  bg: COLORS.bg1,
+  card: COLORS.bg2,
+  surface: COLORS.bg3,
+  accent: COLORS.primary,
+  textPrimary: COLORS.textPrimary,
+  textSecondary: COLORS.textSecondary,
+  textMuted: COLORS.textMuted,
+  border: COLORS.border,
 };
 
 export default function WeatherScreen({ navigation }) {
@@ -74,17 +77,19 @@ export default function WeatherScreen({ navigation }) {
 
   return (
     <View style={styles.container}>
-      {/* Custom Dark Header to match Assistant */}
-      <View style={styles.header}>
-        <View style={styles.headerTitleRow}>
-          <View style={styles.headerIconBg}>
-            <Icon name="weather-cloudy" size={20} color={C.accent} />
-          </View>
-          <View>
-            <Text style={styles.headerTitle}>Weather Monitor</Text>
-            <Text style={styles.headerStatus}>Real-time Safety Analysis</Text>
+      {/* Premium Header */}
+      <View style={styles.topHeader}>
+        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+          <ArrowLeft size={24} color={COLORS.textPrimary} />
+        </TouchableOpacity>
+        <View style={styles.headerTitleGroup}>
+          <Text style={styles.headerTitleMain}>Weather Monitor</Text>
+          <View style={styles.statusRow}>
+            <View style={styles.statusDot} />
+            <Text style={styles.statusText}>Real-time Safety Analysis</Text>
           </View>
         </View>
+        <View style={{ width: 40 }} />
       </View>
 
       <ScrollView contentContainerStyle={styles.scrollContent}>
@@ -146,28 +151,24 @@ export default function WeatherScreen({ navigation }) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#1a1a2e' },
+  container: { flex: 1, backgroundColor: COLORS.bg1 },
   scrollContent: { padding: 16 },
-  header: {
+  topHeader: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
     paddingHorizontal: 20,
-    paddingVertical: 12,
+    paddingTop: Platform.OS === 'ios' ? 60 : 45,
+    paddingBottom: 20,
+    backgroundColor: COLORS.bg2,
     borderBottomWidth: 1,
-    borderBottomColor: '#FFD700',
-    backgroundColor: '#16213e',
+    borderBottomColor: COLORS.border,
   },
-  headerTitleRow: { flexDirection: 'row', alignItems: 'center' },
-  headerIconBg: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: 'rgba(255, 215, 0, 0.15)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 12,
-  },
-  headerTitle: { color: '#FFD700', fontSize: 18, fontWeight: '800' },
-  headerStatus: { color: '#aaaaaa', fontSize: 11, marginTop: -2 },
+  headerTitleGroup: { flex: 1, alignItems: 'center' },
+  headerTitleMain: { ...FONTS.bold, fontSize: 18, color: COLORS.textPrimary },
+  statusRow: { flexDirection: 'row', alignItems: 'center', marginTop: 2 },
+  statusDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: COLORS.success, marginRight: 6 },
+  statusText: { fontSize: 11, color: COLORS.textSecondary, fontWeight: '500' },
+  backBtn: { padding: 4 },
   card: { marginBottom: 12, borderRadius: 12 }
 });

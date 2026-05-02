@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, UploadFile, File, HTTPException
+from fastapi import APIRouter, Depends, UploadFile, File, HTTPException, Form
 from sqlalchemy.orm import Session
 from typing import Optional
 import os
@@ -26,6 +26,7 @@ router = APIRouter(prefix=settings.API_V1_PREFIX, tags=["bills"])
 @router.post("/bills/extract", response_model=BillExtractResponse)
 async def extract_bill(
     file: UploadFile = File(..., description="Bill file (PDF or image)"),
+    title: Optional[str] = Form(None, description="Title/Name of the bill"),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_user_from_token)
 ):
@@ -57,6 +58,7 @@ async def extract_bill(
             file_path=file_path,
             file_name=file.filename,
             file_type=file_ext,
+            title=title,
             db=db,
             user_id=current_user.id
         )
@@ -135,6 +137,15 @@ def update_bill(
 
     # Update only provided fields
     update_data = request.dict(exclude_unset=True)
+    
+    # If setting to active, deactivate all other bills for this account
+    if update_data.get("is_active_for_dashboard") is True:
+        db.query(ElectricityBill).filter(
+            ElectricityBill.user_id == current_user.id,
+            ElectricityBill.account_number == bill.account_number,
+            ElectricityBill.id != bill_id
+        ).update({"is_active_for_dashboard": False}, synchronize_session='fetch')
+        
     for key, value in update_data.items():
         setattr(bill, key, value)
 

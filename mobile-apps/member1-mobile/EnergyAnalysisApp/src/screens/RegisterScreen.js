@@ -24,11 +24,24 @@ const Field = ({ label, error, children }) => (
 const RegisterScreen = ({ navigation }) => {
   const { login } = useAuth();
   const [form, setForm] = useState({
-    full_name: '', email: '', phone_number: '', account_number: '', password: '', confirm: '',
+    full_name: '',
+    username: '',
+    email: '',
+    phone_number: '',
+    account_number: '',
+    password: '',
+    confirm: '',
   });
   const [showPass, setShowPass] = useState(false);
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState({});
+  const [agreeTerms, setAgreeTerms] = useState(false);
+
+  const passwordRequirements = [
+    { label: 'Minimum 8 characters', met: form.password.length >= 8 },
+    { label: 'At least one uppercase letter', met: /[A-Z]/.test(form.password) },
+    { label: 'One number or symbol', met: /[0-9!@#$%^&*(),.?":{}|<>]/.test(form.password) },
+  ];
 
   // ── Google Auth Setup ───────────────────────────────────────────────────────
   const redirectUri = AuthSession.makeRedirectUri({
@@ -134,9 +147,17 @@ const RegisterScreen = ({ navigation }) => {
     const e = {};
     if (!form.email.trim()) e.email = 'Required';
     else if (!/\S+@\S+\.\S+/.test(form.email)) e.email = 'Invalid email';
+    
     if (!form.password) e.password = 'Required';
-    else if (form.password.length < 8) e.password = 'Min 8 characters';
+    else if (form.password.length < 1) e.password = 'Required';
+    
     if (form.password !== form.confirm) e.confirm = 'Passwords do not match';
+    
+    if (!agreeTerms) {
+      Alert.alert('Terms & Conditions', 'Please agree to the Terms and Privacy Policy');
+      return false;
+    }
+    
     setErrors(e);
     return Object.keys(e).length === 0;
   };
@@ -147,6 +168,7 @@ const RegisterScreen = ({ navigation }) => {
     try {
       const payload = {
         email: form.email.trim().toLowerCase(),
+        username: form.username.trim() || null,
         password: form.password,
         full_name: form.full_name.trim() || null,
         phone_number: form.phone_number.replace(/\D/g, '') || null,
@@ -196,13 +218,24 @@ const RegisterScreen = ({ navigation }) => {
         </View>
 
         <View style={styles.form}>
-          <Field label="Full Name (optional)">
+          <Field label="Full Name">
             <TextInput
               style={styles.input}
               placeholder="Your name"
               placeholderTextColor={COLORS.textMuted}
               value={form.full_name}
               onChangeText={(t) => set('full_name', t)}
+            />
+          </Field>
+
+          <Field label="Username (optional)">
+            <TextInput
+              style={styles.input}
+              placeholder="CoolUser123"
+              placeholderTextColor={COLORS.textMuted}
+              value={form.username}
+              onChangeText={(t) => set('username', t)}
+              autoCapitalize="none"
             />
           </Field>
 
@@ -243,16 +276,17 @@ const RegisterScreen = ({ navigation }) => {
             <View style={styles.passWrap}>
               <TextInput
                 style={[styles.input, styles.passInput, errors.password && styles.inputError]}
-                placeholder="Min 8 characters"
+                placeholder="Create a strong password"
                 placeholderTextColor={COLORS.textMuted}
                 value={form.password}
                 onChangeText={(t) => set('password', t)}
                 secureTextEntry={!showPass}
               />
               <TouchableOpacity style={styles.eyeBtn} onPress={() => setShowPass(!showPass)}>
-                <Text>{showPass ? '🙈' : '👁️'}</Text>
+                <Text style={{ fontSize: 18 }}>{showPass ? '🙈' : '👁️'}</Text>
               </TouchableOpacity>
             </View>
+            {/* Password requirements hidden for development */}
           </Field>
 
           <Field label="Confirm Password *" error={errors.confirm}>
@@ -265,6 +299,19 @@ const RegisterScreen = ({ navigation }) => {
               secureTextEntry={!showPass}
             />
           </Field>
+
+          <TouchableOpacity 
+            style={styles.termsWrap} 
+            onPress={() => setAgreeTerms(!agreeTerms)}
+            activeOpacity={0.7}
+          >
+            <View style={[styles.checkbox, agreeTerms && styles.checkboxChecked]}>
+              {agreeTerms && <Text style={styles.checkIcon}>✓</Text>}
+            </View>
+            <Text style={styles.termsText}>
+              I agree to <Text style={styles.termsLink}>Terms & Conditions</Text> and <Text style={styles.termsLink}>Privacy Policy</Text>
+            </Text>
+          </TouchableOpacity>
 
           <PrimaryButton
             label="Create Account"
@@ -367,6 +414,24 @@ const styles = StyleSheet.create({
   googleBtnDisabled: { opacity: 0.5 },
   googleIcon: { color: '#4285F4', fontSize: 20, fontWeight: 'bold', marginRight: 10 },
   googleBtnText: { color: '#757575', fontSize: 16, fontWeight: '600' },
+  
+  /* Password Requirements */
+  reqsWrap: { marginTop: 10, gap: 4 },
+  reqRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  reqIcon: { fontSize: 12, color: COLORS.textMuted },
+  reqText: { fontSize: 11, color: COLORS.textSecondary },
+  
+  /* Terms Checkbox */
+  termsWrap: { flexDirection: 'row', alignItems: 'center', marginVertical: SPACING.md, gap: 10 },
+  checkbox: { 
+    width: 20, height: 20, borderRadius: 4, 
+    borderWidth: 2, borderColor: COLORS.secondary,
+    justifyContent: 'center', alignItems: 'center' 
+  },
+  checkboxChecked: { backgroundColor: COLORS.secondary },
+  checkIcon: { color: '#fff', fontSize: 12, fontWeight: 'bold' },
+  termsText: { flex: 1, fontSize: 12, color: COLORS.textSecondary },
+  termsLink: { color: COLORS.secondary, fontWeight: '600' },
 });
 
 export default RegisterScreen;

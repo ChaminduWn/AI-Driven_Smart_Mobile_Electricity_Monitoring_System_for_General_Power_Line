@@ -1,5 +1,28 @@
 /* src/index.css */
+:root {
+  --color-background-primary: #111827;
+  --color-background-secondary: #1f2937;
+  --color-background-tertiary: #374151;
+  --color-background-success: rgba(76, 175, 80, 0.1);
+  --color-background-danger: rgba(244, 67, 54, 0.1);
+  --color-background-warning: rgba(255, 152, 0, 0.1);
+  --color-text-primary: #ffffff;
+  --color-text-secondary: #9ca3af;
+  --color-text-tertiary: #6b7280;
+  --color-text-success: #4caf50;
+  --color-text-danger: #f44336;
+  --color-text-warning: #ff9800;
+  --color-text-info: #2196f3;
+  --color-border-primary: #374151;
+  --color-border-secondary: #4b5563;
+  --color-border-tertiary: rgba(255, 255, 255, 0.08);
+  --border-radius-md: 8px;
+  --border-radius-lg: 12px;
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
 @tailwind base;
+
 @tailwind components;
 @tailwind utilities;
 

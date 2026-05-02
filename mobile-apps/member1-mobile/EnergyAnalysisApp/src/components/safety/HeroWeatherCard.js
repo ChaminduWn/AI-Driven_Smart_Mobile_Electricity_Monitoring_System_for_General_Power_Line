@@ -1,23 +1,21 @@
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
-import { COLORS } from '../../constants/safety/Colors';
-import { TYPOGRAPHY } from '../../constants/safety/Typography';
+import { View, Text, StyleSheet, Platform } from 'react-native';
 import LottiePlayer from './LottiePlayer';
 import GlassCard from './GlassCard';
 import PulsingDot from './PulsingDot';
 import PropTypes from 'prop-types';
+import { COLORS, FONTS } from '../../utils/theme';
 
 const C = {
-  card: '#16213e',
-  surface: '#2a2a4e',
-  accent: '#FFD700',
-  text: '#ffffff',
-  textSecondary: '#dddddd',
-  textMuted: '#bbbbbb',
+  card: COLORS.bg2,
+  surface: COLORS.bg3,
+  accent: COLORS.primary,
+  text: COLORS.textPrimary,
+  textSecondary: COLORS.textSecondary,
+  textMuted: COLORS.textMuted,
 };
 
 export default function HeroWeatherCard({ temperature = 28, condition = 'Light Rain', location = 'Colombo', weatherType = 'rainy', lastUpdate = new Date(), lottieSource = null }) {
-  const colors = COLORS.weather[weatherType] || COLORS.weather.sunny;
   const locationStr = typeof location === 'object' && location !== null
     ? `${location.city ?? location.name ?? location.label ?? 'Your area'}${location.country ? `, ${location.country}` : ''}`
     : location;
@@ -26,8 +24,8 @@ export default function HeroWeatherCard({ temperature = 28, condition = 'Light R
     <GlassCard tint="dark" intensity={30} style={[styles.card]}>
       <View style={[styles.row, { justifyContent: 'space-between' }]}>
         <View>
-          <Text style={[TYPOGRAPHY.display, { color: C.text, fontSize: 64, fontWeight: '800' }]}>{typeof temperature === 'number' ? Math.round(temperature) : (temperature?.value ?? '--')}°</Text>
-          <Text style={{ marginTop: 2, fontWeight: '800', color: C.accent, fontSize: 18 }}>{condition}</Text>
+          <Text style={[{ color: C.text, fontSize: 64, ...FONTS.bold }]}>{typeof temperature === 'number' ? Math.round(temperature) : (temperature?.value ?? '--')}°</Text>
+          <Text style={{ marginTop: 2, ...FONTS.bold, color: C.accent, fontSize: 18 }}>{condition}</Text>
           <Text style={{ marginTop: 4, color: C.textSecondary, fontSize: 13 }}>{locationStr} • {formatRelative(lastUpdate)}</Text>
         </View>
         <View style={{ alignItems: 'center', justifyContent: 'center' }}>
@@ -62,11 +60,11 @@ function formatRelative(date) {
 
 const styles = StyleSheet.create({
   card: {
-    padding: 20,
-    borderRadius: 24,
-    borderWidth: 1.5,
-    borderColor: 'rgba(255,215,0,0.3)',
-    backgroundColor: '#16213e',
+    padding: 24,
+    borderRadius: 28,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    backgroundColor: COLORS.bg2,
     marginVertical: 8
   },
   row: { flexDirection: 'row', alignItems: 'center' },
@@ -82,4 +80,3 @@ const styles = StyleSheet.create({
   },
   lottie: { width: 120, height: 120 },
 });
-

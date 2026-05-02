@@ -129,8 +129,7 @@ const LoginScreen = ({ navigation }) => {
     const e = {};
     if (!email.trim()) e.email = 'Email is required';
     else if (!/\S+@\S+\.\S+/.test(email)) e.email = 'Enter a valid email';
-    if (!password) e.password = 'Password is required';
-    else if (password.length < 8) e.password = 'Min 8 characters';
+    else if (password.length < 1) e.password = 'Password is required';
     setErrors(e);
     return Object.keys(e).length === 0;
   };

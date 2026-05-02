@@ -13,6 +13,7 @@ from src.api.routes import ml_predictions
 from src.api.routes import auth
 from src.api.routes import smart_predictions
 from src.api.routes import iot, notifications
+from src.api.routes import relay, analytics
 from src.services.iot_service import iot_service
 
 # Import all models to register them with SQLAlchemy (needed for create_all)
@@ -82,30 +83,7 @@ async def log_requests(request: Request, call_next):
 # CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:3000",
-        "http://127.0.0.1:3000",
-        "http://localhost:5173",
-        "http://127.0.0.1:5173",
-        "http://localhost:8081",
-        "http://127.0.0.1:8081",
-        "http://localhost:8082",
-        "http://127.0.0.1:8082",
-        "http://localhost:8813",
-        "http://127.0.0.1:8813",
-        "http://localhost:19000",
-        "http://localhost:19006",
-        "http://10.134.218.242:8081",
-        "http://10.134.218.242:8000",
-        "http://192.168.177.242:8081",
-        "http://192.168.177.242:8000",
-        "exp://192.168.177.242:8081",
-        "http://192.168.1.105:8081",
-        "http://192.168.1.105:8813",
-        "http://192.168.90.242:8081",
-        "http://192.168.90.242:8000",
-        "exp://192.168.90.242:8081",
-    ],
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
     allow_headers=["*"],
@@ -124,8 +102,23 @@ app.include_router(ml_predictions.router,     prefix="/api/v1")
 app.include_router(smart_predictions.router,  prefix="/api/v1")
 app.include_router(iot.router,                prefix="/api/v1")
 app.include_router(notifications.router,      prefix="/api/v1")
+app.include_router(relay.router,              prefix="/api/v1")
+app.include_router(analytics.router,          prefix="/api/v1")
 
 logger.info(f"{settings.APP_NAME} v{settings.APP_VERSION} initialized")
+
+
+@app.get("/debug-routes")
+def list_routes():
+    import json
+    routes = []
+    for route in app.routes:
+        routes.append({
+            "path": route.path,
+            "name": route.name,
+            "methods": list(route.methods) if hasattr(route, "methods") else None
+        })
+    return {"routes": routes}
 
 
 @app.get("/")

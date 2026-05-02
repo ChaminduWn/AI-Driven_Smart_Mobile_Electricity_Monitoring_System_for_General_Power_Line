@@ -20,6 +20,19 @@ router = APIRouter(prefix="/analysis", tags=["Bill Analysis"])
 analysis_service = BillAnalysisService()
 recommendation_engine = RecommendationEngine()
 
+def _get_reading_limits(planning_days: int) -> tuple[int, int]:
+    """Return (min_readings, max_readings) based on plan duration."""
+    if planning_days <= 14:
+        return 4, 4
+    elif planning_days <= 21:
+        return 4, 6
+    elif planning_days <= 30:
+        return 6, 8
+    elif planning_days <= 45:
+        return 8, 12
+    else:  # 46-60
+        return 10, 16
+
 
 def _get_appliance_recommendations(db: Session, plan, current_status, projection, days_elapsed):
     """Internal helper to generate appliance-wise recommendations"""
@@ -93,6 +106,7 @@ class BudgetPlanRequest(BaseModel):
     bill_id: int = Field(description="Past bill ID to base planning on")
     target_budget: float = Field(gt=0, description="Target budget in Rs.")
     planning_days: int = Field(default=30, ge=10, le=60, description="Days to plan for")
+    plan_start_date: Optional[datetime] = Field(None, description="Custom plan start date")
 
 
 class BudgetPlanUpdate(BaseModel):
@@ -116,6 +130,7 @@ class MeterReadingUpdate(BaseModel):
 
 class ManualBillDataRequest(BaseModel):
     """For users without past bills in system"""
+    title: Optional[str] = Field(None, description="Title/Name of the bill (e.g. Feb 2024 Bill)")
     current_meter_reading: int = Field(ge=0)
     past_bill_date: datetime
     past_bill_amount: float = Field(gt=0)
@@ -225,6 +240,7 @@ def save_manual_bill(
         new_bill = ElectricityBill(
             user_id=current_user.id,
             account_number=account_number,
+            title=request.title,
             bill_date=request.past_bill_date,
             units_consumed=request.past_bill_units,
             total_charge=request.past_bill_amount,
@@ -267,17 +283,29 @@ def create_budget_plan(
     if not bill:
         raise HTTPException(status_code=404, detail="Bill not found")
 
+    # Check for existing active plans for this account
+    existing_plan = db.query(BudgetPlan).filter(
+        BudgetPlan.account_number == bill.account_number,
+        BudgetPlan.is_active == True
+    ).first()
+
+    if existing_plan:
+        raise HTTPException(
+            status_code=400,
+            detail="You already have an active budget plan for this account. Please end or delete it before creating a new one."
+        )
+
     appliances_count = db.query(HouseholdAppliance).filter(
         HouseholdAppliance.account_number == bill.account_number,
         HouseholdAppliance.is_active == True
     ).count()
 
-    if appliances_count == 0:
+    if appliances_count < 5:
         raise HTTPException(
             status_code=400,
             detail=(
-                "No appliances found for this account. "
-                "Please add your household appliances in the Appliance Manager "
+                f"Only {appliances_count} appliances found. "
+                "You must add at least 5 appliances in the Appliance Manager "
                 "before creating a budget plan."
             )
         )
@@ -298,6 +326,10 @@ def create_budget_plan(
         raise HTTPException(status_code=400, detail=plan['message'])
     
     try:
+        start_datetime = request.plan_start_date or datetime.now(timezone.utc)
+        if start_datetime.tzinfo is None:
+            start_datetime = start_datetime.replace(tzinfo=timezone.utc)
+            
         plan_record = BudgetPlan(
             reference_bill_id=request.bill_id,
             bill_id=request.bill_id,
@@ -305,8 +337,8 @@ def create_budget_plan(
             account_number=bill.account_number,
             target_budget=request.target_budget,
             planning_days=request.planning_days,
-            plan_start_date=datetime.now(timezone.utc),
-            plan_end_date=datetime.now(timezone.utc) + timedelta(days=request.planning_days),
+            plan_start_date=start_datetime,
+            plan_end_date=start_datetime + timedelta(days=request.planning_days),
             target_daily_units=plan['daily_targets']['units'],
             target_daily_cost=plan['daily_targets']['cost'],
             target_weekly_units=plan['weekly_targets'][0]['target_units'],
@@ -429,14 +461,16 @@ def end_budget_plan(
     """
     Manually end a budget plan (e.g., when a new monthly bill is received)
     """
+    print(f"📡 DEBUG: end_budget_plan called for plan_id={plan_id} by user={current_user.id}")
     plan = db.query(BudgetPlan).filter(
-        BudgetPlan.id == plan_id,
-        BudgetPlan.user_id == current_user.id
+        BudgetPlan.id == plan_id
     ).first()
     
     if not plan:
+        print(f"⚠️ DEBUG: Plan {plan_id} NOT FOUND")
         raise HTTPException(status_code=404, detail="Active budget plan not found")
     
+    print(f"✅ DEBUG: Ending plan {plan_id}...")
     plan.is_active = False
     plan.status = 'completed'
     plan.updated_at = datetime.now()
@@ -450,6 +484,56 @@ def end_budget_plan(
 
 
 @router.delete("/plans/{plan_id}")
+def delete_budget_plan(
+    plan_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_user_from_token)
+):
+    """
+    Delete a budget plan and its associated readings
+    """
+    plan = db.query(BudgetPlan).filter(
+        BudgetPlan.id == plan_id
+    ).first()
+    
+    if not plan:
+        raise HTTPException(status_code=404, detail="Budget plan not found")
+        
+    try:
+        db.delete(plan)
+        db.commit()
+        return {"success": True, "message": "Budget plan deleted successfully"}
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Error deleting plan: {str(e)}")
+
+
+@router.post("/plans/{plan_id}/set-priority")
+def set_plan_priority(
+    plan_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_user_from_token)
+):
+    """Set a plan as the primary/priority plan for alerts."""
+    plan = db.query(BudgetPlan).filter(
+        BudgetPlan.id == plan_id,
+        BudgetPlan.user_id == current_user.id,
+        BudgetPlan.is_active == True,
+    ).first()
+    if not plan:
+        raise HTTPException(404, "Plan not found")
+    
+    # Unset all other plans' priority
+    db.query(BudgetPlan).filter(
+        BudgetPlan.user_id == current_user.id,
+        BudgetPlan.account_number == plan.account_number,
+    ).update({"is_priority": False})
+    
+    plan.is_priority = True
+    plan.priority_set_at = datetime.now()
+    db.commit()
+    
+    return {"success": True, "message": f"Plan {plan_id} set as priority"}
 
 
 @router.put("/readings/{reading_id}")
@@ -617,18 +701,20 @@ def track_budget_progress(
     if not bill:
         raise HTTPException(status_code=404, detail="Reference bill not found")
     
-    # Enforce maximum number of readings (8 per plan)
+    min_readings, max_readings = _get_reading_limits(plan.planning_days)
+
     existing_readings_count = db.query(MeterReading).filter(
         MeterReading.budget_plan_id == request.plan_id
     ).count()
 
-    if existing_readings_count >= 8:
+    if existing_readings_count >= max_readings:
         raise HTTPException(
             status_code=400,
-            detail="You have reached the maximum of 8 meter readings for this budget plan."
+            detail=f"You have reached the maximum of {max_readings} meter readings for this {plan.planning_days}-day budget plan."
         )
 
-    # Weekly spacing logic (approx 7 days)
+    # Weekly spacing logic (approx 7 days, adjusted by dynamic interval)
+    ideal_interval = max(1, plan.planning_days // max_readings)
     last_reading = db.query(MeterReading).filter(
         MeterReading.budget_plan_id == request.plan_id
     ).order_by(MeterReading.reading_date.desc()).first()
@@ -638,7 +724,7 @@ def track_budget_progress(
         if days_since_last < 1:
             raise HTTPException(
                 status_code=400,
-                detail=f"Please wait at least 1 day between readings. Your last reading was {days_since_last} days ago."
+                detail=f"Please wait at least 1 day between readings."
             )
 
     # ALWAYS use the bill's current reading as the starting reference for the budget plan

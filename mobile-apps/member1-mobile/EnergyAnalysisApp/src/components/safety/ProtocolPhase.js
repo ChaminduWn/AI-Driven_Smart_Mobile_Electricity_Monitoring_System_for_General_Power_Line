@@ -1,19 +1,20 @@
 import React from 'react';
-import { View, StyleSheet } from 'react-native';
-import { Text, IconButton } from 'react-native-paper';
+import { View, Text, StyleSheet } from 'react-native';
+import { IconButton } from 'react-native-paper';
+import { COLORS, FONTS } from '../../utils/theme';
 
 export default function ProtocolPhase({ phase, title, items = [], open = false }) {
   return (
     <View style={[styles.container, open ? styles.open : null]}>
       <View style={styles.header}>
         <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-          <View style={styles.icon}><Text>{phase}</Text></View>
-          <View style={{ marginLeft: 8 }}>
+          <View style={styles.icon}><Text style={{ color: COLORS.primary, fontWeight: '800' }}>{phase}</Text></View>
+          <View style={{ marginLeft: 12 }}>
             <Text style={styles.phase}>PHASE {phase}</Text>
             <Text style={styles.title}>{title}</Text>
           </View>
         </View>
-        <IconButton icon={open ? 'chevron-up' : 'chevron-down'} onPress={() => { /* toggled by parent if needed */ }} />
+        <IconButton icon={open ? 'chevron-up' : 'chevron-down'} iconColor={COLORS.textSecondary} />
       </View>
       <View style={styles.body}>
         {items.map((it, i) => (
@@ -28,13 +29,13 @@ export default function ProtocolPhase({ phase, title, items = [], open = false }
 }
 
 const styles = StyleSheet.create({
-  container: { backgroundColor: '#16213e', borderRadius: 12, padding: 12, marginBottom: 12, borderWidth: 1, borderColor: 'rgba(255,215,0,0.1)' },
+  container: { backgroundColor: COLORS.bg2, borderRadius: 16, padding: 16, marginBottom: 12, borderWidth: 1, borderColor: COLORS.border },
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  icon: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255, 215, 0, 0.1)', alignItems: 'center', justifyContent: 'center' },
-  phase: { fontSize: 12, color: '#FFD700', fontWeight: '700' },
-  title: { fontSize: 16, fontWeight: '700', color: '#ffffff' },
-  body: { marginTop: 8 },
-  itemRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 10, backgroundColor: 'rgba(255, 255, 255, 0.03)', borderRadius: 8, marginBottom: 8, paddingHorizontal: 12 },
-  dot: { width: 8, height: 8, borderRadius: 4, backgroundColor: '#FFD700', marginRight: 12 },
-  itemText: { flex: 1, color: '#eeeeee', fontSize: 14 }
+  icon: { width: 36, height: 36, borderRadius: 18, backgroundColor: COLORS.primary + '15', alignItems: 'center', justifyContent: 'center' },
+  phase: { fontSize: 11, color: COLORS.primary, ...FONTS.bold, letterSpacing: 1 },
+  title: { fontSize: 16, ...FONTS.bold, color: COLORS.textPrimary },
+  body: { marginTop: 12 },
+  itemRow: { flexDirection: 'row', alignItems: 'flex-start', paddingVertical: 12, backgroundColor: COLORS.bg3 + '40', borderRadius: 12, marginBottom: 8, paddingHorizontal: 12 },
+  dot: { width: 6, height: 6, borderRadius: 3, backgroundColor: COLORS.primary, marginRight: 12, marginTop: 7 },
+  itemText: { flex: 1, color: COLORS.textPrimary, fontSize: 14, lineHeight: 20 }
 });

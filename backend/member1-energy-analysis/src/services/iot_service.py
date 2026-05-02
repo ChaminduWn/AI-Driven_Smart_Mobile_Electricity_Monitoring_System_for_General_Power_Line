@@ -18,6 +18,8 @@ from datetime import datetime, timezone
 from typing import Dict, List, Optional
 from collections import deque
 
+from src.services.alert_engine import alert_engine
+
 logger = logging.getLogger(__name__)
 
 # ── In-memory stores ──────────────────────────────────────────────────────────
@@ -28,6 +30,13 @@ appliance_events:   Dict[str, List[dict]]    = {}
 active_sessions:    Dict[str, Optional[int]] = {}
 last_seen:          Dict[str, datetime]      = {}
 last_env_readings:  Dict[str, dict]          = {}   # cache last good DHT values per device
+session_start_readings: Dict[str, int]       = {}   # baseline read_count when session started
+
+
+def _normalize_id(device_id: str) -> str:
+    """Standardize MAC IDs to Uppercase and no colons."""
+    if not device_id: return ""
+    return str(device_id).replace(":", "").upper()
 
 
 # ── Typical wattage reference database ───────────────────────────────────────
@@ -366,6 +375,7 @@ class IoTService:
 
     # ── Handle live reading ───────────────────────────────────────────────────
     def _handle_live_reading_sync(self, device_id: str, data: dict):
+        device_id = _normalize_id(device_id)
         last_seen[device_id] = datetime.now(timezone.utc)
         data = self._normalize(data)
 
@@ -386,6 +396,42 @@ class IoTService:
         data["server_time"] = datetime.now(timezone.utc).isoformat()
         data["device_id"]   = device_id
         data["anomalies"]   = self._detect_anomalies(device_id, data)
+
+        # ── Calculate session-relative reading count ──
+        # Fixes "top of page display with increasing previous test count"
+        start_count = session_start_readings.get(device_id, 0)
+        curr_count  = data.get("read_count", 0)
+
+        # Baseline capture: If a session is active but we missed the starting baseline
+        # (e.g. device was offline), capture the very FIRST reading that comes in.
+        if self.get_active_session(device_id) and start_count == 0:
+            start_count = curr_count
+            session_start_readings[device_id] = curr_count
+            logger.info(f"Session baseline captured on-the-fly: device={device_id} count={start_count}")
+
+        if start_count > 0:
+            data["session_read_count"] = max(1, curr_count - start_count + 1)
+        else:
+            data["session_read_count"] = curr_count  # fallback
+
+        # ── ALERT HOOK 1: Safety Trip ──
+        if data.get("safety_tripped"):
+            alert_engine.on_safety_trip(
+                device_id=device_id,
+                reason=data.get("safety_reason", "Unknown overcurrent/overvoltage"),
+                power_w=data.get("power_w", 0),
+                voltage=data.get("voltage", 230)
+            )
+
+        # ── ALERT HOOK 2: Power Anomaly ──
+        if data["anomalies"]:
+            for anomaly in data["anomalies"]:
+                alert_engine.on_power_anomaly(
+                    device_id=device_id,
+                    anomaly=anomaly,
+                    power_w=data.get("power_w", 0),
+                    voltage=data.get("voltage", 230)
+                )
 
         latest_readings[device_id] = data
         if device_id not in reading_history:
@@ -431,196 +477,202 @@ class IoTService:
         if not self._db_factory:
             return
 
-        db = self._db_factory()
-        try:
-            from src.models.device_session import DeviceReading, DeviceSession
-            from src.models.iot_reading import LiveMeterReading
-            
-            session_id = active_sessions.get(device_id)
-            session = None
-            account_number = None
+        def db_task():
+            db = self._db_factory()
+            try:
+                from src.models.device_session import DeviceReading, DeviceSession
+                from src.models.iot_reading import LiveMeterReading
+                
+                session_id = active_sessions.get(device_id)
+                session = None
+                account_number = None
 
-            if session_id:
-                session = db.query(DeviceSession).filter(DeviceSession.id == session_id).first()
+                if session_id:
+                    session = db.query(DeviceSession).filter(DeviceSession.id == session_id).first()
+                    if session:
+                        account_number = session.account_number
+
+                # Fallback: if no active session, try to find the last known account for this device
+                if not account_number:
+                    last_s = db.query(DeviceSession).filter(
+                        DeviceSession.device_id == device_id
+                    ).order_by(DeviceSession.started_at.desc()).first()
+                    if last_s:
+                        account_number = last_s.account_number
+
+                # 1. ALWAYS save to LiveMeterReading if we have an account number
+                if account_number:
+                    live = LiveMeterReading(
+                        account_number      = account_number,
+                        voltage             = data.get("voltage", 0),
+                        current             = data.get("current_a") or data.get("current", 0),
+                        power               = data.get("power_w")   or data.get("power",   0),
+                        energy              = data.get("energy_kwh") or data.get("energy",  0),
+                        frequency           = data.get("frequency_hz") or data.get("frequency", 50),
+                        power_factor        = data.get("power_factor", 1),
+                        session_kwh         = data.get("session_kwh", 0),
+                        session_cost_rs     = data.get("session_cost_rs", 0),
+                        detected_appliance  = data.get("detected_appliance"),
+                        anomaly             = data.get("anomalies")[0] if data.get("anomalies") else None,
+                        read_count          = data.get("read_count", 0),
+                        uptime_ms           = data.get("uptime_ms", 0),
+                        wifi_rssi           = data.get("wifi_rssi", 0),
+                        raw_data            = data
+                    )
+                    db.add(live)
+
+                # 2. Save to DeviceReading ONLY if there is an active session
+                if session_id and session:
+                    reading = DeviceReading(
+                        session_id          = session_id,
+                        device_id           = device_id,
+                        account_number      = account_number,
+                        voltage             = data.get("voltage", 0),
+                        current_a           = data.get("current_a") or data.get("current", 0),
+                        power_w             = data.get("power_w")   or data.get("power",   0),
+                        energy_kwh          = data.get("energy_kwh") or data.get("energy",  0),
+                        frequency_hz        = data.get("frequency_hz") or data.get("frequency", 50),
+                        power_factor        = data.get("power_factor", 1),
+                        apparent_power_va   = data.get("apparent_power_va") or data.get("apparent_power"),
+                        reactive_power_var  = data.get("reactive_power_var") or data.get("reactive_power"),
+                        resistance_ohm      = data.get("resistance_ohm"),
+                        voltage_deviation   = data.get("voltage_deviation"),
+                        voltage_dev_pct     = data.get("voltage_dev_pct"),
+                        power_quality_score = data.get("power_quality_score"),
+                        efficiency_class    = data.get("efficiency_class"),
+                        session_kwh         = data.get("session_kwh"),
+                        session_cost_rs     = data.get("session_cost_rs"),
+                        session_minutes     = data.get("session_minutes"),
+                        avg_power_w         = data.get("avg_power_w"),
+                        peak_power_w        = data.get("peak_power_w"),
+                        avg_power_factor    = data.get("avg_power_factor"),
+                        detected_appliance  = data.get("detected_appliance"),
+                        anomaly             = data.get("anomaly"),
+                        wifi_rssi           = data.get("wifi_rssi"),
+                        read_count          = data.get("read_count"),
+                        uptime_ms           = data.get("uptime_ms"),
+                        temperature_c       = data.get("temperature_c"),
+                        humidity_pct        = data.get("humidity_pct"),
+                        heat_index_c        = data.get("heat_index_c"),
+                    )
+                    db.add(reading)
+
+                # Update session summary
                 if session:
-                    account_number = session.account_number
+                    n = (session.total_readings or 0) + 1
+                    session.total_readings = n
 
-            # Fallback: if no active session, try to find the last known account for this device
-            if not account_number:
-                last_s = db.query(DeviceSession).filter(
-                    DeviceSession.device_id == device_id
-                ).order_by(DeviceSession.started_at.desc()).first()
-                if last_s:
-                    account_number = last_s.account_number
+                    pwr = data.get("power_w") or data.get("power") or 0
+                    if pwr and (not session.peak_power_w or pwr > session.peak_power_w):
+                        session.peak_power_w = pwr
+                    if pwr:
+                        prev_avg = session.avg_power_w or 0
+                        session.avg_power_w = round(((prev_avg * (n - 1)) + pwr) / n, 2)
 
-            # 1. ALWAYS save to LiveMeterReading if we have an account number
-            if account_number:
-                live = LiveMeterReading(
-                    account_number      = account_number,
-                    voltage             = data.get("voltage", 0),
-                    current             = data.get("current_a") or data.get("current", 0),
-                    power               = data.get("power_w")   or data.get("power",   0),
-                    energy              = data.get("energy_kwh") or data.get("energy",  0),
-                    frequency           = data.get("frequency_hz") or data.get("frequency", 50),
-                    power_factor        = data.get("power_factor", 1),
-                    session_kwh         = data.get("session_kwh", 0),
-                    session_cost_rs     = data.get("session_cost_rs", 0),
-                    detected_appliance  = data.get("detected_appliance"),
-                    anomaly             = data.get("anomalies")[0] if data.get("anomalies") else None,
-                    read_count          = data.get("read_count", 0),
-                    uptime_ms           = data.get("uptime_ms", 0),
-                    wifi_rssi           = data.get("wifi_rssi", 0),
-                    raw_data            = data
-                )
-                db.add(live)
+                    v = data.get("voltage") or 0
+                    if v:
+                        if not session.min_voltage_v or v < session.min_voltage_v:
+                            session.min_voltage_v = v
+                        if not session.max_voltage_v or v > session.max_voltage_v:
+                            session.max_voltage_v = v
 
-            # 2. Save to DeviceReading ONLY if there is an active session
-            if session_id and session:
-                reading = DeviceReading(
-                    session_id          = session_id,
-                    device_id           = device_id,
-                    account_number      = account_number,
-                    voltage             = data.get("voltage", 0),
-                    current_a           = data.get("current_a") or data.get("current", 0),
-                    power_w             = data.get("power_w")   or data.get("power",   0),
-                    energy_kwh          = data.get("energy_kwh") or data.get("energy",  0),
-                    frequency_hz        = data.get("frequency_hz") or data.get("frequency", 50),
-                    power_factor        = data.get("power_factor", 1),
-                    apparent_power_va   = data.get("apparent_power_va") or data.get("apparent_power"),
-                    reactive_power_var  = data.get("reactive_power_var") or data.get("reactive_power"),
-                    resistance_ohm      = data.get("resistance_ohm"),
-                    voltage_deviation   = data.get("voltage_deviation"),
-                    voltage_dev_pct     = data.get("voltage_dev_pct"),
-                    power_quality_score = data.get("power_quality_score"),
-                    efficiency_class    = data.get("efficiency_class"),
-                    session_kwh         = data.get("session_kwh"),
-                    session_cost_rs     = data.get("session_cost_rs"),
-                    session_minutes     = data.get("session_minutes"),
-                    avg_power_w         = data.get("avg_power_w"),
-                    peak_power_w        = data.get("peak_power_w"),
-                    avg_power_factor    = data.get("avg_power_factor"),
-                    detected_appliance  = data.get("detected_appliance"),
-                    anomaly             = data.get("anomaly"),
-                    wifi_rssi           = data.get("wifi_rssi"),
-                    read_count          = data.get("read_count"),
-                    uptime_ms           = data.get("uptime_ms"),
-                    temperature_c       = data.get("temperature_c"),
-                    humidity_pct        = data.get("humidity_pct"),
-                    heat_index_c        = data.get("heat_index_c"),
-                )
-                db.add(reading)
+                    pf = data.get("power_factor") or 0
+                    if pf:
+                        prev_pf = session.avg_power_factor or 0
+                        session.avg_power_factor = round(((prev_pf * (n - 1)) + pf) / n, 3)
 
-            # Update session summary
-            if session:
-                n = (session.total_readings or 0) + 1
-                session.total_readings = n
+                    pq = data.get("power_quality_score") or 0
+                    if pq:
+                        prev_pq = session.avg_pq_score or 0
+                        session.avg_pq_score = round(((prev_pq * (n - 1)) + pq) / n, 1)
 
-                pwr = data.get("power_w") or data.get("power") or 0
-                if pwr and (not session.peak_power_w or pwr > session.peak_power_w):
-                    session.peak_power_w = pwr
-                if pwr:
-                    prev_avg = session.avg_power_w or 0
-                    session.avg_power_w = round(((prev_avg * (n - 1)) + pwr) / n, 2)
+                    if data.get("session_kwh"):
+                        session.total_session_kwh = data["session_kwh"]
+                    if data.get("session_cost_rs"):
+                        session.total_cost_rs = data["session_cost_rs"]
 
-                v = data.get("voltage") or 0
-                if v:
-                    if not session.min_voltage_v or v < session.min_voltage_v:
-                        session.min_voltage_v = v
-                    if not session.max_voltage_v or v > session.max_voltage_v:
-                        session.max_voltage_v = v
+                    # Running average for environmental data
+                    temp = data.get("temperature_c")
+                    hum  = data.get("humidity_pct")
+                    if temp is not None:
+                        prev_temp = session.avg_temperature or temp
+                        session.avg_temperature = round(((prev_temp * (n - 1)) + temp) / n, 2)
+                    if hum is not None:
+                        prev_hum = session.avg_humidity or hum
+                        session.avg_humidity = round(((prev_hum * (n - 1)) + hum) / n, 2)
 
-                pf = data.get("power_factor") or 0
-                if pf:
-                    prev_pf = session.avg_power_factor or 0
-                    session.avg_power_factor = round(((prev_pf * (n - 1)) + pf) / n, 3)
-
-                pq = data.get("power_quality_score") or 0
-                if pq:
-                    prev_pq = session.avg_pq_score or 0
-                    session.avg_pq_score = round(((prev_pq * (n - 1)) + pq) / n, 1)
-
-                if data.get("session_kwh"):
-                    session.total_session_kwh = data["session_kwh"]
-                if data.get("session_cost_rs"):
-                    session.total_cost_rs = data["session_cost_rs"]
-
-                # Running average for environmental data
-                temp = data.get("temperature_c")
-                hum  = data.get("humidity_pct")
-                if temp is not None:
-                    prev_temp = session.avg_temperature or temp
-                    session.avg_temperature = round(((prev_temp * (n - 1)) + temp) / n, 2)
-                if hum is not None:
-                    prev_hum = session.avg_humidity or hum
-                    session.avg_humidity = round(((prev_hum * (n - 1)) + hum) / n, 2)
-
-            db.commit()
-        except Exception as e:
-            logger.error(f"DB save reading error: {e}")
-            try:
-                db.rollback()
-            except:
-                pass
-        finally:
-            try:
-                db.close()
-            except:
-                pass
+                db.commit()
+            except Exception as e:
+                logger.error(f"DB save reading error: {e}")
+                try:
+                    db.rollback()
+                except:
+                    pass
+            finally:
+                try:
+                    db.close()
+                except:
+                    pass
+        
+        await asyncio.to_thread(db_task)
 
     # ── Save appliance event ──────────────────────────────────────────────────
     async def _save_event_to_db(self, device_id: str, data: dict):
         if not self._db_factory:
             return
             
-        db = self._db_factory()
-        try:
-            from src.models.device_session import DeviceApplianceEvent, DeviceSession
-            from src.models.iot_reading import ApplianceEvent
-            
-            session_id = active_sessions.get(device_id)
-            account_number = None
-
-            if session_id:
-                session = db.query(DeviceSession).filter(DeviceSession.id == session_id).first()
-                if session:
-                    account_number = session.account_number
-
-            if not account_number:
-                last_s = db.query(DeviceSession).filter(
-                    DeviceSession.device_id == device_id
-                ).order_by(DeviceSession.started_at.desc()).first()
-                if last_s:
-                    account_number = last_s.account_number
-
-            # 1. ALWAYS save to ApplianceEvent if we have an account number
-            if account_number:
-                app_event = ApplianceEvent(
-                    account_number = account_number,
-                    from_appliance = data.get("from", ""),
-                    to_appliance   = data.get("to", ""),
-                    watts          = data.get("watts", 0),
-                )
-                db.add(app_event)
-
-            # 2. Save to DeviceApplianceEvent ONLY if session is active
-            if session_id:
-                event = DeviceApplianceEvent(
-                    session_id     = session_id,
-                    device_id      = device_id,
-                    from_appliance = data.get("from", ""),
-                    to_appliance   = data.get("to", ""),
-                    watts          = data.get("watts", 0),
-                )
-                db.add(event)
-            
-            db.commit()
-        except Exception as e:
-            logger.error(f"DB save event error: {e}")
-        finally:
+        def db_task():
+            db = self._db_factory()
             try:
-                db.close()
-            except:
-                pass
+                from src.models.device_session import DeviceApplianceEvent, DeviceSession
+                from src.models.iot_reading import ApplianceEvent
+                
+                session_id = active_sessions.get(device_id)
+                account_number = None
+
+                if session_id:
+                    session = db.query(DeviceSession).filter(DeviceSession.id == session_id).first()
+                    if session:
+                        account_number = session.account_number
+
+                if not account_number:
+                    last_s = db.query(DeviceSession).filter(
+                        DeviceSession.device_id == device_id
+                    ).order_by(DeviceSession.started_at.desc()).first()
+                    if last_s:
+                        account_number = last_s.account_number
+
+                # 1. ALWAYS save to ApplianceEvent if we have an account number
+                if account_number:
+                    app_event = ApplianceEvent(
+                        account_number = account_number,
+                        from_appliance = data.get("from", ""),
+                        to_appliance   = data.get("to", ""),
+                        watts          = data.get("watts", 0),
+                    )
+                    db.add(app_event)
+
+                # 2. Save to DeviceApplianceEvent ONLY if session is active
+                if session_id:
+                    event = DeviceApplianceEvent(
+                        session_id     = session_id,
+                        device_id      = device_id,
+                        from_appliance = data.get("from", ""),
+                        to_appliance   = data.get("to", ""),
+                        watts          = data.get("watts", 0),
+                    )
+                    db.add(event)
+                
+                db.commit()
+            except Exception as e:
+                logger.error(f"DB save event error: {e}")
+            finally:
+                try:
+                    db.close()
+                except:
+                    pass
+        
+        await asyncio.to_thread(db_task)
 
     # ── Disconnect watchdog ───────────────────────────────────────────────────
     async def _disconnect_watchdog(self):
@@ -710,6 +762,16 @@ class IoTService:
             db.commit()
             db.refresh(session)
 
+            # ── ALERT HOOK 3: Appliance Health ──
+            alert_engine.on_session_health(
+                device_id=device_id,
+                appliance_name=session.appliance_name,
+                health_score=health["health_score"],
+                verdict=health["verdict"],
+                user_id=1,  # User ID not strictly mapped in IoT session directly without join, defaulting/ignoring
+                db=db
+            )
+
             await self._broadcast_to_device_watchers(device_id, {
                 "type": "session_ended",
                 "data": session.to_dict(),
@@ -725,34 +787,43 @@ class IoTService:
 
     # ── AI Analysis ───────────────────────────────────────────────────────────
     async def _generate_ai_analysis(self, session, health: dict, dataset: list) -> dict:
-        try:
-            import anthropic
+        def ai_task():
+            try:
+                from google import genai
+                from src.config import settings
+                
+                gemini_key = settings.GEMINI_API_KEY or os.environ.get("GEMINI_API_KEY", "")
+                if not gemini_key:
+                    logger.error("GEMINI_API_KEY not set for session analysis")
+                    return None
 
-            avg_pwr  = session.avg_power_w or 0
-            peak_pwr = session.peak_power_w or 0
-            kwh      = session.total_session_kwh or 0
-            cost     = session.total_cost_rs or 0
-            pf       = session.avg_power_factor or 1
-            duration = session.actual_duration_min or 0
-            pq       = session.avg_pq_score or 80
-            temp     = getattr(session, 'avg_temperature', None)
-            humidity = getattr(session, 'avg_humidity', None)
+                client = genai.Client(api_key=gemini_key)
 
-            typical_ref = find_typical_wattage(session.appliance_name)
-            typical_str = (
-                f"{typical_ref['typical']}W (range: {typical_ref['min']}W–{typical_ref['max']}W)"
-                if typical_ref else "No reference data"
-            )
+                avg_pwr  = session.avg_power_w or 0
+                peak_pwr = session.peak_power_w or 0
+                kwh      = session.total_session_kwh or 0
+                cost     = session.total_cost_rs or 0
+                pf       = session.avg_power_factor or 1
+                duration = session.actual_duration_min or 0
+                pq       = session.avg_pq_score or 80
+                temp     = getattr(session, 'avg_temperature', None)
+                humidity = getattr(session, 'avg_humidity', None)
 
-            power_values = [r.get("power_w", 0) for r in dataset if r.get("power_w")]
-            stability    = "stable"
-            if power_values and len(power_values) > 3:
-                import statistics
-                cv = statistics.stdev(power_values) / (statistics.mean(power_values) + 0.001)
-                if cv > 0.3:    stability = "highly variable"
-                elif cv > 0.15: stability = "moderately variable"
+                typical_ref = find_typical_wattage(session.appliance_name)
+                typical_str = (
+                    f"{typical_ref['typical']}W (range: {typical_ref['min']}W–{typical_ref['max']}W)"
+                    if typical_ref else "No reference data"
+                )
 
-            prompt = f"""You are an expert electrical engineer analyzing IoT meter data for a household appliance.
+                power_values = [r.get("power_w", 0) for r in dataset if r.get("power_w")]
+                stability    = "stable"
+                if power_values and len(power_values) > 3:
+                    import statistics
+                    cv = statistics.stdev(power_values) / (statistics.mean(power_values) + 0.001)
+                    if cv > 0.3:    stability = "highly variable"
+                    elif cv > 0.15: stability = "moderately variable"
+
+                prompt = f"""You are an expert electrical engineer analyzing IoT meter data for a household appliance.
 
 APPLIANCE TESTED: {session.appliance_name}
 Brand/Model: {session.appliance_brand or 'Not specified'}
@@ -761,11 +832,11 @@ Description: {session.appliance_description or 'None'}
 MEASURED DATA:
 - Duration: {duration:.1f} minutes ({session.total_readings} readings at 5-sec intervals)
 - Average Power: {avg_pwr:.1f}W | Peak: {peak_pwr:.1f}W
-- Power Factor: {pf:.3f} ({'Excellent ≥0.95' if pf >= 0.95 else 'Good ≥0.85' if pf >= 0.85 else 'Fair ≥0.70' if pf >= 0.70 else 'Poor <0.70'})
+- Power Factor: {pf:.3f} ({'Excellent >=0.95' if pf >= 0.95 else 'Good >=0.85' if pf >= 0.85 else 'Fair >=0.70' if pf >= 0.70 else 'Poor <0.70'})
 - Power Quality Score: {pq:.1f}/100
 - Energy Used: {kwh:.4f} kWh | Est. Cost: Rs.{cost:.2f}
 - Power Stability: {stability}
-{f'- Temperature: {temp:.1f}°C | Humidity: {humidity:.1f}%' if temp and humidity else ''}
+{f'- Temperature: {temp:.1f}C | Humidity: {humidity:.1f}%' if temp and humidity else ''}
 
 REFERENCE (typical for this type): {typical_str}
 
@@ -792,28 +863,30 @@ Respond ONLY with valid JSON, no markdown, no preamble:
   "key_finding": "one sentence most important finding"
 }}"""
 
-            client  = anthropic.Anthropic(api_key=os.environ.get("ANTHROPIC_API_KEY", ""))
-            message = client.messages.create(
-                model      = "claude-sonnet-4-20250514",
-                max_tokens = 1024,
-                messages   = [{"role": "user", "content": prompt}]
-            )
+                response = client.models.generate_content(
+                    model="gemini-2.0-flash",
+                    contents=prompt
+                )
 
-            response_text = message.content[0].text
-            import re
-            json_match = re.search(r'\{.*\}', response_text, re.DOTALL)
-            if json_match:
-                ai_data = json.loads(json_match.group())
-                return {
-                    "summary":         ai_data.get("summary", ""),
-                    "recommendations": ai_data.get("recommendations", []),
-                    "comparison":      ai_data.get("comparison", ""),
-                    "needs_service":   ai_data.get("needs_service", "monitor"),
-                    "key_finding":     ai_data.get("key_finding", ""),
-                }
-        except Exception as e:
-            logger.error(f"AI analysis error: {e}")
+                response_text = response.text.strip()
+                import re
+                json_match = re.search(r'\{.*\}', response_text, re.DOTALL)
+                if json_match:
+                    ai_data = json.loads(json_match.group())
+                    return {
+                        "summary":         ai_data.get("summary", ""),
+                        "recommendations": ai_data.get("recommendations", []),
+                        "comparison":      ai_data.get("comparison", ""),
+                        "needs_service":   ai_data.get("needs_service", "monitor"),
+                        "key_finding":     ai_data.get("key_finding", ai_data.get("summary", "")[:100]),
+                    }
+            except Exception as e:
+                logger.error(f"AI analysis error: {e}")
+            return None
 
+        result = await asyncio.to_thread(ai_task)
+        if result:
+            return result
         return self._rule_based_analysis(session, health)
 
     def _rule_based_analysis(self, session, health: dict) -> dict:
@@ -936,8 +1009,14 @@ Respond ONLY with valid JSON, no markdown, no preamble:
 
     # ── Public API ────────────────────────────────────────────────────────────
     def set_active_session(self, device_id: str, session_id: int, user_id: int = None):
+        device_id = _normalize_id(device_id)
         active_sessions[device_id] = session_id
-        logger.info(f"Active session set: device={device_id} session={session_id} user={user_id}")
+        
+        # Capture baseline read_count for relative session increments
+        latest = latest_readings.get(device_id, {})
+        session_start_readings[device_id] = latest.get("read_count", 0)
+        
+        logger.info(f"Active session set: device={device_id} session={session_id} user={user_id} start_count={session_start_readings[device_id]}")
 
     def get_active_session(self, device_id: str) -> Optional[int]:
         return active_sessions.get(device_id)

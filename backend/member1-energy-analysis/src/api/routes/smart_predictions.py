@@ -67,7 +67,8 @@ async def insights_summary(
     service: SmartInsightsService = Depends(get_service)
 ):
     try:
-        from src.models import ElectricityBill, BudgetPlan, MeterReading
+        from src.models.bill import ElectricityBill
+        from src.models.budget_plan import BudgetPlan, MeterReading
 
         bills_db = db.query(ElectricityBill).filter(
             ElectricityBill.account_number == account_number
@@ -76,14 +77,17 @@ async def insights_summary(
         bill_dicts = []
         for b in bills_db:
             try:
+                kwh = float(b.units_consumed or 0)
+                if kwh == 0:
+                    continue
                 bill_dicts.append({
-                    "kwh": float(b.total_units or b.units_consumed or 0),
+                    "kwh": kwh,
                     "billing_month": b.bill_date.month if b.bill_date else 1,
                     "billing_year": b.bill_date.year if b.bill_date else 2025,
-                    "billing_days": int(getattr(b, "billing_days", None) or 30),
-                    "amount_rs": float(b.total_charge or b.total_amount or 0),
-                    "meter_start": float(b.meter_reading_start or 0),
-                    "meter_end": float(b.meter_reading_end or b.total_units or 0),
+                    "billing_days": int(b.billing_period_days or 30),
+                    "amount_rs": float(b.total_charge or 0),   # ✅ was total_amount
+                    "meter_start": float(b.previous_reading or 0),
+                    "meter_end": float(b.current_reading or kwh),
                 })
             except Exception:
                 continue
@@ -97,7 +101,10 @@ async def insights_summary(
         billing_start = 0.0
 
         if plan:
-            billing_start = float(plan.start_reading or 0)
+            # ✅ Fix: use correct field names from your BudgetPlan model
+            billing_start = float(
+                getattr(plan, 'reference_bill_current_reading', None) or 0
+            )
             readings_db = db.query(MeterReading).filter(
                 MeterReading.budget_plan_id == plan.id
             ).order_by(MeterReading.reading_date.asc()).all()
@@ -105,10 +112,10 @@ async def insights_summary(
             for r in readings_db:
                 try:
                     reading_dicts.append({
-                        "reading_value": float(r.current_reading),
+                        "reading_value": float(r.reading_value),  # ✅ was r.current_reading
                         "reading_date": str(r.reading_date),
-                        "billing_period_start": str(plan.start_date),
-                        "billing_period_end": str(plan.end_date),
+                        "billing_period_start": str(plan.plan_start_date),  # ✅ was plan.start_date
+                        "billing_period_end": str(plan.plan_end_date),      # ✅ was plan.end_date
                     })
                 except Exception:
                     continue

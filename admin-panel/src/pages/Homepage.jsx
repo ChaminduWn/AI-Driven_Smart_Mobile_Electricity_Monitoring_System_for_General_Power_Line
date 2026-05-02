@@ -9,7 +9,7 @@ import imgMinistry from "../assets/Picture7.png";
 const features = [
   {
     title: "Energy Analysis",
-    route: "/Energy Analysis",
+    route: "/d/analysis",
     description: "AI-driven bill prediction and NILM energy disaggregation to track every watt in real time.",
     icon: (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" width="28" height="28">
@@ -24,7 +24,7 @@ const features = [
   },
   {
     title: "Outage Tracking",
-    route: "/Outage Tracking",
+    route: "/d/monitoring",
     description: "Real-time fault detection with GPS-enabled technician dispatching for zero downtime.",
     icon: (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" width="28" height="28">
@@ -38,7 +38,7 @@ const features = [
   },
   {
     title: "Solar Intelligence",
-    route: "/Solar Intelligence",
+    route: "/d/solar",
     description: "Climate-aware ROI prediction and system sizing for maximum sustainable energy output.",
     icon: (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" width="28" height="28">
@@ -53,7 +53,7 @@ const features = [
   },
   {
     title: "Safety Assistant",
-    route: "/Safety Assistant",
+    route: "/d/safety",
     description: "Natural Language AI for emergency protocols, risk mitigation and automated alerts.",
     icon: (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" width="28" height="28">

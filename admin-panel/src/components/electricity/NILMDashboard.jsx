@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, LineChart, Line } from 'recharts';
 import { Zap, TrendingUp, Activity, AlertCircle, CheckCircle, RefreshCw, Info, Plus, Trash2, Settings } from 'lucide-react';
+import { MEMBER1_API_BASE } from '../../config/apiBases';
 
-const API_BASE = 'http://localhost:8000/api/v1';
+const API_BASE = MEMBER1_API_BASE;
 
 const CHART_COLORS = ['#3B82F6', '#8B5CF6', '#14B8A6', '#F59E0B', '#EF4444', '#06B6D4', '#10B981', '#F472B6'];
 

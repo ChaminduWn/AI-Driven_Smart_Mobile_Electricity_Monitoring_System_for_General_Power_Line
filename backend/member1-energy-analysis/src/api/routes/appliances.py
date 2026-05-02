@@ -6,7 +6,9 @@ PHASE 3: Appliance Management System
 from fastapi import UploadFile, File
 import shutil
 from pathlib import Path
-from src.services.appliance_recognition import get_recognition_service
+from src.services.appliance_recognition_v2 import GeminiVisionRecognitionService
+from src.services.appliance_recognition import ApplianceRecognitionService
+from src.config import settings
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from typing import Optional, List
@@ -77,7 +79,7 @@ def add_appliance(
 ):
     """
     Add a new household appliance
-    
+
     Automatically calculates:
     - Daily kWh consumption
     - Monthly kWh consumption
@@ -96,21 +98,21 @@ def add_appliance(
             usage_times_per_day=appliance.usage_times_per_day,
             usage_frequency=appliance.usage_frequency
         )
-        
+
         # Calculate consumption
         appliance_record.calculate_consumption()
-        
+
         # Calculate estimated cost using tariff
         if appliance_record.monthly_kwh:
             tariff_calc = analysis_service.tariff_calculator.calculate_bill(
                 int(appliance_record.monthly_kwh), 30
             )
             appliance_record.estimated_monthly_cost = tariff_calc['total']
-        
+
         db.add(appliance_record)
         db.commit()
         db.refresh(appliance_record)
-        
+
         return {
             'success': True,
             'message': 'Appliance added successfully',
@@ -119,7 +121,7 @@ def add_appliance(
             'monthly_kwh': appliance_record.monthly_kwh,
             'estimated_cost': appliance_record.estimated_monthly_cost
         }
-        
+
     except Exception as e:
         db.rollback()
         raise HTTPException(status_code=500, detail=str(e))
@@ -136,15 +138,15 @@ def get_appliances_by_account(
     query = db.query(HouseholdAppliance).filter(
         HouseholdAppliance.user_id == current_user.id
     )
-    
+
     if account_number:
         query = query.filter(HouseholdAppliance.account_number == account_number)
-    
+
     if active_only:
         query = query.filter(HouseholdAppliance.is_active == True)
-    
+
     appliances = query.all()
-    
+
     return {
         'success': True,
         'count': len(appliances),
@@ -175,7 +177,7 @@ def analyze_appliances(
 ):
     """
     Get comprehensive appliance-wise consumption breakdown
-    
+
     Returns:
     - Total daily/monthly consumption
     - Breakdown by appliance with percentages
@@ -189,32 +191,32 @@ def analyze_appliances(
     )
     if account_number:
         query = query.filter(HouseholdAppliance.account_number == account_number)
-    
+
     appliances = query.all()
-    
+
     if not appliances:
         return {
             'success': True,
             'message': 'No appliances found for this account',
             'appliances_count': 0
         }
-    
+
     # Calculate totals
     total_daily_kwh = sum(a.daily_kwh or 0 for a in appliances)
     total_monthly_kwh = sum(a.monthly_kwh or 0 for a in appliances)
-    
+
     # Calculate total cost using tariff
     monthly_cost_calc = analysis_service.tariff_calculator.calculate_bill(
         int(total_monthly_kwh), 30
     )
     total_monthly_cost = monthly_cost_calc['total']
-    
+
     # Breakdown by appliance
     breakdown = []
     for appliance in appliances:
         percentage = (appliance.monthly_kwh / total_monthly_kwh * 100) if total_monthly_kwh > 0 else 0
         estimated_cost = (appliance.monthly_kwh / total_monthly_kwh * total_monthly_cost) if total_monthly_kwh > 0 else 0
-        
+
         breakdown.append({
             'id': appliance.id,
             'name': appliance.appliance_name,
@@ -226,10 +228,10 @@ def analyze_appliances(
             'estimated_monthly_cost': round(estimated_cost, 2),
             'cost_per_day': round(estimated_cost / 30, 2) if estimated_cost else 0
         })
-    
+
     # Sort by consumption (highest first)
     breakdown.sort(key=lambda x: x['monthly_kwh'], reverse=True)
-    
+
     # Category-wise breakdown
     category_breakdown = {}
     for appliance in appliances:
@@ -240,13 +242,13 @@ def analyze_appliances(
                 'total_kwh': 0,
                 'total_cost': 0
             }
-        
+
         category_breakdown[category]['count'] += 1
         category_breakdown[category]['total_kwh'] += appliance.monthly_kwh or 0
-        
+
         percentage = (appliance.monthly_kwh / total_monthly_kwh) if total_monthly_kwh > 0 else 0
         category_breakdown[category]['total_cost'] += (percentage * total_monthly_cost)
-    
+
     # Format category breakdown
     categories = [
         {
@@ -259,11 +261,11 @@ def analyze_appliances(
         for cat, data in category_breakdown.items()
     ]
     categories.sort(key=lambda x: x['monthly_kwh'], reverse=True)
-    
+
     # High-consumption appliances (top 20% consumers)
     threshold_kwh = total_monthly_kwh * 0.2
     high_consumers = [a for a in breakdown if a['monthly_kwh'] >= threshold_kwh]
-    
+
     return {
         'success': True,
         'summary': {
@@ -292,7 +294,7 @@ def get_recommendations(
 ):
     """
     Get smart recommendations for reducing consumption
-    
+
     Analyzes:
     - High-consumption appliances
     - Usage patterns
@@ -304,16 +306,16 @@ def get_recommendations(
     )
     if account_number:
         query = query.filter(HouseholdAppliance.account_number == account_number)
-    
+
     appliances = query.all()
-    
+
     if not appliances:
         return {'success': True, 'recommendations': []}
-    
+
     total_monthly_kwh = sum(a.monthly_kwh or 0 for a in appliances)
-    
+
     recommendations = []
-    
+
     # Check for high wattage appliances
     high_wattage = [a for a in appliances if a.wattage > 1500]
     if high_wattage:
@@ -327,7 +329,7 @@ def get_recommendations(
                 'suggestion': f'Reduce usage by 20% to save ~{savings_potential:.1f} kWh/month',
                 'potential_savings_kwh': round(savings_potential, 2)
             })
-    
+
     # Check for always-on appliances
     continuous = [a for a in appliances if a.usage_frequency == 'daily' and a.usage_duration_minutes > 300]
     if continuous:
@@ -339,12 +341,12 @@ def get_recommendations(
                 'message': f'{appliance.appliance_name} runs for long periods',
                 'suggestion': 'Consider using timer switches or reducing runtime'
             })
-    
+
     # Check for multiple similar appliances
     from collections import Counter
     categories = [a.appliance_category for a in appliances if a.appliance_category]
     category_counts = Counter(categories)
-    
+
     for category, count in category_counts.items():
         if count >= 3:
             recommendations.append({
@@ -354,7 +356,7 @@ def get_recommendations(
                 'message': f'You have {count} {category} appliances',
                 'suggestion': 'Consider consolidating usage or replacing with more efficient models'
             })
-    
+
     # General recommendations
     if total_monthly_kwh > 200:
         recommendations.append({
@@ -363,7 +365,7 @@ def get_recommendations(
             'message': f'Total appliance consumption is {total_monthly_kwh:.0f} kWh/month',
             'suggestion': 'Consider upgrading to energy-efficient appliances (look for A+++ ratings)'
         })
-    
+
     return {
         'success': True,
         'total_recommendations': len(recommendations),
@@ -383,30 +385,30 @@ def update_appliance(
         HouseholdAppliance.id == appliance_id,
         HouseholdAppliance.user_id == current_user.id
     ).first()
-    
+
     if not appliance:
         raise HTTPException(status_code=404, detail="Appliance not found")
-    
+
     try:
         # Update fields
         update_data = updates.dict(exclude_unset=True)
         for field, value in update_data.items():
             setattr(appliance, field, value)
-        
+
         # Recalculate consumption if relevant fields changed
         if any(key in update_data for key in ['wattage', 'usage_duration_minutes', 'usage_times_per_day', 'usage_frequency']):
             appliance.calculate_consumption()
-            
+
             # Recalculate cost
             if appliance.monthly_kwh:
                 tariff_calc = analysis_service.tariff_calculator.calculate_bill(
                     int(appliance.monthly_kwh), 30
                 )
                 appliance.estimated_monthly_cost = tariff_calc['total']
-        
+
         db.commit()
         db.refresh(appliance)
-        
+
         return {
             'success': True,
             'message': 'Appliance updated successfully',
@@ -418,7 +420,7 @@ def update_appliance(
                 'estimated_cost': appliance.estimated_monthly_cost
             }
         }
-        
+
     except Exception as e:
         db.rollback()
         raise HTTPException(status_code=500, detail=str(e))
@@ -436,10 +438,10 @@ def delete_appliance(
         HouseholdAppliance.id == appliance_id,
         HouseholdAppliance.user_id == current_user.id
     ).first()
-    
+
     if not appliance:
         raise HTTPException(status_code=404, detail="Appliance not found")
-    
+
     try:
         if soft_delete:
             appliance.is_active = False
@@ -449,12 +451,47 @@ def delete_appliance(
             db.delete(appliance)
             db.commit()
             message = "Appliance deleted permanently"
-        
+
+        # Check if appliance count fell below 5
+        from src.models.budget_plan import BudgetPlan
+
+        remaining_count = db.query(HouseholdAppliance).filter(
+            HouseholdAppliance.user_id == current_user.id,
+            HouseholdAppliance.account_number == appliance.account_number,
+            HouseholdAppliance.is_active == True
+        ).count()
+
+        plans_stopped = 0
+        warning = None
+
+        if remaining_count < 5:
+            # Auto-stop active budget plans for this account
+            active_plans = db.query(BudgetPlan).filter(
+                BudgetPlan.user_id == current_user.id,
+                BudgetPlan.account_number == appliance.account_number,
+                BudgetPlan.is_active == True
+            ).all()
+
+            for plan in active_plans:
+                plan.is_active = False
+                plan.status = 'stopped_insufficient_appliances'
+                plans_stopped += 1
+
+            db.commit()
+
+            if plans_stopped > 0:
+                warning = f"Appliance count is now {remaining_count} (below minimum of 5). {plans_stopped} active budget plan(s) have been stopped."
+            else:
+                warning = f"Appliance count is now {remaining_count}. You need at least 5 appliances to start a new budget plan."
+
         return {
             'success': True,
-            'message': message
+            'message': message,
+            'remaining_count': remaining_count,
+            'warning': warning,
+            'plans_stopped': plans_stopped
         }
-        
+
     except Exception as e:
         db.rollback()
         raise HTTPException(status_code=500, detail=str(e))
@@ -478,7 +515,7 @@ def get_appliance_categories():
         {'name': 'Outdoor/Garden', 'examples': ['Lawn Mower', 'Pool Pump', 'Garden Lighting']},
         {'name': 'Other', 'examples': ['Phone Charger', 'UPS', 'Electric Toothbrush']}
     ]
-    
+
     return {
         'success': True,
         'categories': categories
@@ -501,7 +538,7 @@ def get_common_appliances():
         {'name': 'Electric Kettle', 'category': 'Cooking', 'typical_wattage': 2000, 'usage': '10 min'},
         {'name': 'Laptop', 'category': 'Office', 'typical_wattage': 65, 'usage': '8 hours'},
     ]
-    
+
     return {
         'success': True,
         'count': len(common),
@@ -517,11 +554,11 @@ async def recognize_appliance_from_image(
 ):
     """
     Recognize appliance and extract power consumption from image
-    
+
     Upload an image of:
     - The appliance itself (for classification)
     - The power label/specification sticker (for wattage extraction)
-    
+
     Returns:
     - Appliance type classification
     - Extracted or estimated wattage
@@ -534,60 +571,151 @@ async def recognize_appliance_from_image(
             status_code=400,
             detail="Invalid file type. Allowed: JPG, PNG, WEBP"
         )
-    
+
     # Create temp directory
     temp_dir = Path("uploads/temp_appliances")
     temp_dir.mkdir(parents=True, exist_ok=True)
-    
-    # Save uploaded file
+
+    # Save uploaded file with a UUID to avoid filename collisions
+    import uuid
     from datetime import datetime
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    file_path = temp_dir / f"{timestamp}_{file.filename}"
-    
+    unique_name = f"{timestamp}_{uuid.uuid4()}.{file_ext}"
+    file_path = temp_dir / unique_name
+
     try:
         with open(file_path, "wb") as buffer:
             shutil.copyfileobj(file.file, buffer)
+
+        recognition_result = None
+        attempted_v2 = False
         
-        # Recognize appliance
-        recognition_service = get_recognition_service()
-        result = recognition_service.recognize_appliance(str(file_path))
-        
-        if not result['success']:
+        # --- ATTEMPT 1: CLIP Local Model (V1) ---
+        try:
+            logger.info("Attempting local appliance recognition with CLIP (V1)...")
+            clip_v1 = ApplianceRecognitionService()
+            v1_result = clip_v1.recognize_appliance(str(file_path))
+            
+            # Use CLIP if it succeeded AND has high confidence (>= 0.6)
+            if v1_result.get('success') and v1_result.get('confidence', 0) >= 0.6:
+                recognition_result = v1_result
+                logger.info(f"CLIP V1 succeeded with {v1_result['confidence']*100}% confidence")
+            else:
+                logger.warning(f"CLIP V1 failed or has low confidence: {v1_result.get('error') or 'low confidence'}")
+        except Exception as e:
+            logger.error(f"CLIP V1 critical error: {e}")
+
+        # --- ATTEMPT 2: Fallback to Gemini AI (V2) ---
+        if not recognition_result and settings.GEMINI_API_KEY:
+            try:
+                logger.info("Falling back to Gemini AI (V2)...")
+                gemini_v2 = GeminiVisionRecognitionService()
+                v2_result = gemini_v2.recognize_appliance(str(file_path))
+                
+                if v2_result.get('success'):
+                    recognition_result = v2_result
+                    attempted_v2 = True
+                    logger.info(f"Gemini V2 fallback succeeded with {v2_result.get('confidence', 0)*100}% confidence")
+                else:
+                    logger.warning(f"Gemini V2 fallback also failed: {v2_result.get('error')}")
+            except Exception as e:
+                logger.error(f"Gemini V2 fallback critical error: {e}")
+
+        if not recognition_result or not recognition_result.get('success'):
             return {
                 'success': False,
-                'message': 'Could not recognize appliance',
-                'error': result.get('error'),
-                'suggestion': 'Try uploading a clearer image or the power label'
+                'message': 'Could not recognize appliance with any model',
+                'suggestion': 'Try a clearer photo or manually select from templates.'
             }
-        
-        # Return structured data for frontend
+
+        # Normalize result for frontend
+        app_name = recognition_result.get('appliance_name', 'Unknown')
+        cat = recognition_result.get('category', 'Other')
+        wattage = recognition_result.get('recommended_wattage', 100)
+        source = recognition_result.get('wattage_source', 'estimated')
+
         return {
             'success': True,
             'message': 'Appliance recognized successfully',
             'data': {
-                'appliance_name': result.get('appliance_name', 'Unknown Appliance'),
-                'category': result.get('category', 'Other'),
-                'wattage': result['recommended_wattage'],
-                'wattage_source': result['wattage_source'],
-                'confidence': result.get('confidence', 0),
-                'classification_details': result.get('classification'),
-                'power_extraction_details': result.get('power_extraction')
+                'appliance_name': app_name,
+                'category': cat,
+                'wattage': wattage,
+                'wattage_source': source,
+                'confidence': recognition_result.get('confidence', 0),
+                'method': 'gemini_v2' if attempted_v2 and recognition_result == v2_result else 'clip_v1',
             },
             'suggested_values': {
-                'appliance_name': result.get('appliance_name', ''),
-                'appliance_category': result.get('category', 'Other'),
-                'wattage': result['recommended_wattage'],
+                'appliance_name': app_name,
+                'appliance_category': cat,
+                'wattage': wattage,
                 'usage_duration_minutes': 60,
                 'usage_times_per_day': 1,
                 'usage_frequency': 'daily'
             }
         }
-        
+
     except Exception as e:
         logger.error(f"Error recognizing appliance: {e}")
         raise HTTPException(status_code=500, detail=str(e))
-    
+
     finally:
-        # Clean up temp file
+        # ✅ Windows-safe cleanup: PIL releases handle via .copy() in the service,
+        # but we still guard here with a fallback gc.collect() just in case.
         if file_path.exists():
-            file_path.unlink()
+            try:
+                file_path.unlink()
+            except PermissionError:
+                import gc
+                gc.collect()
+                try:
+                    file_path.unlink()
+                except PermissionError:
+                    # File will be cleaned up on next server restart
+                    logger.warning(f"Could not delete temp file (still locked): {file_path}")
+
+class AIAnalysisRequest(BaseModel):
+    user_prompt: str
+
+@router.post("/ai-analysis/{account_number}")
+async def analyze_appliance_data_ai(
+    account_number: str,
+    request: AIAnalysisRequest,
+    db: Session = Depends(get_db)
+):
+    import httpx
+    import os
+    
+    # 1. Gather context
+    appliances = db.query(HouseholdAppliance).filter(
+        HouseholdAppliance.account_number == account_number,
+        HouseholdAppliance.is_active == True
+    ).all()
+    
+    context = "User Appliances:\n"
+    for a in appliances:
+        daily_kwh = a.daily_kwh if a.daily_kwh is not None else 0
+        context += f"- {a.appliance_name} ({a.wattage}W, uses {daily_kwh:.2f} kWh/day)\n"
+    
+    prompt = f"Context:\n{context}\n\nUser Question: {request.user_prompt}\n\nRespond briefly with actionable energy-saving advice."
+    
+    # 2. Call Gemini
+    GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+    if not GEMINI_API_KEY:
+        return {"success": False, "answer": "AI API Key is missing on the server. Please contact logic administrator."}
+
+    try:
+        async with httpx.AsyncClient() as client:
+            response = await client.post(
+                f"https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key={GEMINI_API_KEY}",
+                json={"contents": [{"parts": [{"text": prompt}]}]}
+            )
+            data = response.json()
+            if "candidates" in data and data["candidates"]:
+                answer = data["candidates"][0]["content"]["parts"][0]["text"]
+                return {"success": True, "answer": answer}
+            else:
+                return {"success": False, "answer": "I received an unexpected response structure from Gemini."}
+    except Exception as e:
+        logger.error(f"Gemini API Error: {e}")
+        return {"success": False, "answer": "I'm having trouble connecting to my AI brain right now. Try again later!"}

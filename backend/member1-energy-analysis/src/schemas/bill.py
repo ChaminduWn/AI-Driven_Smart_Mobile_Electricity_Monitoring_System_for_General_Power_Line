@@ -22,6 +22,9 @@ class BillData(BaseModel):
     id: int
     account_number: Optional[str] = None
     bill_reference: Optional[str] = None
+    title: Optional[str] = None
+    is_manual: Optional[bool] = False
+    is_active_for_dashboard: Optional[bool] = False
     bill_date: Optional[datetime] = None
     units_consumed: Optional[int] = None
     billing_period_days: Optional[int] = None
@@ -42,6 +45,9 @@ class BillData(BaseModel):
 
 class BillUpdate(BaseModel):
     account_number: Optional[str] = None
+    title: Optional[str] = None
+    is_manual: Optional[bool] = None
+    is_active_for_dashboard: Optional[bool] = None
     bill_date: Optional[datetime] = None
     units_consumed: Optional[int] = None
     billing_period_days: Optional[int] = None

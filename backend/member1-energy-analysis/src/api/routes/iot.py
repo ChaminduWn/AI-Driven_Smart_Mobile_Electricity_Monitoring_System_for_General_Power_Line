@@ -19,6 +19,7 @@ from src.database import get_db
 from src.models.device_session import DeviceApplianceEvent, DeviceReading, DeviceSession
 from src.services.iot_service import iot_service
 from src.api.dependencies import get_current_user
+from src.api.routes.relay import _publish_relay_command  # ← NEW: to reset hardware on session start
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/iot", tags=["IoT"])
@@ -92,6 +93,10 @@ def start_session(req: StartSessionRequest, db: Session = Depends(get_db),
 
     iot_service.set_active_session(req.device_id, session.id, user.id)
 
+    # ✅ SYNC: Inform hardware to reset its internal session counters (kWh, cost, local read count)
+    # This ensures "Session kWh" and "Est. Cost" start from zero in the app.
+    _publish_relay_command(req.device_id, {"cmd": "reset_energy"})
+
     return {
         "session_id":     session.id,
         "device_id":      req.device_id,
@@ -130,12 +135,15 @@ async def end_session(session_id: int, db: Session = Depends(get_db),
 @router.get("/sessions/{session_id}")
 def get_session(session_id: int, include_dataset: bool = Query(False),
                 db: Session = Depends(get_db), user=Depends(get_current_user)):
+    # Relaxed filtering: allow if user_id matches OR if account matches
+    account = _get_account(user)
     session = db.query(DeviceSession).filter(
-        DeviceSession.id      == session_id,
-        DeviceSession.user_id == user.id,
+        DeviceSession.id == session_id
+    ).filter(
+        (DeviceSession.user_id == user.id) | (DeviceSession.account_number == account)
     ).first()
     if not session:
-        raise HTTPException(404, "Session not found")
+        raise HTTPException(404, "Session not found or access denied")
     data   = session.to_dict(include_dataset=include_dataset)
     events = db.query(DeviceApplianceEvent).filter(
         DeviceApplianceEvent.session_id == session_id
@@ -148,7 +156,11 @@ def get_session(session_id: int, include_dataset: bool = Query(False),
 def list_sessions(limit: int = Query(20, le=100), offset: int = Query(0),
                   appliance_name: Optional[str] = None,
                   db: Session = Depends(get_db), user=Depends(get_current_user)):
-    q = db.query(DeviceSession).filter(DeviceSession.user_id == user.id)
+    account = _get_account(user)
+    # Return sessions for the user OR for the user's primary account
+    q = db.query(DeviceSession).filter(
+        (DeviceSession.user_id == user.id) | (DeviceSession.account_number == account)
+    )
     if appliance_name:
         q = q.filter(DeviceSession.appliance_name.ilike(f"%{appliance_name}%"))
     total    = q.count()
@@ -228,6 +240,22 @@ def export_dataset(session_id: int, format: str = Query("json", regex="^(json|cs
         media_type="application/json",
         headers={"Content-Disposition": f'attachment; filename="{base}.json"'}
     )
+
+
+@router.post("/test-telegram")
+async def test_telegram(user=Depends(get_current_user)):
+    """Manual trigger to verify Telegram bot configuration."""
+    from src.services.alert_engine import alert_engine
+    import asyncio
+    
+    logger.info(f"Manual Telegram test triggered by user {user.id}")
+    # Run in background to avoid blocking the API response
+    ok = alert_engine.send_test_alert()
+    
+    return {
+        "success": ok, 
+        "message": "Test alert sent! Check your Telegram bot." if ok else "Telegram token not set or API error. Check server logs."
+    }
 
 
 @router.get("/latest/{device_id}")

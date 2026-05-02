@@ -20,11 +20,12 @@ export const analysisAPI = {
     apiClient.post('/analysis/save-manual-bill', data),
 
   // ── Budget Plans ────────────────────────────────────────────────────────
-  createBudgetPlan: (billId, targetBudget, planningDays = 30) =>
+  createBudgetPlan: (billId, targetBudget, planningDays = 30, planStartDate = null) =>
     apiClient.post('/analysis/create-budget-plan', {
       bill_id: billId,
       target_budget: targetBudget,
       planning_days: planningDays,
+      plan_start_date: planStartDate,
     }),
 
   getPlanById: (planId) =>
@@ -43,6 +44,9 @@ export const analysisAPI = {
 
   endPlan: (planId) =>
     apiClient.post(`/analysis/plans/${planId}/end`),
+
+  setPlanPriority: (planId) =>
+    apiClient.post(`/analysis/plans/${planId}/set-priority`),
 
   // ── Meter Readings / Progress Tracking ─────────────────────────────────
   trackProgress: (planId, currentReading, readingDate, notes = null) =>

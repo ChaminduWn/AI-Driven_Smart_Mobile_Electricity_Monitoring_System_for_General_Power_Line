@@ -9,6 +9,8 @@ import TariffCalculator from '../components/electricity/TariffCalculator';
 import NILMDashboard from '../components/electricity/NILMDashboard';
 import HouseholdAnalyser from '../components/electricity/HouseholdAnalyzer';
 import ConsumptionEstimator from '../components/electricity/ConsumptionEstimator';
+import IoTControlPanel from '../components/electricity/IoTControlPanel';
+
 
 
 // Navigation Button
@@ -86,6 +88,14 @@ export default function Member1Dashboard() {
               Tariff Calculator
             </NavButton>
 
+            <NavButton
+              active={activeTab === 'iot-control'}
+              onClick={() => setActiveTab('iot-control')}
+            >
+              IoT Smart Control
+            </NavButton>
+
+
           </div>
         </nav>
 
@@ -98,6 +108,8 @@ export default function Member1Dashboard() {
           {activeTab === 'Disaggregation' && <NILMDashboard />}
           {activeTab === 'household' && <HouseholdAnalyser />}
           {activeTab === 'ConsumptionEstimator' && <ConsumptionEstimator />}
+          {activeTab === 'iot-control' && <IoTControlPanel />}
+
         </main>
       </Box>
       <Footer />

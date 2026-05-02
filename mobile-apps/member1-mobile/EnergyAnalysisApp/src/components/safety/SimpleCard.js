@@ -1,6 +1,7 @@
 import React from 'react';
-import { View, StyleSheet } from 'react-native';
-import { Text, IconButton } from 'react-native-paper';
+import { View, Text, StyleSheet } from 'react-native';
+import { IconButton } from 'react-native-paper';
+import { COLORS, FONTS } from '../../utils/theme';
 
 export default function SimpleCard({ title, subtitle, leftIcon, rightElement, children, style }) {
   return (
@@ -8,7 +9,7 @@ export default function SimpleCard({ title, subtitle, leftIcon, rightElement, ch
       {(title || subtitle || leftIcon || rightElement) && (
         <View style={styles.headerRow}>
           <View style={styles.leftHeader}>
-            {leftIcon ? <IconButton icon={leftIcon} size={28} style={{ margin: 0 }} /> : null}
+            {leftIcon ? <IconButton icon={leftIcon} size={28} iconColor={COLORS.primary} style={{ margin: 0 }} /> : null}
             <View>
               {title ? <Text style={styles.title}>{title}</Text> : null}
               {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
@@ -24,26 +25,22 @@ export default function SimpleCard({ title, subtitle, leftIcon, rightElement, ch
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: '#16213e',
-    borderRadius: 10,
-    padding: 12,
-    shadowColor: '#000',
-    shadowOpacity: 0.2,
-    shadowRadius: 6,
-    elevation: 3,
+    backgroundColor: COLORS.bg2,
+    borderRadius: 16,
+    padding: 16,
     marginBottom: 12,
     borderWidth: 1,
-    borderColor: 'rgba(255,215,0,0.2)'
+    borderColor: COLORS.border,
   },
-  headerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 },
+  headerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 },
   leftHeader: { flexDirection: 'row', alignItems: 'center' },
   rightHeader: { marginLeft: 8 },
   title: {
     fontSize: 16,
-    fontWeight: '700',
-    color: '#ffffff'
+    ...FONTS.bold,
+    color: COLORS.textPrimary
   },
-  subtitle: { fontSize: 12, color: '#aaaaaa' },
+  subtitle: { fontSize: 12, color: COLORS.textSecondary },
   content: {
     // content container
   }

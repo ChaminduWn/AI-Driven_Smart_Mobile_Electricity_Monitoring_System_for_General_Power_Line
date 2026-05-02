@@ -8,10 +8,12 @@ from pydantic import BaseModel, EmailStr, Field, validator
 class UserRegisterRequest(BaseModel):
     """Schema for user registration request."""
     email: EmailStr
+    username: Optional[str] = Field(None, max_length=100)
     phone_number: Optional[str] = Field(None, max_length=32)
-    password: str = Field(..., min_length=8, max_length=128)
+    password: str = Field(..., min_length=1, max_length=128)
     full_name: Optional[str] = Field(None, max_length=255)
     default_account_number: Optional[str] = Field(None, max_length=100)
+    admin_code: Optional[str] = Field(None, description="Optional passcode to register as admin")
 
     @validator('password')
     def validate_password(cls, v):
@@ -52,9 +54,16 @@ class UserProfileResponse(BaseModel):
     """Schema for user profile response."""
     id: int
     email: EmailStr
+    username: Optional[str]
     phone_number: Optional[str]
     full_name: Optional[str]
+    birthday: Optional[datetime]
+    profile_image: Optional[str]
     default_account_number: Optional[str]
+    address: Optional[str] = None
+    city: Optional[str] = None
+    country: Optional[str] = None
+    is_admin: bool = False
     created_at: datetime
 
     class Config:
@@ -64,11 +73,16 @@ class UserProfileResponse(BaseModel):
 class UserProfileUpdate(BaseModel):
     """Schema for updating user profile."""
     full_name: Optional[str] = Field(None, max_length=255)
+    username: Optional[str] = Field(None, max_length=100)
+    email: Optional[EmailStr] = None
     phone_number: Optional[str] = Field(None, max_length=32)
+    birthday: Optional[datetime] = None
+    profile_image: Optional[str] = None
     address: Optional[str] = Field(None, max_length=500)
     city: Optional[str] = Field(None, max_length=100)
     country: Optional[str] = Field(None, max_length=100)
     default_account_number: Optional[str] = Field(None, max_length=100)
+    new_password: Optional[str] = Field(None, min_length=1, max_length=128)
 
 
 class TokenResponse(BaseModel):

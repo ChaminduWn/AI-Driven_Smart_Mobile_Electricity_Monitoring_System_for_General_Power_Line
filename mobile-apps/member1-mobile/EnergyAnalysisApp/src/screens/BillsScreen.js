@@ -1,7 +1,9 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
-  View, Text, ScrollView, StyleSheet, RefreshControl, TouchableOpacity, Alert, Platform,
+  View, Text, ScrollView, StyleSheet, RefreshControl, TouchableOpacity, Platform, Alert,
 } from 'react-native';
+import { ArrowLeft, FileText, Trash2, Edit3, Plus, Upload, Keyboard } from 'lucide-react-native';
+import { universalAlert } from '../utils/alerts';
 import * as DocumentPicker from 'expo-document-picker';
 import { billsAPI } from '../api/billsAPI';
 import { analysisAPI } from '../api/analysisAPI';
@@ -21,8 +23,15 @@ const BillsScreen = ({ navigation }) => {
   const [uploading, setUploading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [showManualModal, setShowManualModal] = useState(false);
+  const [showUploadModal, setShowUploadModal] = useState(false);
+  const [showRenameModal, setShowRenameModal] = useState(false);
+  const [editingBill, setEditingBill] = useState(null);
+  const [renameTitle, setRenameTitle] = useState('');
+  const [pendingUploadAsset, setPendingUploadAsset] = useState(null);
+  const [uploadTitle, setUploadTitle] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [manualForm, setManualForm] = useState({
+    title: '',
     current_meter_reading: '',
     past_bill_date: new Date().toISOString().split('T')[0],
     past_bill_amount: '',
@@ -46,8 +55,6 @@ const BillsScreen = ({ navigation }) => {
       for (const acct of seen) { await addAccount(acct); }
     } catch (err) {
       console.error('❌ Bills fetch error:', err.response?.data || err.message);
-      console.error('   Status:', err.response?.status);
-      console.error('   Headers:', err.response?.headers);
       Alert.alert('Error', `Failed to fetch bills: ${err.response?.data?.detail || err.message}`);
     } finally {
       setLoading(false);
@@ -57,21 +64,26 @@ const BillsScreen = ({ navigation }) => {
 
   useEffect(() => { fetchBills(); }, [fetchBills]);
 
-  const handleUpload = async () => {
+  const handleUploadClick = async () => {
     try {
       const result = await DocumentPicker.getDocumentAsync({
         type: ['application/pdf', 'image/jpeg', 'image/png', 'image/jpg'],
         copyToCacheDirectory: true,
       });
       if (result.canceled) return;
-      doUpload(result.assets[0]);
+      setPendingUploadAsset(result.assets[0]);
+      setUploadTitle('');
+      setShowUploadModal(true);
     } catch (err) {
       Alert.alert('Error', 'Could not open file picker.');
     }
   };
 
-  const doUpload = async (asset) => {
+  const doUpload = async () => {
+    if (!pendingUploadAsset) return;
+    setShowUploadModal(false);
     setUploading(true);
+    const asset = pendingUploadAsset;
     const formData = new FormData();
 
     if (asset.file) {
@@ -82,6 +94,9 @@ const BillsScreen = ({ navigation }) => {
         name: asset.name || 'bill.pdf',
         type: asset.mimeType || 'application/pdf',
       });
+    }
+    if (uploadTitle) {
+      formData.append('title', uploadTitle);
     }
 
     try {
@@ -110,7 +125,6 @@ const BillsScreen = ({ navigation }) => {
       }
     } catch (err) {
       console.error('❌ Upload failed:', err.response?.data || err.message);
-      console.error('   Status:', err.response?.status);
       const msg = err.response?.data?.detail || 'Upload failed. Check file and try again.';
       Alert.alert('Upload Failed', msg);
     } finally {
@@ -119,25 +133,60 @@ const BillsScreen = ({ navigation }) => {
   };
 
   const deleteBill = (bill) => {
-    Alert.alert('Delete Bill', `Delete bill from ${formatMonthYear(bill.bill_date)}?`, [
+    console.log(`🔘 Delete bill pressed: ${bill.id} (${formatMonthYear(bill.bill_date)})`);
+    universalAlert('Delete Bill', `Delete bill from ${formatMonthYear(bill.bill_date)}?`, [
       { text: 'Cancel', style: 'cancel' },
       {
         text: 'Delete',
         style: 'destructive',
         onPress: async () => {
+          console.log(`🏃 Deleting bill ID: ${bill.id}...`);
           try {
             await billsAPI.delete(bill.id);
+            console.log('✅ Delete bill successful');
+            universalAlert('Success', 'Bill deleted.');
             fetchBills();
-          } catch {
-            Alert.alert('Error', 'Failed to delete bill.');
+          } catch (err) {
+            console.error('❌ Delete bill error:', err.response?.data || err.message);
+            universalAlert('Error', 'Failed to delete bill. It might be referenced by an active budget plan.');
           }
         },
       },
     ]);
   };
 
+  const openRenameModal = (bill) => {
+    setEditingBill(bill);
+    setRenameTitle(bill.title || '');
+    setShowRenameModal(true);
+  };
+
+  const handleRename = async () => {
+    if (!editingBill) return;
+    setSubmitting(true);
+    try {
+      await billsAPI.update(editingBill.id, { title: renameTitle });
+      universalAlert('Success', 'Bill renamed.');
+      setShowRenameModal(false);
+      fetchBills();
+    } catch (err) {
+      Alert.alert('Error', 'Failed to rename bill.');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const toggleActiveBill = async (bill) => {
+    try {
+      await billsAPI.update(bill.id, { is_active_for_dashboard: true });
+      fetchBills();
+    } catch (err) {
+      universalAlert('Error', 'Could not update active bill status.');
+    }
+  };
+
   const handleManualSubmit = async () => {
-    const { current_meter_reading, past_bill_units, past_bill_amount, past_bill_days, past_bill_date } = manualForm;
+    const { title, current_meter_reading, past_bill_units, past_bill_amount, past_bill_days, past_bill_date } = manualForm;
     if (!current_meter_reading || !past_bill_units || !past_bill_amount) {
       Alert.alert('Incomplete', 'Please fill in reading, units and amount.');
       return;
@@ -146,6 +195,7 @@ const BillsScreen = ({ navigation }) => {
     setSubmitting(true);
     try {
       const res = await analysisAPI.saveManualBill({
+        title,
         current_meter_reading: parseInt(current_meter_reading) || 0,
         past_bill_units: parseInt(past_bill_units) || 0,
         past_bill_amount: parseFloat(past_bill_amount.toString().replace(/[^0-9.]/g, '')) || 0,
@@ -158,6 +208,7 @@ const BillsScreen = ({ navigation }) => {
         setShowManualModal(false);
         fetchBills();
         setManualForm({
+          title: '',
           current_meter_reading: '',
           past_bill_date: new Date().toISOString().split('T')[0],
           past_bill_amount: '',
@@ -180,11 +231,23 @@ const BillsScreen = ({ navigation }) => {
 
   return (
     <View style={styles.flex}>
+      <View style={styles.topHeader}>
+        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+          <ArrowLeft size={24} color={COLORS.textPrimary} />
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>My Bills</Text>
+        <View style={{ width: 40 }} />
+      </View>
+
       <ScrollView
         style={styles.container}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); fetchBills(); }} tintColor={COLORS.primary} />}
+        showsVerticalScrollIndicator={false}
       >
-        <SectionHeader title="Bill History" />
+        <View style={styles.sectionTitleRow}>
+          <FileText size={18} color={COLORS.primary} />
+          <Text style={styles.sectionTitle}>Bill History</Text>
+        </View>
 
         {filteredBills.length === 0 ? (
           <EmptyState
@@ -198,7 +261,9 @@ const BillsScreen = ({ navigation }) => {
               key={bill.id}
               bill={bill}
               onPress={() => navigation.navigate('BillDetail', { bill, billId: bill.id })}
+              onRename={() => openRenameModal(bill)}
               onDelete={() => deleteBill(bill)}
+              onToggleActive={() => toggleActiveBill(bill)}
             />
           ))
         )}
@@ -212,7 +277,7 @@ const BillsScreen = ({ navigation }) => {
           <PrimaryButton
             label={uploading ? 'Extracting...' : '📤 Upload Bill (AI)'}
             style={[styles.fab, { flex: 1.2, marginRight: 8 }]}
-            onPress={handleUpload}
+            onPress={handleUploadClick}
             loading={uploading}
           />
           <PrimaryButton
@@ -226,6 +291,53 @@ const BillsScreen = ({ navigation }) => {
         </Text>
       </View>
 
+      {/* Rename Modal */}
+      <Modal visible={showRenameModal} animationType="fade" transparent>
+        <TouchableOpacity style={styles.overlay} activeOpacity={1} onPress={() => setShowRenameModal(false)}>
+          <TouchableOpacity style={[styles.bottomSheet, { maxHeight: '50%' }]} activeOpacity={1}>
+            <Text style={styles.sheetTitle}>Rename Bill</Text>
+            <Text style={styles.sheetSubtitle}>Enter a new name for this bill</Text>
+            
+            <ManualInput
+              label="Bill Title"
+              value={renameTitle}
+              onChangeText={setRenameTitle}
+              placeholder="e.g. Home - Feb 2024"
+            />
+            
+            <PrimaryButton
+              label={submitting ? "Updating..." : "Save Name"}
+              onPress={handleRename}
+              loading={submitting}
+              style={{ marginTop: SPACING.lg }}
+            />
+          </TouchableOpacity>
+        </TouchableOpacity>
+      </Modal>
+
+      {/* Upload Title Modal */}
+      <Modal visible={showUploadModal} animationType="fade" transparent>
+        <TouchableOpacity style={styles.overlay} activeOpacity={1} onPress={() => setShowUploadModal(false)}>
+          <TouchableOpacity style={[styles.bottomSheet, { maxHeight: '50%' }]} activeOpacity={1}>
+            <Text style={styles.sheetTitle}>Name this Bill</Text>
+            <Text style={styles.sheetSubtitle}>Give your bill a title (e.g. Feb 2024 Bill)</Text>
+            
+            <ManualInput
+              label="Bill Title"
+              value={uploadTitle}
+              onChangeText={setUploadTitle}
+              placeholder="e.g. February 2024"
+            />
+            
+            <PrimaryButton
+              label="Upload"
+              onPress={doUpload}
+              style={{ marginTop: SPACING.lg }}
+            />
+          </TouchableOpacity>
+        </TouchableOpacity>
+      </Modal>
+
       {/* Manual Bill Modal */}
       <Modal visible={showManualModal} animationType="slide" transparent>
         <TouchableOpacity
@@ -238,6 +350,12 @@ const BillsScreen = ({ navigation }) => {
             <Text style={styles.sheetSubtitle}>Enter data as shown in your bill</Text>
 
             <ScrollView>
+              <ManualInput
+                label="Bill Title (Optional)"
+                value={manualForm.title}
+                onChangeText={(v) => setManualForm({ ...manualForm, title: v })}
+                placeholder="e.g. February 2024"
+              />
               <ManualInput
                 label="Current Meter Reading"
                 value={manualForm.current_meter_reading}
@@ -287,13 +405,13 @@ const BillsScreen = ({ navigation }) => {
   );
 };
 
-const BillCard = ({ bill, onPress, onDelete }) => (
+const BillCard = ({ bill, onPress, onRename, onDelete, onToggleActive }) => (
   <TouchableOpacity style={styles.billCard} onPress={onPress}>
     <View style={styles.billLeft}>
       <Text style={styles.billIcon}>🗒️</Text>
     </View>
     <View style={styles.billBody}>
-      <Text style={styles.billMonth}>{formatMonthYear(bill.bill_date)}</Text>
+      <Text style={styles.billMonth}>{bill.title || formatMonthYear(bill.bill_date)}</Text>
       <Text style={styles.billMeta}>
         Acct: {bill.account_number || '—'} · {bill.units_consumed || '—'} kWh · {bill.billing_period_days || '—'} days
       </Text>
@@ -302,10 +420,19 @@ const BillCard = ({ bill, onPress, onDelete }) => (
       )}
     </View>
     <View style={styles.billActions}>
-      <Text style={styles.chevron}>›</Text>
-      <TouchableOpacity onPress={onDelete} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-        <Text style={styles.deleteIcon}>🗑️</Text>
-      </TouchableOpacity>
+      <View style={styles.actionRow}>
+        <TouchableOpacity onPress={onToggleActive} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+          <Text style={{ fontSize: 20, color: bill.is_active_for_dashboard ? COLORS.primary : COLORS.border }}>
+            {bill.is_active_for_dashboard ? '✅' : '⚪'}
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity onPress={onRename} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+          <Edit3 size={18} color={COLORS.textSecondary} />
+        </TouchableOpacity>
+        <TouchableOpacity onPress={onDelete} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+          <Trash2 size={18} color={COLORS.danger} />
+        </TouchableOpacity>
+      </View>
     </View>
   </TouchableOpacity>
 );
@@ -326,7 +453,22 @@ const ManualInput = ({ label, value, onChangeText, placeholder, keyboardType = '
 
 const styles = StyleSheet.create({
   flex: { flex: 1, backgroundColor: COLORS.bg1 },
+  topHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingTop: Platform.OS === 'ios' ? 60 : 45,
+    paddingBottom: 20,
+    backgroundColor: COLORS.bg2,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
+  },
+  backBtn: { padding: 4 },
+  headerTitle: { ...FONTS.bold, fontSize: 18, color: COLORS.textPrimary },
   container: { flex: 1, padding: SPACING.lg },
+  sectionTitleRow: { flexDirection: 'row', alignItems: 'center', marginBottom: SPACING.md, gap: 8 },
+  sectionTitle: { ...FONTS.bold, fontSize: 16, color: COLORS.textPrimary },
   billCard: {
     backgroundColor: COLORS.bg2,
     borderRadius: RADIUS.lg,
@@ -344,7 +486,8 @@ const styles = StyleSheet.create({
   billMonth: { color: COLORS.textPrimary, fontSize: 16, ...FONTS.semiBold },
   billMeta: { color: COLORS.textSecondary, fontSize: 12, marginTop: 2 },
   billAmount: { color: COLORS.success, fontSize: 16, ...FONTS.bold, marginTop: 4 },
-  billActions: { alignItems: 'flex-end', gap: SPACING.sm },
+  billActions: { marginLeft: 10 },
+  actionRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   chevron: { color: COLORS.textMuted, fontSize: 24 },
   deleteIcon: { fontSize: 18 },
   fabArea: {

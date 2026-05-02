@@ -17,6 +17,7 @@ class ElectricityBill(Base):
     # Bill Details
     account_number = Column(String(100), index=True, nullable=False)
     bill_reference = Column(String(100), unique=True, index=True)
+    title = Column(String(100), nullable=True)
     bill_date = Column(DateTime, nullable=True)
     
     # Consumption Data
@@ -51,6 +52,8 @@ class ElectricityBill(Base):
     confidence_score = Column(Float, default=0.0)
     processing_status = Column(String(50), default="pending")
     error_message = Column(Text, nullable=True)
+    is_manual = Column(Boolean, default=False)
+    is_active_for_dashboard = Column(Boolean, default=False)
     
     # Relationships
     user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)

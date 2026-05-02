@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import {
-  View, Text, ScrollView, StyleSheet, Alert, ActivityIndicator, TouchableOpacity, TextInput, Platform,
+  View, Text, ScrollView, StyleSheet, Alert, ActivityIndicator, TouchableOpacity, TextInput, Platform, Modal,
 } from 'react-native';
 import { analysisAPI } from '../api/analysisAPI';
 import { billsAPI } from '../api/billsAPI';
@@ -22,11 +22,35 @@ const BillDetailScreen = ({ route, navigation }) => {
   const [creatingPlan, setCreatingPlan] = useState(false);
   const [targetBudget, setTargetBudget] = useState('');
   const [planningDays, setPlanningDays] = useState('30');
+  const [startDate, setStartDate] = useState(new Date().toISOString().split('T')[0]);
   const [targetDate, setTargetDate] = useState('');
+  const [showRenameModal, setShowRenameModal] = useState(false);
+  const [renameTitle, setRenameTitle] = useState('');
+  const [submittingRename, setSubmittingRename] = useState(false);
   const [showPlanForm, setShowPlanForm] = useState(false);
   const [applianceCount, setApplianceCount] = useState(0);
 
   const id = billId || bill?.id;
+
+  const handleRename = async () => {
+    if (!renameTitle) return;
+    setSubmittingRename(true);
+    try {
+      await billsAPI.update(id, { title: renameTitle });
+      setBill({ ...bill, title: renameTitle });
+      Alert.alert('Success', 'Bill renamed.');
+      setShowRenameModal(false);
+    } catch (err) {
+      Alert.alert('Error', 'Failed to rename bill.');
+    } finally {
+      setSubmittingRename(false);
+    }
+  };
+
+  const openRenameModal = () => {
+    setRenameTitle(bill?.title || '');
+    setShowRenameModal(true);
+  };
 
   useEffect(() => {
     (async () => {
@@ -95,28 +119,32 @@ const BillDetailScreen = ({ route, navigation }) => {
     })();
   }, [id]);
 
-  // Sync planningDays -> targetDate
+  // Sync planningDays -> targetDate based on startDate
   useEffect(() => {
     const days = parseInt(planningDays);
-    if (!isNaN(days) && days > 0) {
-      const d = new Date();
+    if (!isNaN(days) && days > 0 && startDate) {
+      const d = new Date(startDate);
       d.setDate(d.getDate() + days);
       setTargetDate(d.toISOString().split('T')[0]);
     }
-  }, [planningDays]);
+  }, [planningDays, startDate]);
+
+  const handleStartDateChange = (dateStr) => {
+    if (!dateStr) return;
+    setStartDate(dateStr);
+  };
 
   const handleDateChange = (dateStr) => {
     if (!dateStr) return;
     setTargetDate(dateStr);
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    const start = new Date(startDate);
+    start.setHours(0, 0, 0, 0);
     const end = new Date(dateStr);
     end.setHours(0, 0, 0, 0);
-    const diffTime = end.getTime() - today.getTime();
+    const diffTime = end.getTime() - start.getTime();
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 
     if (diffDays >= 0) {
-      // Use string to keep it consistent with the existing state type
       setPlanningDays(diffDays.toString());
     }
   };
@@ -174,7 +202,8 @@ const BillDetailScreen = ({ route, navigation }) => {
 
     setCreatingPlan(true);
     try {
-      const res = await analysisAPI.createBudgetPlan(id, budgetVal, daysVal);
+      const planStartDateISO = new Date(startDate).toISOString();
+      const res = await analysisAPI.createBudgetPlan(id, budgetVal, daysVal, planStartDateISO);
       if (res.data.success) {
         Alert.alert('✅ Budget Plan Created!', `Plan ID: ${res.data.plan_id}\nTrack your meter readings to monitor progress.`, [
           { text: 'Start Tracking', onPress: () => navigation.navigate('Tracking') },
@@ -205,7 +234,12 @@ const BillDetailScreen = ({ route, navigation }) => {
     <ScrollView style={styles.container}>
       {/* Bill Overview */}
       <Card style={styles.overviewCard} accentColor={COLORS.primary}>
-        <Text style={styles.overviewTitle}>Bill Overview</Text>
+        <View style={styles.rowBetween}>
+          <Text style={styles.overviewTitle}>{currentBill?.title || 'Bill Overview'}</Text>
+          <TouchableOpacity onPress={openRenameModal}>
+            <Text style={styles.editBtn}>Edit Name</Text>
+          </TouchableOpacity>
+        </View>
         <InfoRow label="Account" value={currentBill?.account_number || '—'} />
         <InfoRow label="Bill Date" value={formatDate(currentBill?.bill_date)} />
         <InfoRow label="Billing Period" value={`${currentBill?.billing_period_days || '—'} days`} />
@@ -219,6 +253,27 @@ const BillDetailScreen = ({ route, navigation }) => {
           <InfoRow label="Meter Readings" value={`${currentBill.previous_reading} → ${currentBill.current_reading}`} />
         )}
       </Card>
+
+      {/* Rename Modal */}
+      <Modal visible={showRenameModal} animationType="fade" transparent>
+        <TouchableOpacity style={styles.overlay} activeOpacity={1} onPress={() => setShowRenameModal(false)}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Rename Bill</Text>
+            <TextInput
+              style={styles.modalInput}
+              value={renameTitle}
+              onChangeText={setRenameTitle}
+              placeholder="e.g. Feb 2024 Bill"
+              placeholderTextColor={COLORS.textMuted}
+            />
+            <View style={styles.modalBtns}>
+              <SecondaryButton label="Cancel" onPress={() => setShowRenameModal(false)} style={{ flex: 1 }} />
+              <View style={{ width: SPACING.md }} />
+              <PrimaryButton label="Save" onPress={handleRename} loading={submittingRename} style={{ flex: 1 }} />
+            </View>
+          </View>
+        </TouchableOpacity>
+      </Modal>
 
       {/* Consumption Analysis */}
       {analysis && (
@@ -305,14 +360,34 @@ const BillDetailScreen = ({ route, navigation }) => {
         <Card>
           <View style={styles.formHeader}>
             <Text style={styles.cardTitle}>Set Your Budget Plan</Text>
-            <View style={styles.todayBox}>
-              <Text style={styles.todayLabel}>Today</Text>
-              <Text style={styles.todayText}>{todayStr}</Text>
-              <Text style={styles.timeText}>{timeStr}</Text>
-            </View>
           </View>
 
           <View style={styles.inputContainer}>
+            <Text style={styles.inputLabel}>Plan Start Date</Text>
+            <View style={styles.inputRow}>
+              {Platform.OS === 'web' ? (
+                <input
+                  type="date"
+                  value={startDate}
+                  onChange={(e) => handleStartDateChange(e.target.value)}
+                  style={{
+                    flex: 1, backgroundColor: 'transparent', border: 'none',
+                    color: COLORS.textPrimary, fontSize: '16px', outline: 'none', cursor: 'pointer'
+                  }}
+                />
+              ) : (
+                <TextInput
+                  style={styles.budgetInput}
+                  value={startDate}
+                  onChangeText={handleStartDateChange}
+                  placeholder="YYYY-MM-DD"
+                  placeholderTextColor={COLORS.textMuted}
+                />
+              )}
+            </View>
+          </View>
+
+          <View style={[styles.inputContainer, { marginTop: SPACING.lg }]}>
             <Text style={styles.inputLabel}>Target Budget (Rs.)</Text>
             <View style={styles.inputRow}>
               <Text style={styles.rsPrefix}>Rs.</Text>
@@ -468,6 +543,13 @@ const styles = StyleSheet.create({
   timeText: { color: COLORS.textSecondary, fontSize: 11 },
   expiryNote: { color: COLORS.textSecondary, fontSize: 12, marginTop: 6, fontStyle: 'italic' },
   expiryDate: { color: COLORS.primary, ...FONTS.bold, fontStyle: 'normal' },
+  rowBetween: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: SPACING.md },
+  editBtn: { color: COLORS.primary, fontSize: 13, ...FONTS.medium },
+  overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center' },
+  modalContent: { backgroundColor: COLORS.bg2, width: '85%', borderRadius: RADIUS.lg, padding: SPACING.xl },
+  modalTitle: { color: COLORS.textPrimary, fontSize: 18, ...FONTS.bold, marginBottom: SPACING.md, textAlign: 'center' },
+  modalInput: { backgroundColor: COLORS.bg3, color: COLORS.textPrimary, borderRadius: RADIUS.md, padding: SPACING.md, marginBottom: SPACING.lg, borderWidth: 1, borderColor: COLORS.border },
+  modalBtns: { flexDirection: 'row' },
 });
 
 export default BillDetailScreen;

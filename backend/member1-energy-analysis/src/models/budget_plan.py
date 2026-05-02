@@ -19,7 +19,7 @@ class BudgetPlan(Base):
     id = Column(Integer, primary_key=True, index=True)
     
     # Reference to past bill
-    reference_bill_id = Column(Integer, ForeignKey('electricity_bills.id'), nullable=False)
+    reference_bill_id = Column(Integer, ForeignKey('electricity_bills.id', ondelete="SET NULL"), nullable=True)
     reference_bill = relationship("ElectricityBill", foreign_keys=[reference_bill_id])
     
     # User information
@@ -59,6 +59,10 @@ class BudgetPlan(Base):
     # Tracking
     last_check_date = Column(DateTime, nullable=True)
     current_progress_status = Column(String(50), default='on_track')
+    
+    # Analytics & Priority
+    is_priority = Column(Boolean, default=False)
+    priority_set_at = Column(DateTime, nullable=True)
     
     # Metadata
     created_at = Column(DateTime(timezone=True), server_default=func.now())

@@ -9,9 +9,11 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import {
-  View, Text, ScrollView, StyleSheet, Alert, TouchableOpacity,
+  View, Text, ScrollView, StyleSheet, TouchableOpacity,
   Modal, TextInput, RefreshControl, Platform, Animated,
 } from 'react-native';
+import { ArrowLeft, Cpu, Zap, Activity } from 'lucide-react-native';
+import { universalAlert } from '../utils/alerts';
 import * as ImagePicker from 'expo-image-picker';
 import { appliancesAPI } from '../api/appliancesAPI';
 import { useAccount } from '../contexts/AccountContext';
@@ -141,7 +143,7 @@ const AppliancesScreen = () => {
     try {
       const { status } = await ImagePicker.requestCameraPermissionsAsync();
       if (status !== 'granted') {
-        Alert.alert('Permission required', 'Camera access is needed for AI scan.');
+        universalAlert('Permission required', 'Camera access is needed for AI scan.');
         return;
       }
 
@@ -157,7 +159,7 @@ const AppliancesScreen = () => {
       await recognizeAppliance(result.assets[0]);
     } catch (err) {
       console.error('Camera error:', err);
-      Alert.alert('Camera Error', 'Could not open camera. Try again.');
+      universalAlert('Camera Error', 'Could not open camera. Try again.');
     }
   };
 
@@ -205,17 +207,17 @@ const AppliancesScreen = () => {
           usage_times_per_day: (s.usage_times_per_day || 1).toString(),
           usage_frequency: s.usage_frequency || 'daily',
         });
-        Alert.alert(
+        universalAlert(
           '✅ Recognised!',
           `${s.appliance_name} — ${s.wattage}W\nPlease verify values before saving.`,
         );
       } else {
-        Alert.alert('Not Recognised', res.data?.message || 'Try a clearer photo or use a template.');
+        universalAlert('Not Recognised', res.data?.message || 'Try a clearer photo or use a template.');
       }
     } catch (err) {
       console.error('Scan error:', err?.response?.data || err);
       const detail = err?.response?.data?.detail;
-      Alert.alert('Scan Failed', detail ? JSON.stringify(detail) : 'Could not process image.');
+      universalAlert('Scan Failed', detail ? JSON.stringify(detail) : 'Could not process image.');
     } finally {
       setScanning(false);
     }
@@ -233,9 +235,9 @@ const AppliancesScreen = () => {
     });
 
   const saveAppliance = async () => {
-    if (!form.appliance_name.trim()) return Alert.alert('Required', 'Please enter an appliance name.');
-    if (!form.wattage || isNaN(parseInt(form.wattage))) return Alert.alert('Required', 'Please enter a valid wattage.');
-    if (!account) return Alert.alert('No Account', 'Upload a bill first to get an account number.');
+    if (!form.appliance_name.trim()) return universalAlert('Required', 'Please enter an appliance name.');
+    if (!form.wattage || isNaN(parseInt(form.wattage))) return universalAlert('Required', 'Please enter a valid wattage.');
+    if (!account) return universalAlert('No Account', 'Upload a bill first to get an account number.');
 
     setSavingApp(true);
     try {
@@ -250,29 +252,50 @@ const AppliancesScreen = () => {
         account_number: account,
       });
       if (res.data.success) {
-        Alert.alert('✅ Added!', `Monthly ~${res.data.monthly_kwh?.toFixed(1)} kWh`);
+        universalAlert('✅ Added!', `Monthly ~${res.data.monthly_kwh?.toFixed(1)} kWh`);
         setShowModal(false);
         setForm(emptyForm());
         fetchData();
       }
     } catch (err) {
-      Alert.alert('Error', err.response?.data?.detail || 'Failed to add appliance.');
+      universalAlert('Error', err.response?.data?.detail || 'Failed to add appliance.');
     } finally {
       setSavingApp(false);
     }
   };
 
-  const deleteAppliance = (app) =>
-    Alert.alert('Remove Appliance', `Remove "${app.name}"?`, [
+  const deleteAppliance = (app) => {
+    console.log(`🔘 Remove appliance pressed: ${app.name} (ID: ${app.id})`);
+    const isAtLimit = appliances.length <= 5;
+    const title = isAtLimit ? '⚠️ Warning: Low Appliance Count' : 'Remove Appliance';
+    const message = isAtLimit
+      ? `Removing "${app.name}" will bring your appliance count to ${appliances.length - 1}.\n\nYour active budget plans will be STOPPED as at least 5 appliances are required for tracking. Continue?`
+      : `Remove "${app.name}"?`;
+
+    universalAlert(title, message, [
       { text: 'Cancel', style: 'cancel' },
       {
         text: 'Remove', style: 'destructive',
         onPress: async () => {
-          try { await appliancesAPI.delete(app.id); fetchData(); }
-          catch { Alert.alert('Error', 'Failed to remove appliance.'); }
+          console.log(`🏃 Deleting appliance ID: ${app.id}...`);
+          try {
+            const res = await appliancesAPI.delete(app.id);
+            console.log('✅ Delete appliance response:', res.data);
+            if (res.data?.warning) {
+              universalAlert('Tracking Stopped', res.data.warning);
+            } else {
+              universalAlert('Success', 'Appliance removed.');
+            }
+            fetchData();
+          }
+          catch (err) {
+            console.error('❌ Delete appliance error:', err);
+            universalAlert('Error', 'Failed to remove appliance.');
+          }
         },
       },
     ]);
+  };
 
   if (loading) return <LoadingScreen message="Loading appliances…" />;
 
@@ -283,8 +306,11 @@ const AppliancesScreen = () => {
     <View style={s.root}>
       <View style={s.container}>
         {/* ── HEADER ── */}
-        <View style={s.header}>
-          <View>
+        <View style={[s.header, { paddingTop: Platform.OS === 'ios' ? 60 : 45, backgroundColor: '#0D1422', borderBottomWidth: 1, borderBottomColor: '#1E293B', marginBottom: 16, alignItems: 'center' }]}>
+          <TouchableOpacity onPress={() => navigation.canGoBack() ? navigation.goBack() : navigation.navigate('Dashboard')} style={{ padding: 4, marginRight: 12 }}>
+            <ArrowLeft size={24} color="#F1F5F9" />
+          </TouchableOpacity>
+          <View style={{ flex: 1 }}>
             <Text style={s.headerTitle}>Appliances</Text>
             <Text style={s.headerSub}>
               {appliances.length} devices · {totalKwh.toFixed(0)} kWh/mo
@@ -343,12 +369,13 @@ const AppliancesScreen = () => {
         </ScrollView>
 
         {/* ── FAB ── */}
-        <View style={s.fab}>
-          <TouchableOpacity style={s.fabBtn} onPress={() => setShowModal(true)} activeOpacity={0.85}>
-            <Text style={s.fabIcon}>＋</Text>
-            <Text style={s.fabTxt}>Add Appliance</Text>
-          </TouchableOpacity>
-        </View>
+        {tab === 'list' && (
+          <View style={s.fab}>
+            <TouchableOpacity style={s.fabBtn} onPress={() => setShowModal(true)} activeOpacity={0.85}>
+              <Text style={s.fabIcon}>＋</Text>
+            </TouchableOpacity>
+          </View>
+        )}
 
         {/* ── ADD MODAL ── */}
         <Modal visible={showModal} animationType="slide" onRequestClose={() => setShowModal(false)}>
@@ -574,7 +601,7 @@ const ar = StyleSheet.create({
   barTrack: { height: 3, backgroundColor: '#1E293B', borderRadius: 99, marginBottom: 8 },
   barFill: { height: 3, borderRadius: 99 },
   del: { alignSelf: 'flex-end' },
-  delTxt: { color: '#EF444466', fontSize: 12 },
+  delTxt: { color: '#EF4444', fontSize: 13, fontWeight: '600' },
 });
 
 // ─── ANALYSIS VIEW ────────────────────────────────────────────────────────────
@@ -702,7 +729,7 @@ const s = StyleSheet.create({
 
   header: {
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start',
-    paddingHorizontal: 20, paddingTop: 56, paddingBottom: 16,
+    paddingHorizontal: 20, paddingTop: 16, paddingBottom: 16,
     backgroundColor: '#060D18',
   },
   headerTitle: { color: '#F1F5F9', fontSize: 28, fontWeight: '900', letterSpacing: -0.5 },
@@ -735,16 +762,14 @@ const s = StyleSheet.create({
   progressFill: { height: 6, backgroundColor: '#38BDF8', borderRadius: 99 },
 
   fab: {
-    position: 'absolute', bottom: 0, left: 0, right: 0,
-    padding: 16, paddingBottom: 32,
-    backgroundColor: '#060D18CC', borderTopWidth: 1, borderTopColor: '#1E293B',
+    position: 'absolute', bottom: 24, right: 20,
   },
   fabBtn: {
-    backgroundColor: '#38BDF8', borderRadius: 16, paddingVertical: 16,
-    flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 10,
+    backgroundColor: '#38BDF8', borderRadius: 28, width: 56, height: 56,
+    justifyContent: 'center', alignItems: 'center',
+    shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 5, elevation: 6,
   },
-  fabIcon: { color: '#060D18', fontSize: 22, fontWeight: '900' },
-  fabTxt: { color: '#060D18', fontSize: 16, fontWeight: '800' },
+  fabIcon: { color: '#060D18', fontSize: 28, fontWeight: '900', marginTop: -2 },
 
   // MODAL
   modal: { flex: 1, backgroundColor: '#060D18' },
