@@ -32,7 +32,8 @@ import {
   FactCheck,
   Kitchen,
   Lightbulb,
-  Calculate
+  Calculate,
+  TrackChanges,
 } from '@mui/icons-material';
 import { useAuth } from '../../contexts/AuthContext';
 
@@ -42,7 +43,7 @@ const menuItems = [
   { text: 'Overview', icon: <DashboardIcon />, path: '/d' },
   { text: 'Appliances', icon: <Kitchen />, path: '/d/appliances' },
   { text: 'Bills & Usage', icon: <Receipt />, path: '/d/bills' },
-  { text: 'Budget Plans', icon: <FactCheck />, path: '/d/plans' },
+  { text: 'Energy Tracking', icon: <TrackChanges />, path: '/d/tracking' },
   { text: 'Tariff Calculator', icon: <Calculate />, path: '/d/tariff' },
   { text: 'Smart Insights', icon: <Lightbulb />, path: '/d/insights' },
   { text: 'Energy Analysis', icon: <ElectricBolt />, path: '/d/analysis' },

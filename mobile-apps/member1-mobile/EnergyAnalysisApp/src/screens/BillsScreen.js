@@ -3,6 +3,7 @@ import {
   View, Text, ScrollView, StyleSheet, RefreshControl, TouchableOpacity, Platform, Alert,
 } from 'react-native';
 import { ArrowLeft, FileText, Trash2, Edit3, Plus, Upload, Keyboard } from 'lucide-react-native';
+import ScreenHeader from '../components/ScreenHeader';
 import { universalAlert } from '../utils/alerts';
 import * as DocumentPicker from 'expo-document-picker';
 import { billsAPI } from '../api/billsAPI';
@@ -231,13 +232,10 @@ const BillsScreen = ({ navigation }) => {
 
   return (
     <View style={styles.flex}>
-      <View style={styles.topHeader}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-          <ArrowLeft size={24} color={COLORS.textPrimary} />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>My Bills</Text>
-        <View style={{ width: 40 }} />
-      </View>
+      <ScreenHeader 
+        title="My Bills" 
+        onBack={() => navigation.goBack()}
+      />
 
       <ScrollView
         style={styles.container}

@@ -14,6 +14,7 @@ import {
   StatCard, SectionHeader, EmptyState, LoadingScreen, Card, ProgressBar,
 } from '../components/SharedComponents';
 import AccountSelector from '../components/AccountSelector';
+import ScreenHeader from '../components/ScreenHeader';
 import { COLORS, SPACING, RADIUS, FONTS, SHADOW } from '../utils/theme';
 import {
   formatCurrency, formatKwh, formatMonthYear,
@@ -238,55 +239,54 @@ const DashboardScreen = ({ navigation }) => {
   const dailyAvg = applianceAnalysis?.summary?.average_cost_per_day ?? null;
 
   return (
-    <ScrollView
-      style={styles.container}
-      contentContainerStyle={styles.scrollContent}
-      showsVerticalScrollIndicator={false}
-      refreshControl={
-        <RefreshControl
-          refreshing={refreshing}
-          onRefresh={onRefresh}
-          tintColor={C.energy}
-          colors={[C.energy]}
-        />
-      }
-    >
-      {/* ── HEADER ── */}
-      <View style={styles.header}>
-        <View>
-          <Text style={styles.headerGreeting}>Good day, {firstName} 👋</Text>
-          <Text style={styles.headerSub}>ElecSmart Management System</Text>
-        </View>
+    <View style={styles.container}>
+      <ScreenHeader
+        title={`Good day, ${firstName} 👋`}
+        subtitle="ElecSmart Management System"
+        backgroundColor={C.bg}
+        rightElement={
+          <View style={styles.headerRight}>
+            {/* Profile */}
+            <TouchableOpacity
+              style={styles.headerIconBtn}
+              onPress={() => navigation.navigate('Profile')}
+            >
+              <User size={22} color={C.textPrimary} strokeWidth={2} />
+            </TouchableOpacity>
 
-        {/* Header action buttons (from v1) */}
-        <View style={styles.headerRight}>
-          {/* Profile */}
-          <TouchableOpacity
-            style={styles.headerIconBtn}
-            onPress={() => navigation.navigate('Profile')}
-          >
-            <User size={22} color={C.textPrimary} strokeWidth={2} />
-          </TouchableOpacity>
+            {/* Bell with badge */}
+            <TouchableOpacity
+              style={styles.headerIconBtn}
+              onPress={() => setShowNotifModal(true)}
+            >
+              <Bell size={22} color={C.textPrimary} strokeWidth={2} />
+              {notifications.length > 0 && (
+                <View style={styles.notifBadge}>
+                  <Text style={styles.notifBadgeText}>{notifications.length}</Text>
+                </View>
+              )}
+            </TouchableOpacity>
 
-          {/* Bell with badge */}
-          <TouchableOpacity
-            style={styles.headerIconBtn}
-            onPress={() => setShowNotifModal(true)}
-          >
-            <Bell size={22} color={C.textPrimary} strokeWidth={2} />
-            {notifications.length > 0 && (
-              <View style={styles.notifBadge}>
-                <Text style={styles.notifBadgeText}>{notifications.length}</Text>
-              </View>
-            )}
-          </TouchableOpacity>
-
-          {/* Logout */}
-          <TouchableOpacity style={styles.logoutBtn} onPress={logout}>
-            <LogOut size={20} color={C.textSecondary} strokeWidth={2} />
-          </TouchableOpacity>
-        </View>
-      </View>
+            {/* Logout */}
+            <TouchableOpacity style={styles.logoutBtn} onPress={logout}>
+              <LogOut size={20} color={C.textSecondary} strokeWidth={2} />
+            </TouchableOpacity>
+          </View>
+        }
+      />
+      <ScrollView
+        style={styles.container}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor={C.energy}
+            colors={[C.energy]}
+          />
+        }
+      >
 
       {/* ── READING REMINDER BANNER ── */}
       {applianceAnalysis?.reminders?.reading_needed && (
@@ -577,6 +577,7 @@ const DashboardScreen = ({ navigation }) => {
         </TouchableOpacity>
       </Modal>
     </ScrollView>
+    </View>
   );
 };
 
@@ -601,15 +602,9 @@ const QA = ({ icon, label, color, onPress }) => (
 ═══════════════════════════════════════════ */
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: C.bg },
-  scrollContent: { paddingHorizontal: 18, paddingTop: 52, paddingBottom: 32 },
+  scrollContent: { paddingHorizontal: 18, paddingTop: 10, paddingBottom: 32 },
 
   /* ── header ── */
-  header: {
-    flexDirection: 'row', justifyContent: 'space-between',
-    alignItems: 'flex-start', marginBottom: 20,
-  },
-  headerGreeting: { fontSize: 24, fontWeight: '800', color: C.textPrimary, letterSpacing: -0.5 },
-  headerSub: { fontSize: 12, color: C.textMuted, marginTop: 3, letterSpacing: 0.3 },
   headerRight: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   headerIconBtn: { padding: 8, position: 'relative' },
   logoutBtn: {

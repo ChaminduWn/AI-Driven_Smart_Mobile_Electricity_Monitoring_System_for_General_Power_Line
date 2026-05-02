@@ -25,6 +25,7 @@ import BillsPage from './pages/BillsPage';
 import PlansPage from './pages/PlansPage';
 import SmartInsightsPage from './pages/SmartInsightsPage';
 import TariffPage from './pages/TariffPage';
+import BillDetailPage from './pages/BillDetailPage';
 
 import Home from './pages/Homepage';
 import MobileAppView from './pages/MobileAppView';
@@ -124,7 +125,9 @@ function App() {
                 <Route path="safety" element={<SafetyPage />} />
                 <Route path="appliances" element={<AppliancesPage />} />
                 <Route path="bills" element={<BillsPage />} />
+                <Route path="bills/:billId" element={<BillDetailPage />} />
                 <Route path="plans" element={<PlansPage />} />
+                <Route path="tracking" element={<PlansPage />} />
                 <Route path="tariff" element={<TariffPage />} />
                 <Route path="profile" element={<ProfilePage />} />
                 <Route path="homepage" element={<Home/>} />

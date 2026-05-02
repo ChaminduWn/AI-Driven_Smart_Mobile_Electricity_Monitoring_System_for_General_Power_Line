@@ -3,7 +3,8 @@ import {
   View, Text, ScrollView, StyleSheet, RefreshControl, TouchableOpacity,
   Modal, TextInput, Platform, Animated, Easing, Dimensions,
 } from 'react-native';
-import { ArrowLeft, Target, Cpu, Zap } from 'lucide-react-native';
+import { ArrowLeft, Plus, History, Trash2, Calendar, Clock, Edit3, Sparkles } from 'lucide-react-native';
+import ScreenHeader from '../components/ScreenHeader';
 import { universalAlert } from '../utils/alerts';
 import { analysisAPI } from '../api/analysisAPI';
 import { useAccount } from '../contexts/AccountContext';
@@ -592,13 +593,10 @@ const TrackingScreen = ({ navigation }) => {
 
   return (
     <View style={s.flex}>
-      <View style={s.topHeader}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={s.backBtn}>
-          <ArrowLeft size={24} color="#F1F5F9" />
-        </TouchableOpacity>
-        <Text style={s.headerTitleMain}>Bill Tracking</Text>
-        <View style={{ width: 40 }} />
-      </View>
+      <ScreenHeader 
+        title="Bill Tracking" 
+        onBack={() => navigation.goBack()}
+      />
 
       <ScrollView
         style={s.container}

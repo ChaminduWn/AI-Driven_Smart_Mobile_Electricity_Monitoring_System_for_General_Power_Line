@@ -3,6 +3,7 @@ import {
   View, Text, ScrollView, StyleSheet,
   TouchableOpacity, Alert, Platform,
 } from 'react-native';
+import ScreenHeader from '../components/ScreenHeader';
 import { analysisAPI } from '../api/analysisAPI';
 import { appliancesAPI } from '../api/appliancesAPI';
 import { useAccount } from '../contexts/AccountContext';
@@ -103,6 +104,11 @@ const AnalysisScreen = ({ navigation }) => {
 
   return (
     <View style={styles.flex}>
+      <ScreenHeader 
+        title="Analysis & Planning"
+        subtitle="Energy consumption & budget tools"
+        onBack={() => navigation.goBack()}
+      />
 
       {/* TAB BAR */}
       <View style={styles.tabs}>

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Plus, FileText, Trash2, Eye, Calendar, Zap, DollarSign, ChevronDown, ChevronUp } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { billsAPI } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
 import {
@@ -73,6 +74,7 @@ function BillCard({ bill, onView, onDelete }) {
 }
 
 export default function BillsPage() {
+  const navigate = useNavigate();
   const { selectedAccount } = useAuth();
   const [bills, setBills] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -161,7 +163,7 @@ export default function BillsPage() {
               <BillCard
                 key={b.id || b._id}
                 bill={b}
-                onView={() => {/* navigate to analysis with this bill */}}
+                onView={() => navigate(`/d/bills/${b.id || b._id}`)}
                 onDelete={handleDelete}
               />
             ))}

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Calculator, TrendingUp, GitCompare, Lightbulb, RefreshCw, ChevronDown } from 'lucide-react';
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, RadarChart, PolarGrid, PolarAngleAxis, Radar } from 'recharts';
+import { Calculator, TrendingUp, GitCompare, Lightbulb, RefreshCw, ChevronDown, Target } from 'lucide-react';
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, RadarChart, PolarGrid, PolarAngleAxis, Radar, LineChart, Line } from 'recharts';
 import { analysisAPI, billsAPI } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
 import { Card, SectionHeader, Btn, Badge, TabBar, Field, PageLoader, ErrorBanner, StatCard } from '../components/UI';
@@ -43,6 +43,24 @@ export default function AnalysisPage() {
   const [recsResult, setRecsResult] = useState(null);
   const [recsLoading, setRecsLoading] = useState(false);
 
+  // Tracking
+  const [plans, setPlans] = useState([]);
+  const [plansLoading, setPlansLoading] = useState(false);
+  const [selectedPlan, setSelectedPlan] = useState('');
+  const [planReadings, setPlanReadings] = useState([]);
+  const [readingsLoading, setReadingsLoading] = useState(false);
+  const [newReading, setNewReading] = useState('');
+  const [readingDate, setReadingDate] = useState(new Date().toISOString().split('T')[0]);
+  const [readingNotes, setReadingNotes] = useState('');
+  const [trackingLoading, setTrackingLoading] = useState(false);
+  // Plan creation
+  const [showCreatePlan, setShowCreatePlan] = useState(false);
+  const [planBill, setPlanBill] = useState('');
+  const [planTarget, setPlanTarget] = useState('');
+  const [planDays, setPlanDays] = useState('30');
+  const [planStartDate, setPlanStartDate] = useState(new Date().toISOString().split('T')[0]);
+  const [createPlanLoading, setCreatePlanLoading] = useState(false);
+
   useEffect(() => {
     if (!selectedAccount) return;
     billsAPI.getByAccount(selectedAccount)
@@ -50,6 +68,12 @@ export default function AnalysisPage() {
       .catch(() => {})
       .finally(() => setBillsLoading(false));
   }, [selectedAccount]);
+
+  useEffect(() => {
+    if (tab === 'tracking' && selectedAccount) {
+      loadPlans();
+    }
+  }, [tab, selectedAccount]);
 
   const calcTariff = async () => {
     if (!tariffUnits) return;
@@ -91,11 +115,65 @@ export default function AnalysisPage() {
     setRecsLoading(false);
   };
 
+  const loadPlans = async () => {
+    setPlansLoading(true);
+    try {
+      const r = await analysisAPI.getPlansByAccount(selectedAccount, false);
+      setPlans(r.data?.plans || []);
+    } catch (e) { alert(e.response?.data?.detail || 'Failed to load plans.'); }
+    setPlansLoading(false);
+  };
+
+  const loadPlanReadings = async (planId) => {
+    setReadingsLoading(true);
+    try {
+      const r = await analysisAPI.getPlanReadings(planId);
+      setPlanReadings(r.data?.readings || []);
+    } catch (e) { alert(e.response?.data?.detail || 'Failed to load readings.'); }
+    setReadingsLoading(false);
+  };
+
+  const handlePlanSelect = (planId) => {
+    setSelectedPlan(planId);
+    if (planId) loadPlanReadings(planId);
+    else setPlanReadings([]);
+  };
+
+  const submitReading = async () => {
+    if (!selectedPlan || !newReading) return;
+    setTrackingLoading(true);
+    try {
+      await analysisAPI.trackProgress(selectedPlan, parseFloat(newReading), readingDate, readingNotes || null);
+      setNewReading('');
+      setReadingNotes('');
+      loadPlanReadings(selectedPlan);
+      alert('Reading added successfully!');
+    } catch (e) { alert(e.response?.data?.detail || 'Failed to add reading.'); }
+    setTrackingLoading(false);
+  };
+
+  const createPlan = async () => {
+    if (!planBill || !planTarget) return;
+    setCreatePlanLoading(true);
+    try {
+      await analysisAPI.createBudgetPlan(planBill, parseFloat(planTarget), parseInt(planDays), planStartDate);
+      setShowCreatePlan(false);
+      setPlanBill('');
+      setPlanTarget('');
+      setPlanDays('30');
+      setPlanStartDate(new Date().toISOString().split('T')[0]);
+      loadPlans();
+      alert('Plan created successfully!');
+    } catch (e) { alert(e.response?.data?.detail || 'Failed to create plan.'); }
+    setCreatePlanLoading(false);
+  };
+
   const tabs = [
     { id: 'tariff',   label: 'Tariff Calc',    icon: Calculator },
     { id: 'analysis', label: 'Bill Analysis',  icon: TrendingUp },
     { id: 'compare',  label: 'Compare Bills',  icon: GitCompare },
     { id: 'recs',     label: 'Recommendations',icon: Lightbulb },
+    { id: 'tracking', label: 'Energy Tracking',icon: Target },
   ];
 
   return (
@@ -346,6 +424,160 @@ export default function AnalysisPage() {
               <div className="text-[#64748B] flex flex-col items-center">
                 <Lightbulb size={48} className="opacity-30 mb-4" />
                 <p className="text-sm">Select a bill to get personalized recommendations</p>
+              </div>
+            </Card>
+          )}
+        </div>
+      )}
+
+      {/* ── ENERGY TRACKING ─────────────────────────────────────────────── */}
+      {tab === 'tracking' && (
+        <div className="grid grid-cols-1 lg:grid-cols-[380px_1fr] gap-6">
+          <Card>
+            <SectionHeader title="Energy Tracking" subtitle="Monitor progress on savings plans" />
+            <div className="mb-4">
+              <Btn onClick={() => setShowCreatePlan(!showCreatePlan)} variant="secondary" icon={<Target size={14} />} className="w-full">
+                {showCreatePlan ? 'Cancel' : 'Create New Plan'}
+              </Btn>
+            </div>
+            {showCreatePlan && (
+              <div className="space-y-4 mb-4 p-4 bg-[#0A0D14] rounded-xl border border-[#1E293B]">
+                <Field label="Based on Bill">
+                  <select value={planBill} onChange={e => setPlanBill(e.target.value)} className="w-full bg-[#0A0D14] border border-[#1E293B] rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[#00E5FF] transition-colors">
+                    <option value="">-- Select bill --</option>
+                    {bills.map(b => <option key={b.id || b._id} value={b.id || b._id}>{b.billing_month || b.period}</option>)}
+                  </select>
+                </Field>
+                <Field label="Target Budget (Rs.)">
+                  <input
+                    type="number"
+                    value={planTarget}
+                    onChange={e => setPlanTarget(e.target.value)}
+                    placeholder="Enter target budget"
+                    className="w-full bg-[#0A0D14] border border-[#1E293B] rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[#00E5FF] transition-colors"
+                  />
+                </Field>
+                <Field label="Duration (Days)">
+                  <input
+                    type="number"
+                    value={planDays}
+                    onChange={e => setPlanDays(e.target.value)}
+                    placeholder="30"
+                    className="w-full bg-[#0A0D14] border border-[#1E293B] rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[#00E5FF] transition-colors"
+                  />
+                </Field>
+                <Field label="Start Date">
+                  <input
+                    type="date"
+                    value={planStartDate}
+                    onChange={e => setPlanStartDate(e.target.value)}
+                    className="w-full bg-[#0A0D14] border border-[#1E293B] rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[#00E5FF] transition-colors"
+                  />
+                </Field>
+                <Btn onClick={createPlan} loading={createPlanLoading} disabled={!planBill || !planTarget} icon={<Target size={14} />} className="w-full">
+                  Create Plan
+                </Btn>
+              </div>
+            )}
+            <Field label="Select Plan">
+              <select value={selectedPlan} onChange={e => handlePlanSelect(e.target.value)} className="w-full bg-[#0A0D14] border border-[#1E293B] rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[#00E5FF] transition-colors">
+                <option value="">-- Choose a plan --</option>
+                {plans.map(p => (
+                  <option key={p.id || p._id} value={p.id || p._id}>
+                    {p.name || `Plan ${p.id}`} — Target: Rs. {(p.target_budget || 0).toLocaleString()}
+                  </option>
+                ))}
+              </select>
+            </Field>
+            {selectedPlan && (
+              <>
+                <Field label="Current Reading (kWh)">
+                  <input
+                    type="number"
+                    value={newReading}
+                    onChange={e => setNewReading(e.target.value)}
+                    placeholder="Enter meter reading"
+                    className="w-full bg-[#0A0D14] border border-[#1E293B] rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[#00E5FF] transition-colors"
+                  />
+                </Field>
+                <Field label="Reading Date">
+                  <input
+                    type="date"
+                    value={readingDate}
+                    onChange={e => setReadingDate(e.target.value)}
+                    className="w-full bg-[#0A0D14] border border-[#1E293B] rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[#00E5FF] transition-colors"
+                  />
+                </Field>
+                <Field label="Notes (Optional)">
+                  <textarea
+                    value={readingNotes}
+                    onChange={e => setReadingNotes(e.target.value)}
+                    placeholder="Any notes about this reading"
+                    rows={3}
+                    className="w-full bg-[#0A0D14] border border-[#1E293B] rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[#00E5FF] transition-colors resize-none"
+                  />
+                </Field>
+                <Btn onClick={submitReading} loading={trackingLoading} disabled={!newReading} icon={<Target size={14} />} className="w-full mt-2">
+                  Add Reading
+                </Btn>
+              </>
+            )}
+          </Card>
+
+          {selectedPlan ? (
+            <div className="flex flex-col gap-5">
+              {readingsLoading ? (
+                <Card className="flex items-center justify-center min-h-[200px]">
+                  <div className="w-8 h-8 rounded-full border-2 border-[#1E293B] border-t-[#00E5FF] animate-spin" />
+                </Card>
+              ) : planReadings.length > 0 ? (
+                <>
+                  <Card>
+                    <SectionHeader title="Progress Chart" />
+                    <ResponsiveContainer width="100%" height={300}>
+                      <LineChart data={planReadings.map(r => ({
+                        date: new Date(r.reading_date).toLocaleDateString(),
+                        reading: r.current_reading,
+                        cumulative: r.cumulative_units || 0,
+                      }))}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#1E293B" />
+                        <XAxis dataKey="date" stroke="#64748B" />
+                        <YAxis stroke="#64748B" />
+                        <Tooltip content={<CustomTooltip />} />
+                        <Line type="monotone" dataKey="reading" stroke="#00E5FF" strokeWidth={2} name="Reading (kWh)" />
+                        <Line type="monotone" dataKey="cumulative" stroke="#FFD60A" strokeWidth={2} name="Cumulative (kWh)" />
+                      </LineChart>
+                    </ResponsiveContainer>
+                  </Card>
+                  <Card>
+                    <SectionHeader title="Recent Readings" />
+                    <div className="flex flex-col gap-3">
+                      {planReadings.slice(-5).reverse().map((r, i) => (
+                        <div key={i} className="flex justify-between items-center p-3 bg-[#0A0D14] rounded-xl">
+                          <div>
+                            <div className="font-bold text-white">{r.current_reading} kWh</div>
+                            <div className="text-[#64748B] text-xs">{new Date(r.reading_date).toLocaleDateString()}</div>
+                          </div>
+                          {r.notes && <div className="text-[#94A3B8] text-sm max-w-[200px] truncate">{r.notes}</div>}
+                        </div>
+                      ))}
+                    </div>
+                  </Card>
+                </>
+              ) : (
+                <Card className="flex flex-col items-center justify-center py-20 text-center">
+                  <div className="text-[#64748B] flex flex-col items-center">
+                    <Target size={48} className="opacity-30 mb-4" />
+                    <p className="text-sm">No readings yet. Add your first reading to start tracking.</p>
+                  </div>
+                </Card>
+              )}
+            </div>
+          ) : (
+            <Card className="flex flex-col items-center justify-center py-20 text-center">
+              <div className="text-[#64748B] flex flex-col items-center">
+                <Target size={48} className="opacity-30 mb-4" />
+                <p className="text-sm">Select a plan to view tracking data</p>
               </div>
             </Card>
           )}

@@ -2,9 +2,10 @@
  * Wrapper for AsyncStorage that works reliably in Expo web
  * Falls back to direct localStorage if AsyncStorage fails in web environment
  */
+import { Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const isWeb = typeof window !== 'undefined';
+const isWeb = Platform.OS === 'web';
 
 class StorageManager {
   async setItem(key, value) {

@@ -14,7 +14,9 @@ export const accountsAPI = {
 
 export const billsAPI = {
   getByAccount: (acc) => apiClient.get(`/api/v1/bills?account_number=${acc}`),
+  getById: (id) => apiClient.get(`/api/v1/bills/${id}`),
   create: (data) => apiClient.post('/api/v1/bills', data),
+  update: (id, data) => apiClient.patch(`/api/v1/bills/${id}`, data),
   delete: (id) => apiClient.delete(`/api/v1/bills/${id}`),
 };
 
@@ -24,12 +26,22 @@ export const analysisAPI = {
   comparePeriods: (id1, id2) => apiClient.get(`/api/v1/analysis/compare-periods?bill1=${id1}&bill2=${id2}`),
   getBudgetRecommendations: (billId) => apiClient.get(`/api/v1/analysis/budget-recommendations/${billId}`),
   getPlansByAccount: (acc, archived) => apiClient.get(`/api/v1/analysis/plans?account_number=${acc}&archived=${archived}`),
-  getPlanReadings: (planId) => apiClient.get(`/api/v1/analysis/plans/${planId}/readings`),
-  createBudgetPlan: (billId, target, days, startDate) => apiClient.post('/api/v1/analysis/plans', { billId, target, days, startDate }),
+  getPlanReadings: (planId) => apiClient.get(`/api/v1/analysis/readings/plan/${planId}`),
+  createBudgetPlan: (billId, target, days, startDate) => apiClient.post('/api/v1/analysis/plans', {
+    bill_id: billId,
+    target_budget: target,
+    planning_days: days,
+    plan_start_date: startDate,
+  }),
   endPlan: (planId) => apiClient.post(`/api/v1/analysis/plans/${planId}/end`),
   deletePlan: (planId) => apiClient.delete(`/api/v1/analysis/plans/${planId}`),
-  setPlanPriority: (planId) => apiClient.post(`/api/v1/analysis/plans/${planId}/priority`),
-  trackProgress: (planId, reading, date, notes) => apiClient.post(`/api/v1/analysis/plans/${planId}/track`, { reading, date, notes }),
+  setPlanPriority: (planId) => apiClient.post(`/api/v1/analysis/plans/${planId}/set-priority`),
+  trackProgress: (planId, reading, date, notes) => apiClient.post('/api/v1/analysis/track-progress', {
+    plan_id: planId,
+    current_reading: reading,
+    reading_date: date,
+    notes,
+  }),
 };
 
 export const appliancesAPI = {

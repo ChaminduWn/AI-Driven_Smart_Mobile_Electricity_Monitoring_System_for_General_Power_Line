@@ -4,6 +4,7 @@ import {
   TextInput, KeyboardAvoidingView, Platform, Animated,
   FlatList, ActivityIndicator, StatusBar, SafeAreaView,
 } from 'react-native';
+import ScreenHeader from '../components/ScreenHeader';
 
 /* ─────────────────────────────────────────────
    DESIGN TOKENS  — deep navy + teal safety theme
@@ -478,19 +479,13 @@ const SafetyManagementScreen = ({ navigation }) => {
     <SafeAreaView style={styles.root}>
       <StatusBar barStyle="light-content" backgroundColor={C.bg} />
 
-      {/* ── HEADER ── */}
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation?.goBack?.()} style={styles.backBtn}>
-          <Text style={styles.backIcon}>‹</Text>
-        </TouchableOpacity>
-        <View style={styles.headerCenter}>
-          <Text style={styles.headerTitle}>Safety & Disaster</Text>
-          <Text style={styles.headerSub}>Management System</Text>
-        </View>
-        <View style={[styles.headerBadge, { backgroundColor: C.safety + '20', borderColor: C.safety + '50', borderWidth: 1 }]}>
-          <Text style={[styles.headerBadgeText, { color: C.safety }]}>🛡️ SAFE</Text>
-        </View>
-      </View>
+      <ScreenHeader 
+        title="Safety & Disaster"
+        subtitle="Management System"
+        onBack={() => navigation?.goBack?.()}
+        badge={{ label: '🛡️ SAFE', color: C.safety }}
+        backgroundColor={C.bg2}
+      />
 
       {/* ── TAB BAR ── */}
       <View style={styles.tabBar}>

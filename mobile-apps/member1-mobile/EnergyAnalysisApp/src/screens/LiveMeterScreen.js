@@ -17,9 +17,11 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity, TextInput,
-  StyleSheet, Animated, Dimensions, Alert, ActivityIndicator,
-  FlatList, Platform, StatusBar, Share,
+  StyleSheet, Animated, Dimensions, KeyboardAvoidingView, Platform,
+  ActivityIndicator, StatusBar, Alert,
 } from 'react-native';
+import ScreenHeader from '../components/ScreenHeader';
+import { StorageManager } from '../utils/storage';
 import * as FileSystem from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
 
@@ -40,7 +42,10 @@ const _getFromStorage = async (key) => {
     const v = await AS.getItem(key);
     if (v) return v;
   } catch { }
-  try { return localStorage.getItem(key); } catch { }
+  
+  if (Platform.OS === 'web') {
+    try { return localStorage.getItem(key); } catch { }
+  }
   return null;
 };
 
@@ -1250,10 +1255,12 @@ const LiveMeterScreen = () => {
   return (
     <View style={s.root}>
       <StatusBar barStyle="light-content" backgroundColor={C.bg} translucent={false} />
-      <View style={s.topBar}>
-        <Text style={s.topTitle}>⚡ EnergyIQ Tester</Text>
-        <Text style={{ color: C.textMuted, fontSize: 12 }}>{STEP_LABELS[screen]}</Text>
-      </View>
+      <ScreenHeader 
+        title="EnergyIQ Tester"
+        subtitle={STEP_LABELS[screen]}
+        onBack={navigation.canGoBack() ? () => navigation.goBack() : undefined}
+        backgroundColor={C.bg}
+      />
 
       {screen === 'SCAN' && (
         <ScanScreen onSelect={id => { 

@@ -12,6 +12,7 @@ import {
     Platform,
     Image,
 } from 'react-native';
+import ScreenHeader from '../components/ScreenHeader';
 import { 
     User, Mail, Phone, MapPin, Hash, Save, Plus, 
     Trash2, Home, ArrowLeft, Camera, Calendar, Lock 
@@ -168,23 +169,23 @@ const ProfileScreen = ({ navigation }) => {
             behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
             style={styles.container}
         >
-            <View style={styles.topHeader}>
-                <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-                    <ArrowLeft size={24} color={COLORS.textPrimary} />
-                </TouchableOpacity>
-                <Text style={styles.title}>Edit Profile</Text>
-                <TouchableOpacity
-                    style={styles.saveBtn}
-                    onPress={handleUpdateProfile}
-                    disabled={isUpdatingProfile}
-                >
-                    {isUpdatingProfile ? (
-                        <ActivityIndicator size="small" color={COLORS.primary} />
-                    ) : (
-                        <Text style={styles.saveBtnText}>Save</Text>
-                    )}
-                </TouchableOpacity>
-            </View>
+            <ScreenHeader 
+                title="Edit Profile"
+                onBack={() => navigation.goBack()}
+                rightElement={
+                    <TouchableOpacity
+                        style={styles.saveBtn}
+                        onPress={handleUpdateProfile}
+                        disabled={isUpdatingProfile}
+                    >
+                        {isUpdatingProfile ? (
+                            <ActivityIndicator size="small" color={COLORS.primary} />
+                        ) : (
+                            <Text style={styles.saveBtnText}>Save</Text>
+                        )}
+                    </TouchableOpacity>
+                }
+            />
 
             <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
                 {/* Avatar Section */}

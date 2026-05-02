@@ -13,6 +13,7 @@ import {
   Modal, TextInput, RefreshControl, Platform, Animated,
 } from 'react-native';
 import { ArrowLeft, Cpu, Zap, Activity } from 'lucide-react-native';
+import ScreenHeader from '../components/ScreenHeader';
 import { universalAlert } from '../utils/alerts';
 import * as ImagePicker from 'expo-image-picker';
 import { appliancesAPI } from '../api/appliancesAPI';
@@ -305,22 +306,17 @@ const AppliancesScreen = () => {
   return (
     <View style={s.root}>
       <View style={s.container}>
-        {/* ── HEADER ── */}
-        <View style={[s.header, { paddingTop: Platform.OS === 'ios' ? 60 : 45, backgroundColor: '#0D1422', borderBottomWidth: 1, borderBottomColor: '#1E293B', marginBottom: 16, alignItems: 'center' }]}>
-          <TouchableOpacity onPress={() => navigation.canGoBack() ? navigation.goBack() : navigation.navigate('Dashboard')} style={{ padding: 4, marginRight: 12 }}>
-            <ArrowLeft size={24} color="#F1F5F9" />
-          </TouchableOpacity>
-          <View style={{ flex: 1 }}>
-            <Text style={s.headerTitle}>Appliances</Text>
-            <Text style={s.headerSub}>
-              {appliances.length} devices · {totalKwh.toFixed(0)} kWh/mo
-            </Text>
-          </View>
-          <View style={s.headerRight}>
-            <Text style={s.headerCost}>{formatCurrency(totalMonthly, 0)}</Text>
-            <Text style={s.headerCostLbl}>est/month</Text>
-          </View>
-        </View>
+        <ScreenHeader 
+          title="Appliances"
+          subtitle={`${appliances.length} devices · ${totalKwh.toFixed(0)} kWh/mo`}
+          onBack={() => navigation.canGoBack() ? navigation.goBack() : navigation.navigate('Dashboard')}
+          rightElement={
+            <View style={s.headerRight}>
+              <Text style={s.headerCost}>{formatCurrency(totalMonthly, 0)}</Text>
+              <Text style={s.headerCostLbl}>est/month</Text>
+            </View>
+          }
+        />
 
         {/* ── TABS ── */}
         <View style={s.tabBar}>

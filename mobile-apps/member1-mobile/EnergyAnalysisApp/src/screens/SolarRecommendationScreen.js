@@ -8,6 +8,7 @@ import { useAccount } from '../contexts/AccountContext';
 import { appliancesAPI } from '../api/appliancesAPI';
 import { LoadingScreen } from '../components/SharedComponents';
 import { formatCurrency } from '../utils/helpers';
+import ScreenHeader from '../components/ScreenHeader';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -653,16 +654,13 @@ const RecommendationFormView = ({ onSubmit, submitting, locations, onBack }) => 
   const valid = mlForm.Budget_LKR && mlForm.Roof_Size_m2 && mlForm.Location && mlForm.Energy_Usage_kWhPerDay;
 
   return (
-    <View style={{ flex: 1, backgroundColor: C.bg, paddingTop: 52 }}>
-      <View style={[ss.header, { paddingHorizontal: 20 }]}>
-        <TouchableOpacity style={ss.backBtn} onPress={onBack}>
-          <Text style={ss.backIcon}>‹</Text>
-        </TouchableOpacity>
-        <View style={{ flex: 1 }}>
-          <Text style={ss.headerTitle}>Solar Recommendation</Text>
-          <Text style={ss.headerSub}>AI-Powered System Sizing</Text>
-        </View>
-      </View>
+    <View style={{ flex: 1, backgroundColor: C.bg }}>
+      <ScreenHeader 
+        title="Solar Recommendation"
+        subtitle="AI-Powered System Sizing"
+        onBack={onBack}
+        backgroundColor={C.bg}
+      />
 
       <ScrollView contentContainerStyle={{ padding: 24, paddingBottom: 60 }} showsVerticalScrollIndicator={false}>
 
@@ -959,16 +957,14 @@ const SolarRecommendationScreen = ({ navigation }) => {
       >
 
         {/* ── HEADER ── */}
-        <View style={ss.header}>
-          <TouchableOpacity style={ss.backBtn} onPress={() => navigation.goBack()}>
-            <Text style={ss.backIcon}>‹</Text>
-          </TouchableOpacity>
-          <View style={{ flex: 1 }}>
-            <Text style={ss.headerTitle}>Solar Recommendation</Text>
-            <Text style={ss.headerSub}>AI-Powered · Sri Lanka Climate Data</Text>
-          </View>
-          <Chip label="ML-Powered" color={C.teal} />
-        </View>
+        <ScreenHeader
+          title="Solar Recommendation"
+          subtitle="AI-Powered · Sri Lanka Climate Data"
+          onBack={() => navigation.goBack()}
+          backgroundColor="transparent"
+          rightElement={<Chip label="ML-Powered" color={C.teal} />}
+          containerStyle={{ paddingHorizontal: 0, paddingTop: 0 }}
+        />
 
         {/* ── DATA SOURCE BANNER ── */}
         {dataSource === 'estimated' && (
@@ -1385,7 +1381,7 @@ const SolarRecommendationScreen = ({ navigation }) => {
 
 /* ─── Styles ─────────────────────────────────────────── */
 const ss = StyleSheet.create({
-  scrollContent: { paddingHorizontal: 16, paddingTop: 52, paddingBottom: 20 },
+  scrollContent: { paddingHorizontal: 16, paddingTop: 10, paddingBottom: 20 },
 
   header: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 20 },
   backBtn: { width: 38, height: 38, borderRadius: 11, backgroundColor: C.card2, borderWidth: 1, borderColor: C.border, alignItems: 'center', justifyContent: 'center' },

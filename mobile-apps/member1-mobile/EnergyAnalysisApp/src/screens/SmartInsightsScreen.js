@@ -11,6 +11,7 @@ import { analysisAPI } from '../api/analysisAPI';
 import { useAccount } from '../contexts/AccountContext';
 import { COLORS, SPACING, RADIUS, FONTS, SHADOW } from '../utils/theme';
 import { formatCurrency } from '../utils/helpers';
+import ScreenHeader from '../components/ScreenHeader';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -927,29 +928,28 @@ const SmartInsightsScreen = ({ navigation }) => {
     <View style={s.screen}>
 
       {/* ── Header ─────────────────────────────────────────────────────────── */}
-      <View style={s.header}>
-        <View style={{ flex: 1 }}>
-          <Text style={s.headerTitle}>Smart Insights</Text>
-          <Text style={s.headerSub}>AI-powered electricity analysis</Text>
-        </View>
+      <ScreenHeader
+        title="Smart Insights"
+        subtitle="AI-powered electricity analysis"
+        backgroundColor={COLORS.bg0}
+        rightElement={
+          <View style={s.headerRight}>
+            {alertCount > 0 && (
+              <View style={s.alertBadge}>
+                <Text style={s.alertBadgeText}>{alertCount}</Text>
+              </View>
+            )}
 
-        <View style={s.headerRight}>
-          {alertCount > 0 && (
-            <View style={s.alertBadge}>
-              <Text style={s.alertBadgeText}>{alertCount}</Text>
-            </View>
-          )}
-
-          {/* ── Live Meter Button ─────────────────────────────────────────── */}
-          <TouchableOpacity
-            style={s.liveMeterBtn}
-            onPress={() => navigation.navigate('LiveMeter')}
-            activeOpacity={0.8}
-          >
-            <Text style={s.liveMeterTxt}>📡 Live</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
+            <TouchableOpacity
+              style={s.liveMeterBtn}
+              onPress={() => navigation.navigate('LiveMeter')}
+              activeOpacity={0.8}
+            >
+              <Text style={s.liveMeterTxt}>📡 Live</Text>
+            </TouchableOpacity>
+          </View>
+        }
+      />
 
       {/* Tab Bar */}
       <TabBar tabs={TABS} active={activeTab} onPress={setActiveTab} />
@@ -983,19 +983,7 @@ const SmartInsightsScreen = ({ navigation }) => {
 // ─── Styles ──────────────────────────────────────────────────────────────────
 
 const s = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: COLORS.bg0, paddingTop: SPACING.xl },
-
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: SPACING.lg,
-    paddingVertical: SPACING.md,
-    marginBottom: SPACING.md,
-  },
-  headerTitle: { color: COLORS.textPrimary, fontSize: 22, ...FONTS.bold },
-  headerSub: { color: COLORS.textSecondary, fontSize: 13, marginTop: 2 },
-
+  screen: { flex: 1, backgroundColor: COLORS.bg0 },
   headerRight: {
     flexDirection: 'row',
     alignItems: 'center',
