@@ -1,6 +1,6 @@
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import React, { useEffect, useState } from 'react';
-import { View, StyleSheet, ScrollView, Linking, Alert } from 'react-native';
+import { View, StyleSheet, ScrollView, Linking, Alert, TouchableOpacity, Platform } from 'react-native';
 import { Text, Button, ActivityIndicator } from 'react-native-paper';
 import Header from '../../components/safety/Header';
 import api from '../../services/safety/api';
@@ -9,15 +9,18 @@ import ProtocolPhase from '../../components/safety/ProtocolPhase';
 
 const DISASTERS = ['flood', 'thunderstorm', 'heavy_rain', 'cyclone'];
 
+import { COLORS, SPACING, RADIUS, FONTS, SHADOW } from '../../utils/theme';
+import { ArrowLeft, Phone, AlertCircle, ShieldAlert } from 'lucide-react-native';
+
 const C = {
-  bg: '#1a1a2e',
-  card: '#16213e',
-  surface: '#2a2a4e',
-  accent: '#FFD700',
-  textPrimary: '#ffffff',
-  textSecondary: '#dddddd',
-  textMuted: '#bbbbbb',
-  border: '#FFD700',
+  bg: COLORS.bg1,
+  card: COLORS.bg2,
+  surface: COLORS.bg3,
+  accent: COLORS.primary,
+  textPrimary: COLORS.textPrimary,
+  textSecondary: COLORS.textSecondary,
+  textMuted: COLORS.textMuted,
+  border: COLORS.border,
 };
 
 export default function EmergencyScreen({ navigation }) {
@@ -77,16 +80,19 @@ export default function EmergencyScreen({ navigation }) {
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
-        <View style={styles.headerTitleRow}>
-          <View style={styles.headerIconBg}>
-            <Icon name="alert-circle" size={20} color={C.accent} />
-          </View>
-          <View>
-            <Text style={styles.headerTitle}>Emergency Protocols</Text>
-            <Text style={styles.headerStatus}>Immediate Safety Actions</Text>
+      {/* Premium Header */}
+      <View style={styles.topHeader}>
+        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+          <ArrowLeft size={24} color={COLORS.textPrimary} />
+        </TouchableOpacity>
+        <View style={styles.headerTitleGroup}>
+          <Text style={styles.headerTitleMain}>Emergency Protocols</Text>
+          <View style={styles.statusRow}>
+            <View style={styles.statusDot} />
+            <Text style={styles.statusText}>Immediate Safety Actions</Text>
           </View>
         </View>
+        <View style={{ width: 40 }} />
       </View>
 
       <ScrollView contentContainerStyle={styles.scrollContent}>
@@ -182,30 +188,26 @@ export default function EmergencyScreen({ navigation }) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#1a1a2e' },
+  container: { flex: 1, backgroundColor: COLORS.bg1 },
   scrollContent: { padding: 16 },
-  header: {
+  topHeader: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
     paddingHorizontal: 20,
-    paddingVertical: 12,
+    paddingTop: Platform.OS === 'ios' ? 60 : 45,
+    paddingBottom: 20,
+    backgroundColor: COLORS.bg2,
     borderBottomWidth: 1,
-    borderBottomColor: '#FFD700',
-    backgroundColor: '#16213e',
+    borderBottomColor: COLORS.border,
   },
-  headerTitleRow: { flexDirection: 'row', alignItems: 'center' },
-  headerIconBg: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: 'rgba(255, 215, 0, 0.15)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 12,
-  },
-  headerTitle: { color: '#FFD700', fontSize: 18, fontWeight: '800' },
-  headerStatus: { color: '#aaaaaa', fontSize: 11, marginTop: -2 },
-  selectorWrapper: { marginBottom: 16, backgroundColor: '#16213e', paddingVertical: 10, borderRadius: 12, borderWidth: 1, borderColor: 'rgba(255,215,0,0.1)' },
+  headerTitleGroup: { flex: 1, alignItems: 'center' },
+  headerTitleMain: { ...FONTS.bold, fontSize: 18, color: COLORS.textPrimary },
+  statusRow: { flexDirection: 'row', alignItems: 'center', marginTop: 2 },
+  statusDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: COLORS.danger, marginRight: 6 },
+  statusText: { fontSize: 11, color: COLORS.textSecondary, fontWeight: '500' },
+  backBtn: { padding: 4 },
+  selectorWrapper: { marginBottom: 16, backgroundColor: COLORS.bg2, paddingVertical: 10, borderRadius: 12, borderWidth: 1, borderColor: COLORS.border },
   selectorButton: { borderRadius: 20, marginRight: 8, paddingHorizontal: 4, minWidth: 110 },
   selectorButtonActive: { elevation: 4 },
   contactRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 6 },

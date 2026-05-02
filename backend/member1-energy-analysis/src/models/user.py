@@ -13,6 +13,7 @@ class User(Base):
     
     # Credentials & identity
     email = Column(String(255), unique=True, index=True, nullable=False)
+    username = Column(String(100), unique=True, index=True, nullable=True)
     phone_number = Column(String(32), unique=True, index=True, nullable=True)
     hashed_password = Column(String(255), nullable=True)  # nullable to support Google-only accounts
     google_id = Column(String(255), unique=True, index=True, nullable=True)
@@ -61,7 +62,11 @@ class UserProfile(Base):
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, unique=True)
     
+    # Extended fields
     full_name = Column(String(255), nullable=True)
+    birthday = Column(DateTime(timezone=True), nullable=True)
+    profile_image = Column(Text, nullable=True) # Base64 or URL
+    
     address = Column(String(500), nullable=True)
     city = Column(String(100), nullable=True)
     country = Column(String(100), nullable=True)

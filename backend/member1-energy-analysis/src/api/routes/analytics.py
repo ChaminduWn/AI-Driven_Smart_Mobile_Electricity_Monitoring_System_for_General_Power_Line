@@ -390,16 +390,28 @@ def dashboard_summary(
     from src.services.iot_service import latest_readings, last_seen
     from datetime import timezone
 
-    # Latest bill
+    # Priority 1: Bill marked as active for dashboard
     latest_bill = (
         db.query(ElectricityBill)
         .filter(
             ElectricityBill.user_id == current_user.id,
             ElectricityBill.account_number == account_number,
+            ElectricityBill.is_active_for_dashboard == True,
         )
-        .order_by(ElectricityBill.bill_date.desc())
         .first()
     )
+
+    # Priority 2: Fallback to the latest bill by date if none marked active
+    if not latest_bill:
+        latest_bill = (
+            db.query(ElectricityBill)
+            .filter(
+                ElectricityBill.user_id == current_user.id,
+                ElectricityBill.account_number == account_number,
+            )
+            .order_by(ElectricityBill.bill_date.desc())
+            .first()
+        )
 
     # Active budget plan
     active_plan = (
@@ -414,6 +426,7 @@ def dashboard_summary(
 
     # Latest meter reading for active plan
     latest_reading = None
+    reading_reminder = False
     if active_plan:
         latest_reading = (
             db.query(PlanReading)
@@ -421,6 +434,36 @@ def dashboard_summary(
             .order_by(PlanReading.reading_date.desc())
             .first()
         )
+        
+        # Check if a reading is needed today (Reading Reminder)
+        today_start = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
+        has_reading_today = db.query(PlanReading).filter(
+            PlanReading.budget_plan_id == active_plan.id,
+            PlanReading.reading_date >= today_start
+        ).first()
+        
+        if not has_reading_today:
+            reading_reminder = True
+            # Create a notification if it doesn't exist for today
+            from src.api.routes.notifications import create_notification
+            from src.models.user import Notification
+            
+            existing_reminder = db.query(Notification).filter(
+                Notification.user_id == current_user.id,
+                Notification.title == "Reading Reminder",
+                Notification.created_at >= today_start
+            ).first()
+            
+            if not existing_reminder:
+                create_notification(
+                    db, 
+                    current_user.id, 
+                    "Reading Reminder", 
+                    "Please enter your current meter reading to keep your budget plan on track!", 
+                    "warning",
+                    account_number=account_number,
+                    plan_id=active_plan.id
+                )
 
     # Online devices
     now = datetime.now(timezone.utc)

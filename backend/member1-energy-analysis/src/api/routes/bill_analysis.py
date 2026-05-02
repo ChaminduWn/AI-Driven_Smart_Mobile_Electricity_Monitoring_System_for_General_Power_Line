@@ -283,6 +283,18 @@ def create_budget_plan(
     if not bill:
         raise HTTPException(status_code=404, detail="Bill not found")
 
+    # Check for existing active plans for this account
+    existing_plan = db.query(BudgetPlan).filter(
+        BudgetPlan.account_number == bill.account_number,
+        BudgetPlan.is_active == True
+    ).first()
+
+    if existing_plan:
+        raise HTTPException(
+            status_code=400,
+            detail="You already have an active budget plan for this account. Please end or delete it before creating a new one."
+        )
+
     appliances_count = db.query(HouseholdAppliance).filter(
         HouseholdAppliance.account_number == bill.account_number,
         HouseholdAppliance.is_active == True

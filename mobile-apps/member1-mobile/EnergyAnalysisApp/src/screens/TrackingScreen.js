@@ -3,6 +3,7 @@ import {
   View, Text, ScrollView, StyleSheet, RefreshControl, TouchableOpacity,
   Modal, TextInput, Platform, Animated, Easing, Dimensions,
 } from 'react-native';
+import { ArrowLeft, Target, Cpu, Zap } from 'lucide-react-native';
 import { universalAlert } from '../utils/alerts';
 import { analysisAPI } from '../api/analysisAPI';
 import { useAccount } from '../contexts/AccountContext';
@@ -591,6 +592,14 @@ const TrackingScreen = ({ navigation }) => {
 
   return (
     <View style={s.flex}>
+      <View style={s.topHeader}>
+        <TouchableOpacity onPress={() => navigation.goBack()} style={s.backBtn}>
+          <ArrowLeft size={24} color="#F1F5F9" />
+        </TouchableOpacity>
+        <Text style={s.headerTitleMain}>Bill Tracking</Text>
+        <View style={{ width: 40 }} />
+      </View>
+
       <ScrollView
         style={s.container}
         showsVerticalScrollIndicator={false}
@@ -1036,6 +1045,19 @@ const rdc = StyleSheet.create({
 // ─── Stylesheet ───────────────────────────────────────────────────────────────
 const s = StyleSheet.create({
   flex: { flex: 1, backgroundColor: '#060D18' },
+  topHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingTop: Platform.OS === 'ios' ? 60 : 45,
+    paddingBottom: 20,
+    backgroundColor: '#0D1422',
+    borderBottomWidth: 1,
+    borderBottomColor: '#1E293B',
+  },
+  backBtn: { padding: 4 },
+  headerTitleMain: { ...FONTS.bold, fontSize: 18, color: '#F1F5F9' },
   container: { flex: 1, paddingHorizontal: 16, paddingTop: 8 },
 
   tabBar: {

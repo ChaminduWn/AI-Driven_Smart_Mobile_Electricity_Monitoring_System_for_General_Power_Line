@@ -789,6 +789,10 @@ const MonitorScreen = ({ account, deviceId, sessionId, applianceName, plannedMin
           ]} />
           <MetricRow items={[
             { label: 'Avg Power', value: fmtF(d.avg_power_w, 1), unit: 'W', color: C.accent },
+            { label: 'Proj. kWh/hr', value: fmtF((d.avg_power_w || 0) / 1000, 4), unit: 'kWh', color: C.green },
+            { label: 'Proj. Cost/hr', value: `Rs ${fmtF(((d.avg_power_w || 0) / 1000) * 15, 2)}`, unit: '', color: C.yellow },
+          ]} />
+          <MetricRow items={[
             { label: 'Peak Power', value: fmtF(d.peak_power_w, 1), unit: 'W', color: C.red },
             { label: 'Total Energy', value: fmtF(d.energy_kwh ?? d.energy, 3), unit: 'kWh', color: C.teal },
           ]} />
@@ -1044,21 +1048,24 @@ const ReportScreen = ({ sessionData, onNewTest }) => {
 
       <HealthRing score={health.health_score} />
 
-      <View style={rp.statsGrid}>
-        {[
-          { l: 'Avg Power', v: `${fmtF(st.avg_power_w, 0)} W`, c: C.accent },
-          { l: 'Peak Power', v: `${fmtF(st.peak_power_w, 0)} W`, c: C.red },
-          { l: 'Avg PF', v: fmtF(st.avg_power_factor, 3), c: pfColor(st.avg_power_factor) },
-          { l: 'kWh Used', v: fmtF(st.total_session_kwh, 4), c: C.green },
-          { l: 'Cost', v: `Rs ${fmtF(st.total_cost_rs, 2)}`, c: C.yellow },
-          { l: 'Readings', v: `${st.total_readings || 0}`, c: C.textPrimary },
-        ].map(({ l, v, c }) => (
-          <View key={l} style={rp.statCell}>
-            <Text style={[rp.statVal, { color: c }]}>{v}</Text>
-            <Text style={rp.statLbl}>{l}</Text>
-          </View>
-        ))}
-      </View>
+        <View style={rp.statsGrid}>
+          {[
+            { l: 'Avg Power', v: `${fmtF(st.avg_power_w, 0)} W`, c: C.accent },
+            { l: 'Peak Power', v: `${fmtF(st.peak_power_w, 0)} W`, c: C.red },
+            { l: 'Avg PF', v: fmtF(st.avg_power_factor, 3), c: pfColor(st.avg_power_factor) },
+            { l: 'kWh Used', v: fmtF(st.total_session_kwh, 4), c: C.green },
+            { l: 'Cost', v: `Rs ${fmtF(st.total_cost_rs, 2)}`, c: C.yellow },
+            { l: 'Readings', v: `${st.total_readings || 0}`, c: C.textPrimary },
+            { l: 'Proj. kWh/hr', v: fmtF((st.avg_power_w || 0) / 1000, 4), c: C.green },
+            { l: 'Proj. Cost/hr', v: `Rs ${fmtF(((st.avg_power_w || 0) / 1000) * 15, 2)}`, c: C.yellow },
+            { l: 'Duration', v: `${fmtF(st.actual_duration_min, 1)}m`, c: C.accent },
+          ].map(({ l, v, c }) => (
+            <View key={l} style={rp.statCell}>
+              <Text style={[rp.statVal, { color: c }]}>{v}</Text>
+              <Text style={rp.statLbl}>{l}</Text>
+            </View>
+          ))}
+        </View>
 
       {(st.avg_temperature != null) && (
         <View style={rp.section}>

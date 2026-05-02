@@ -144,7 +144,7 @@ def update_bill(
             ElectricityBill.user_id == current_user.id,
             ElectricityBill.account_number == bill.account_number,
             ElectricityBill.id != bill_id
-        ).update({"is_active_for_dashboard": False})
+        ).update({"is_active_for_dashboard": False}, synchronize_session='fetch')
         
     for key, value in update_data.items():
         setattr(bill, key, value)

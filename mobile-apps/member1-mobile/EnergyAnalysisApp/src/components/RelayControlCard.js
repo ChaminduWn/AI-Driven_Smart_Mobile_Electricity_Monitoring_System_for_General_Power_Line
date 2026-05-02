@@ -1,24 +1,60 @@
 /**
  * RelayControlCard.js
- * 
+ *
  * Drop-in component for LiveMeterScreen (MonitorScreen section).
  * Shows relay ON/OFF toggle, safety status, custom power limits,
  * and safety event log.
- * 
+ *
  * UPDATED: Matches new Backend Relay API (action instead of command)
+ * UPDATED: Refined color palette — softer, intentional semantic colors
+ * UPDATED: Fully responsive for all mobile screen sizes
  */
 
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet, TextInput,
-  Animated, Switch, Alert, ActivityIndicator,
+  Animated, Alert, ActivityIndicator, Dimensions,
 } from 'react-native';
 import { API_BASE } from '../config';
 
+const { width: SCREEN_W } = Dimensions.get('window');
+
+// Responsive helpers
+const isSmall = SCREEN_W < 360;
+const isMedium = SCREEN_W >= 360 && SCREEN_W < 414;
+
+const rem = (base) => {
+  if (isSmall) return Math.round(base * 0.88);
+  if (isMedium) return Math.round(base * 0.94);
+  return base;
+};
+
 const C = {
-  bg: '#0B0F1A', card: '#1A2235', border: '#1F2D45',
-  green: '#22C55E', red: '#EF4444', yellow: '#FBBF24',
-  accent: '#00D4FF', textPrimary: '#F0F4FF', textSec: '#8899BB',
+  bg: '#0D1117',
+  card: '#161C2A',
+  card2: '#1E2840',
+  border: 'rgba(255,255,255,0.07)',
+  border2: 'rgba(255,255,255,0.12)',
+
+  emerald: '#00FF9D',
+  emeraldDim: 'rgba(0,255,157,0.05)',
+  emeraldBorder: 'rgba(0,255,157,0.3)',
+
+  rose: '#FF3B6B',
+  roseDim: 'rgba(255,59,107,0.05)',
+  roseBorder: 'rgba(255,59,107,0.3)',
+
+  amber: '#FBBF24',
+  amberDim: 'rgba(251,191,36,0.12)',
+  amberBorder: 'rgba(251,191,36,0.25)',
+
+  cyan: '#38BDF8',
+  cyanDim: 'rgba(56,189,248,0.12)',
+  cyanBorder: 'rgba(56,189,248,0.25)',
+
+  textPrimary: '#E8EEFF',
+  textSec: '#7A8BAE',
+  textTer: '#4A5672',
 };
 
 const authHeaders = (token) => ({
@@ -36,6 +72,18 @@ const RelayControlCard = ({ deviceId, liveData, token }) => {
   const [sending, setSending] = useState(false);
   const [showLimits, setShowLimits] = useState(false);
   const pulseAnim = React.useRef(new Animated.Value(1)).current;
+
+  // Re-measure on orientation change
+  const [screenW, setScreenW] = useState(SCREEN_W);
+  useEffect(() => {
+    const sub = Dimensions.addEventListener('change', ({ window }) => {
+      setScreenW(window.width);
+    });
+    return () => sub?.remove();
+  }, []);
+
+  const cmdCardHeight = screenW < 360 ? 84 : 100;
+  const cardPadding = screenW < 360 ? 14 : 18;
 
   // Sync state from live MQTT data
   useEffect(() => {
@@ -63,16 +111,14 @@ const RelayControlCard = ({ deviceId, liveData, token }) => {
 
   const sendCommand = useCallback(async (action, extra = {}) => {
     const cleanId = String(deviceId || '').replace(/:/g, '').toUpperCase();
-    console.log(`[RelayControl] Sending action: ${action} to ${cleanId}`, extra);
     setSending(true);
     try {
       const r = await fetch(`${API_BASE}/relay/command`, {
         method: 'POST',
         headers: authHeaders(token),
-        body: JSON.stringify({ device_id: cleanId, action: action, ...extra }),
+        body: JSON.stringify({ device_id: cleanId, action, ...extra }),
       });
       const d = await r.json();
-      console.log(`[RelayControl] Server response:`, d);
       if (!d.success) {
         Alert.alert('Command Failed', d.message || 'Check MQTT connection');
       }
@@ -98,10 +144,6 @@ const RelayControlCard = ({ deviceId, liveData, token }) => {
     await sendCommand(value ? 'on' : 'off');
   };
 
-  const toggleSafety = async (value) => {
-    await sendCommand(value ? 'safety_on' : 'safety_off');
-  };
-
   const applyLimits = async () => {
     const w = parseFloat(customMaxW);
     const a = parseFloat(customMaxA);
@@ -119,215 +161,462 @@ const RelayControlCard = ({ deviceId, liveData, token }) => {
 
   const power = liveData?.power_w ?? liveData?.power ?? 0;
   const usagePct = Math.min(100, (power / parseFloat(customMaxW)) * 100);
+  const meterColor = usagePct > 85 ? C.rose : usagePct > 60 ? C.amber : C.cyan;
 
   return (
-    <View style={s.wrap}>
+    <View style={s.container}>
 
-      {/* Safety trip banner */}
+      {/* Safety Alert Banner */}
       {safetyTripped && (
-        <Animated.View style={[s.tripBanner, { transform: [{ scale: pulseAnim }] }]}>
-          <Text style={s.tripTitle}>🚨 SAFETY TRIP — POWER CUT</Text>
-          <Text style={s.tripReason}>{safetyReason}</Text>
-          <TouchableOpacity style={s.resetBtn} onPress={() => sendCommand('reset_safety')}>
-            <Text style={s.resetTxt}>Reset Safety Latch</Text>
+        <Animated.View style={[s.alertBanner, { transform: [{ scale: pulseAnim }] }]}>
+          <View style={s.alertIconBox}>
+            <Text style={s.alertEmoji}>⚠️</Text>
+          </View>
+          <View style={s.alertTextCol}>
+            <Text style={s.alertTitle} numberOfLines={1}>SAFETY TRIP DETECTED</Text>
+            <Text style={s.alertMsg} numberOfLines={2}>{safetyReason || 'Threshold exceeded'}</Text>
+          </View>
+          <TouchableOpacity
+            style={s.resetBadge}
+            onPress={() => sendCommand('reset_safety')}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          >
+            <Text style={s.resetBadgeTxt}>RESET</Text>
           </TouchableOpacity>
         </Animated.View>
       )}
 
-      {/* Relay toggle */}
-      <View style={s.row}>
-        <View>
-          <Text style={s.label}>Relay Power</Text>
-          <Text style={[s.stateText, { color: relayOn ? C.green : C.textSec }]}>
-            {relayOn ? '● LIVE — Appliance ON' : '○ OPEN — No Power'}
-          </Text>
+      {/* Main Glass Card */}
+      <View style={[s.glassCard, { padding: cardPadding }]}>
+
+        {/* Status Hub */}
+        <View style={s.statusHub}>
+          <View style={s.statusMain}>
+            <View style={[s.livePulse, { backgroundColor: relayOn ? C.rose : C.emerald }]} />
+            <View style={s.statusTextCol}>
+              <Text style={s.hubLabel} numberOfLines={1}>SYSTEM POWER STATUS</Text>
+              <Text
+                style={[s.hubValue, { color: relayOn ? C.rose : C.emerald, fontSize: rem(14) }]}
+                numberOfLines={1}
+                adjustsFontSizeToFit
+                minimumFontScale={0.8}
+              >
+                {relayOn ? 'DISCONNECTED' : 'LIVE & MONITORING'}
+              </Text>
+            </View>
+          </View>
+          <View style={s.idBadge}>
+            <Text style={s.idText}>{String(deviceId).slice(-4)}</Text>
+          </View>
         </View>
-        <View style={s.toggleArea}>
-          {sending && <ActivityIndicator color={C.accent} style={{ marginRight: 10 }} />}
-          <Switch
-            value={relayOn}
-            onValueChange={toggleRelay}
+
+        {/* Load Visualizer */}
+        <View style={s.visualizer}>
+          <View style={s.vizHeader}>
+            <Text style={s.vizLabel}>REAL-TIME LOAD</Text>
+            <Text style={[s.vizValue, { fontSize: rem(26) }]}>
+              {power.toFixed(1)}<Text style={s.vizUnit}> W</Text>
+            </Text>
+          </View>
+          <View style={s.meterTrack}>
+            <View style={[s.meterFill, { width: `${usagePct}%`, backgroundColor: meterColor }]} />
+          </View>
+          <View style={s.vizFooter}>
+            <Text style={s.vizSub}>0W</Text>
+            <Text style={s.vizSub}>{customMaxW}W MAX</Text>
+          </View>
+        </View>
+
+        {/* Command Row — side by side on normal screens, stacked on tiny */}
+        <View style={[s.commandRow, screenW < 340 && s.commandRowStacked]}>
+
+          <TouchableOpacity
+            activeOpacity={0.8}
+            style={[
+              s.cmdCard,
+              s.cutCard,
+              relayOn && s.activeCutCard,
+              { height: cmdCardHeight },
+              screenW < 340 && s.cmdCardFull,
+            ]}
+            onPress={() => sendCommand('on')}
             disabled={sending}
-            trackColor={{ false: '#1F2D45', true: '#16532D' }}
-            thumbColor={relayOn ? C.green : C.textSec}
-            ios_backgroundColor="#1F2D45"
-          />
-        </View>
-      </View>
-
-      {/* Safety Status */}
-      <View style={s.row}>
-        <View>
-          <Text style={s.label}>Hardware Safety</Text>
-          <Text style={[s.stateText, { color: safetyEnabled ? C.accent : C.yellow }]}>
-            {safetyEnabled ? '🛡️ Enabled & Monitoring' : '⚠️ Disabled (Warning)'}
-          </Text>
-        </View>
-        <View style={s.toggleArea}>
-          <Switch
-            value={safetyEnabled}
-            onValueChange={toggleSafety}
-            disabled={sending}
-            trackColor={{ false: '#1F2D45', true: '#004A5F' }}
-            thumbColor={safetyEnabled ? C.accent : C.textSec}
-            ios_backgroundColor="#1F2D45"
-          />
-        </View>
-      </View>
-
-      {/* Power usage bar */}
-      {relayOn && (
-        <View style={s.usageWrap}>
-          <View style={s.usageTrack}>
-            <View style={[s.usageFill, {
-              width: `${usagePct}%`,
-              backgroundColor: usagePct > 85 ? C.red : usagePct > 60 ? C.yellow : C.green,
-            }]} />
-          </View>
-          <Text style={s.usageLbl}>
-            {power.toFixed(0)} W  /  {customMaxW} W limit  ({usagePct.toFixed(0)}%)
-          </Text>
-        </View>
-      )}
-
-      {/* Divider */}
-      <View style={s.divider} />
-
-      {/* Quick actions */}
-      <View style={s.actions}>
-        <TouchableOpacity
-          style={[s.actionBtn, { borderColor: C.red + '60' }]}
-          onPress={() => sendCommand('off')}
-          disabled={sending}
-        >
-          <Text style={[s.actionTxt, { color: C.red }]}>⏹ Cut Power</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={[s.actionBtn, { borderColor: C.yellow + '60' }]}
-          onPress={() => sendCommand('reset_energy')}
-          disabled={sending}
-        >
-          <Text style={[s.actionTxt, { color: C.yellow }]}>↺ Reset kWh</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={[s.actionBtn, { borderColor: C.accent + '60', backgroundColor: showLimits ? C.accent + '15' : 'transparent' }]}
-          onPress={() => setShowLimits(v => !v)}
-        >
-          <Text style={[s.actionTxt, { color: C.accent }]}>⚙ Limits</Text>
-        </TouchableOpacity>
-      </View>
-
-      {/* Custom limits panel */}
-      {showLimits && (
-        <View style={s.limitsPanel}>
-          <Text style={s.limitsTitle}>Safety Limits (firmware enforces hardware ceiling)</Text>
-
-          <View style={s.limitRow}>
-            <Text style={s.limitLabel}>Max Power (W) ≤ 2300</Text>
-            <TextInput
-              style={s.limitInput}
-              value={customMaxW}
-              onChangeText={setCustomMaxW}
-              keyboardType="numeric"
-              placeholder="2300"
-              placeholderTextColor={C.textSec}
-            />
-          </View>
-
-          <View style={s.limitRow}>
-            <Text style={s.limitLabel}>Max Current (A) ≤ 9.0</Text>
-            <TextInput
-              style={s.limitInput}
-              value={customMaxA}
-              onChangeText={setCustomMaxA}
-              keyboardType="decimal-pad"
-              placeholder="9.0"
-              placeholderTextColor={C.textSec}
-            />
-          </View>
-
-          <TouchableOpacity style={s.applyBtn} onPress={applyLimits} disabled={sending}>
-            <Text style={s.applyTxt}>Apply Limits</Text>
+          >
+            <View style={[s.cmdIconBox, relayOn && s.activeCutIconBox]}>
+              <Text style={s.cmdEmoji}>🔌</Text>
+            </View>
+            <Text style={[s.cmdLabel, { color: relayOn ? C.rose : C.textSec }]}>POWER CUT</Text>
           </TouchableOpacity>
 
-          <Text style={s.limitsNote}>
-            These limits are sent to the device via MQTT. The firmware will also enforce its own hardware ceiling (2300W / 9A). Your custom limit is applied first.
-          </Text>
+          <TouchableOpacity
+            activeOpacity={0.8}
+            style={[
+              s.cmdCard,
+              s.liveCard,
+              !relayOn && s.activeLiveCard,
+              { height: cmdCardHeight },
+              screenW < 340 && s.cmdCardFull,
+            ]}
+            onPress={() => sendCommand('off')}
+            disabled={sending}
+          >
+            <View style={[s.cmdIconBox, !relayOn && s.activeLiveIconBox]}>
+              <Text style={s.cmdEmoji}>⚡</Text>
+            </View>
+            <Text style={[s.cmdLabel, { color: !relayOn ? C.emerald : C.textSec }]}>RESTORE</Text>
+          </TouchableOpacity>
+
+        </View>
+
+        {/* Utility Toolbar */}
+        <View style={s.toolbar}>
+          <TouchableOpacity
+            style={[s.toolBtn, { borderColor: C.amberBorder, borderWidth: 1 }]}
+            onPress={() => sendCommand('reset_energy')}
+            disabled={sending}
+          >
+            <Text style={[s.toolIcon, { color: C.amber }]}>↺</Text>
+            <Text style={[s.toolText, { color: C.amber, fontSize: rem(11) }]}>Reset kWh</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[
+              s.toolBtn,
+              { borderColor: C.cyanBorder, borderWidth: 1 },
+              showLimits && s.toolActive,
+            ]}
+            onPress={() => setShowLimits(!showLimits)}
+          >
+            <Text style={[s.toolIcon, { color: C.cyan }]}>⚙</Text>
+            <Text style={[s.toolText, { color: C.cyan, fontSize: rem(11) }]}>Limits</Text>
+          </TouchableOpacity>
+        </View>
+
+      </View>
+
+      {/* Limits Panel */}
+      {showLimits && (
+        <View style={[s.limitsOverlay, { padding: cardPadding }]}>
+          <Text style={s.limitsTitle}>HARDWARE THRESHOLDS</Text>
+          <View style={s.limitInputRow}>
+            <View style={s.inputBox}>
+              <Text style={s.inputLabel}>MAX WATTS</Text>
+              <TextInput
+                style={s.textInput}
+                value={customMaxW}
+                onChangeText={setCustomMaxW}
+                keyboardType="numeric"
+                placeholderTextColor={C.textTer}
+                returnKeyType="done"
+              />
+            </View>
+            <View style={s.inputBoxGap} />
+            <View style={s.inputBox}>
+              <Text style={s.inputLabel}>MAX AMPS</Text>
+              <TextInput
+                style={s.textInput}
+                value={customMaxA}
+                onChangeText={setCustomMaxA}
+                keyboardType="decimal-pad"
+                placeholderTextColor={C.textTer}
+                returnKeyType="done"
+              />
+            </View>
+          </View>
+          <TouchableOpacity style={s.saveBtn} onPress={applyLimits} disabled={sending}>
+            {sending
+              ? <ActivityIndicator color="#020D1A" size="small" />
+              : <Text style={s.saveBtnTxt}>UPDATE FIRMWARE</Text>
+            }
+          </TouchableOpacity>
         </View>
       )}
+
     </View>
   );
 };
 
 const s = StyleSheet.create({
-  wrap: {
-    backgroundColor: C.card, borderRadius: 14, padding: 16,
-    marginBottom: 10, borderWidth: 1, borderColor: C.border,
-  },
-  tripBanner: {
-    backgroundColor: '#2D1515', borderRadius: 10, padding: 12,
-    marginBottom: 14, borderLeftWidth: 3, borderLeftColor: C.red,
-  },
-  tripTitle: { color: '#FCA5A5', fontSize: 13, fontWeight: '800', marginBottom: 4 },
-  tripReason: { color: '#FCA5A5', fontSize: 12, marginBottom: 10 },
-  resetBtn: {
-    backgroundColor: C.red + '20', borderRadius: 8, padding: 8,
-    borderWidth: 1, borderColor: C.red + '50', alignItems: 'center',
-  },
-  resetTxt: { color: C.red, fontSize: 13, fontWeight: '700' },
+  container: { marginBottom: 20 },
 
-  row: {
-    flexDirection: 'row', justifyContent: 'space-between',
-    alignItems: 'center', marginBottom: 12,
+  // Alert Banner
+  alertBanner: {
+    backgroundColor: 'rgba(251, 113, 133, 0.15)',
+    borderRadius: 14,
+    padding: 12,
+    marginBottom: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: C.roseBorder,
   },
-  label: { color: C.textSec, fontSize: 11, fontWeight: '700',
-    textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 },
-  stateText: { fontSize: 13, fontWeight: '600' },
-  toggleArea: { flexDirection: 'row', alignItems: 'center' },
-
-  usageWrap: { marginBottom: 12 },
-  usageTrack: {
-    height: 8, backgroundColor: '#0D1422', borderRadius: 4,
-    overflow: 'hidden', marginBottom: 6,
+  alertIconBox: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    backgroundColor: 'rgba(251,113,133,0.15)',
+    borderWidth: 1,
+    borderColor: C.roseBorder,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 10,
+    flexShrink: 0,
   },
-  usageFill: { height: '100%', borderRadius: 4 },
-  usageLbl: { color: C.textSec, fontSize: 11 },
-
-  divider: { height: 1, backgroundColor: C.border, marginBottom: 12 },
-
-  actions: { flexDirection: 'row', gap: 8 },
-  actionBtn: {
-    flex: 1, paddingVertical: 10, borderRadius: 10,
-    borderWidth: 1, alignItems: 'center',
+  alertEmoji: { fontSize: 16 },
+  alertTextCol: { flex: 1, marginRight: 8 },
+  alertTitle: {
+    color: C.rose,
+    fontSize: 10,
+    fontWeight: '700',
+    letterSpacing: 1.2,
+    marginBottom: 2,
   },
-  actionTxt: { fontSize: 12, fontWeight: '700' },
+  alertMsg: { color: 'rgba(251,113,133,0.7)', fontSize: 12, fontWeight: '600' },
+  resetBadge: {
+    backgroundColor: C.rose,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 20,
+    minHeight: 32,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
+  },
+  resetBadgeTxt: { color: '#fff', fontSize: 10, fontWeight: '800' },
 
-  limitsPanel: {
-    backgroundColor: '#0D1422', borderRadius: 10, padding: 14,
-    marginTop: 12, borderWidth: 1, borderColor: C.accent + '30',
+  // Glass Card
+  glassCard: {
+    backgroundColor: 'rgba(22, 28, 42, 0.85)',
+    borderRadius: 22,
+    borderWidth: 1,
+    borderColor: C.border,
+  },
+
+  // Status Hub
+  statusHub: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 22,
+  },
+  statusMain: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+    marginRight: 8,
+  },
+  livePulse: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    marginRight: 10,
+    flexShrink: 0,
+  },
+  statusTextCol: { flex: 1 },
+  hubLabel: {
+    color: C.textTer,
+    fontSize: 9,
+    fontWeight: '700',
+    letterSpacing: 1.5,
+    marginBottom: 3,
+  },
+  hubValue: { fontWeight: '800', letterSpacing: 0.3 },
+  idBadge: {
+    backgroundColor: 'rgba(255,255,255,0.04)',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 7,
+    borderWidth: 1,
+    borderColor: C.border,
+    flexShrink: 0,
+  },
+  idText: {
+    color: C.textTer,
+    fontSize: 10,
+    fontWeight: '700',
+    fontFamily: 'monospace',
+  },
+
+  // Visualizer
+  visualizer: { marginBottom: 22 },
+  vizHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'baseline',
+    marginBottom: 10,
+  },
+  vizLabel: { color: C.textTer, fontSize: 10, fontWeight: '700', letterSpacing: 1 },
+  vizValue: { color: C.textPrimary, fontWeight: '800' },
+  vizUnit: { fontSize: 14, color: C.textSec, fontWeight: '500' },
+  meterTrack: {
+    height: 8,
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    borderRadius: 6,
+    overflow: 'hidden',
+    marginBottom: 6,
+  },
+  meterFill: { height: '100%', borderRadius: 6 },
+  vizFooter: { flexDirection: 'row', justifyContent: 'space-between' },
+  vizSub: { color: C.textTer, fontSize: 10, fontWeight: '600' },
+
+  // Command Row
+  commandRow: {
+    flexDirection: 'row',
+    marginBottom: 22,
+  },
+  commandRowStacked: {
+    flexDirection: 'column',
+  },
+  cmdCard: {
+    flex: 1,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255,255,255,0.03)',
+    borderWidth: 1.5,
+    borderColor: 'rgba(255,255,255,0.08)',
+    paddingTop: 10,
+    minHeight: 44,
+  },
+  // First card gets right margin in row mode; handled via marginRight below
+  cutCard: {
+    borderColor: C.rose,
+    borderWidth: 3,
+    backgroundColor: 'rgba(255,59,107,0.03)',
+    marginRight: 15,
+  },
+  liveCard: { borderColor: C.emeraldBorder },
+  activeCutCard: {
+    borderColor: C.rose,
+    borderWidth: 3,
+    shadowColor: C.rose,
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 1,
+    shadowRadius: 10,
+    elevation: 15,
+    backgroundColor: 'rgba(254, 0, 64, 0.03)',
+  },
+  activeLiveCard: {
+    borderColor: C.emerald,
+    borderWidth: 3,
+    shadowColor: C.emerald,
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 1,
+    shadowRadius: 10,
+    elevation: 15,
+    backgroundColor: 'rgba(0,255,157,0.03)',
+  },
+  // Full-width override for stacked layout
+  cmdCardFull: {
+    flex: 0,
+    width: '100%',
+    marginRight: 0,
+    marginBottom: 12,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    paddingTop: 0,
+  },
+  cmdIconBox: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: 'rgba(255,255,255,0.02)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 10,
+    marginRight: 0,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.08)',
+  },
+  activeCutIconBox: {
+    borderColor: C.rose,
+    backgroundColor: 'rgba(255, 4, 67, 0.1)',
+  },
+  activeLiveIconBox: {
+    borderColor: C.emerald,
+    backgroundColor: 'rgba(0,255,157,0.1)',
+  },
+  cmdEmoji: { fontSize: 14 },
+  cmdLabel: { fontSize: 10, fontWeight: '900', letterSpacing: 1 },
+
+  // Toolbar
+  toolbar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingTop: 14,
+    borderTopWidth: 1,
+    borderTopColor: C.border,
+  },
+  toolBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+    minHeight: 44,
+    borderRadius: 12,
+    backgroundColor: 'rgba(255,255,255,0.03)',
+  },
+  // Space between toolbar buttons
+  toolBtnGap: { width: 10 },
+  toolIcon: { fontSize: 16, marginRight: 6 },
+  toolText: { fontWeight: '800', letterSpacing: 0.5 },
+  toolActive: { backgroundColor: C.cyanDim, borderColor: C.cyan },
+
+  // Limits Overlay
+  limitsOverlay: {
+    backgroundColor: C.card2,
+    borderRadius: 18,
+    marginTop: 10,
+    borderWidth: 1,
+    borderColor: C.cyanBorder,
   },
   limitsTitle: {
-    color: C.textSec, fontSize: 11, fontWeight: '700',
-    textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 12,
+    color: C.cyan,
+    fontSize: 10,
+    fontWeight: '800',
+    letterSpacing: 2,
+    marginBottom: 18,
+    textAlign: 'center',
   },
-  limitRow: { flexDirection: 'row', justifyContent: 'space-between',
-    alignItems: 'center', marginBottom: 10 },
-  limitLabel: { color: C.textSec, fontSize: 13, flex: 1 },
-  limitInput: {
-    backgroundColor: C.card, color: C.textPrimary, borderRadius: 8,
-    paddingHorizontal: 12, paddingVertical: 8, width: 90,
-    borderWidth: 1, borderColor: C.border, fontSize: 14,
-    textAlign: 'right',
+  limitInputRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    marginBottom: 18,
   },
-  applyBtn: {
-    backgroundColor: C.accent, borderRadius: 10, paddingVertical: 12,
-    alignItems: 'center', marginTop: 4,
+  inputBox: { flex: 1 },
+  inputBoxGap: { width: 12 },
+  inputLabel: {
+    color: C.textTer,
+    fontSize: 9,
+    fontWeight: '800',
+    letterSpacing: 1,
+    marginBottom: 7,
   },
-  applyTxt: { color: '#000', fontSize: 14, fontWeight: '800' },
-  limitsNote: {
-    color: C.textSec, fontSize: 11, lineHeight: 17, marginTop: 10,
+  textInput: {
+    backgroundColor: 'rgba(0,0,0,0.2)',
+    color: C.textPrimary,
+    borderRadius: 10,
+    padding: 12,
+    fontSize: 15,
+    fontWeight: '700',
+    borderWidth: 1,
+    borderColor: C.border2,
+    minHeight: 44,
+  },
+  saveBtn: {
+    backgroundColor: C.cyan,
+    paddingVertical: 14,
+    minHeight: 48,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  saveBtnTxt: {
+    color: '#020D1A',
+    fontSize: 12,
+    fontWeight: '800',
+    letterSpacing: 1,
   },
 });
 

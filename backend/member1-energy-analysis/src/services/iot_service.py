@@ -789,7 +789,15 @@ class IoTService:
     async def _generate_ai_analysis(self, session, health: dict, dataset: list) -> dict:
         def ai_task():
             try:
-                import anthropic
+                from google import genai
+                from src.config import settings
+                
+                gemini_key = settings.GEMINI_API_KEY or os.environ.get("GEMINI_API_KEY", "")
+                if not gemini_key:
+                    logger.error("GEMINI_API_KEY not set for session analysis")
+                    return None
+
+                client = genai.Client(api_key=gemini_key)
 
                 avg_pwr  = session.avg_power_w or 0
                 peak_pwr = session.peak_power_w or 0
@@ -824,11 +832,11 @@ Description: {session.appliance_description or 'None'}
 MEASURED DATA:
 - Duration: {duration:.1f} minutes ({session.total_readings} readings at 5-sec intervals)
 - Average Power: {avg_pwr:.1f}W | Peak: {peak_pwr:.1f}W
-- Power Factor: {pf:.3f} ({'Excellent ≥0.95' if pf >= 0.95 else 'Good ≥0.85' if pf >= 0.85 else 'Fair ≥0.70' if pf >= 0.70 else 'Poor <0.70'})
+- Power Factor: {pf:.3f} ({'Excellent >=0.95' if pf >= 0.95 else 'Good >=0.85' if pf >= 0.85 else 'Fair >=0.70' if pf >= 0.70 else 'Poor <0.70'})
 - Power Quality Score: {pq:.1f}/100
 - Energy Used: {kwh:.4f} kWh | Est. Cost: Rs.{cost:.2f}
 - Power Stability: {stability}
-{f'- Temperature: {temp:.1f}°C | Humidity: {humidity:.1f}%' if temp and humidity else ''}
+{f'- Temperature: {temp:.1f}C | Humidity: {humidity:.1f}%' if temp and humidity else ''}
 
 REFERENCE (typical for this type): {typical_str}
 
@@ -855,14 +863,12 @@ Respond ONLY with valid JSON, no markdown, no preamble:
   "key_finding": "one sentence most important finding"
 }}"""
 
-                client  = anthropic.Anthropic(api_key=os.environ.get("ANTHROPIC_API_KEY", ""))
-                message = client.messages.create(
-                    model      = "claude-sonnet-4-20250514",
-                    max_tokens = 1024,
-                    messages   = [{"role": "user", "content": prompt}]
+                response = client.models.generate_content(
+                    model="gemini-2.0-flash",
+                    contents=prompt
                 )
 
-                response_text = message.content[0].text
+                response_text = response.text.strip()
                 import re
                 json_match = re.search(r'\{.*\}', response_text, re.DOTALL)
                 if json_match:
@@ -872,7 +878,7 @@ Respond ONLY with valid JSON, no markdown, no preamble:
                         "recommendations": ai_data.get("recommendations", []),
                         "comparison":      ai_data.get("comparison", ""),
                         "needs_service":   ai_data.get("needs_service", "monitor"),
-                        "key_finding":     ai_data.get("key_finding", ""),
+                        "key_finding":     ai_data.get("key_finding", ai_data.get("summary", "")[:100]),
                     }
             except Exception as e:
                 logger.error(f"AI analysis error: {e}")

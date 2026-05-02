@@ -134,6 +134,7 @@ def register_user(payload: UserRegisterRequest, db: Session = Depends(get_db)):
 
         user = User(
             email=payload.email,
+            username=payload.username,
             phone_number=payload.phone_number,
             hashed_password=get_password_hash(payload.password),
             is_active=True,
@@ -164,9 +165,15 @@ def register_user(payload: UserRegisterRequest, db: Session = Depends(get_db)):
             user=UserProfileResponse(
                 id=user.id,
                 email=user.email,
+                username=user.username,
                 phone_number=user.phone_number,
                 full_name=profile.full_name,
+                birthday=profile.birthday,
+                profile_image=profile.profile_image,
                 default_account_number=profile.default_account_number,
+                address=profile.address,
+                city=profile.city,
+                country=profile.country,
                 is_admin=user.is_admin,
                 created_at=user.created_at,
             ),
@@ -206,9 +213,15 @@ def login_user(payload: UserLoginRequest, db: Session = Depends(get_db)):
             user=UserProfileResponse(
                 id=user.id,
                 email=user.email,
+                username=user.username,
                 phone_number=user.phone_number,
                 full_name=profile.full_name if profile else None,
+                birthday=profile.birthday if profile else None,
+                profile_image=profile.profile_image if profile else None,
                 default_account_number=profile.default_account_number if profile else None,
+                address=profile.address if profile else None,
+                city=profile.city if profile else None,
+                country=profile.country if profile else None,
                 is_admin=user.is_admin,
                 created_at=user.created_at,
             ),
@@ -426,9 +439,15 @@ def google_login(payload: GoogleLoginRequest, db: Session = Depends(get_db)):
             user=UserProfileResponse(
                 id=user.id,
                 email=user.email,
+                username=user.username,
                 phone_number=user.phone_number,
                 full_name=profile.full_name if profile else None,
+                birthday=profile.birthday if profile else None,
+                profile_image=profile.profile_image if profile else None,
                 default_account_number=profile.default_account_number if profile else None,
+                address=profile.address if profile else None,
+                city=profile.city if profile else None,
+                country=profile.country if profile else None,
                 is_admin=user.is_admin,
                 created_at=user.created_at,
             ),
@@ -452,9 +471,15 @@ def get_me(current_user: User = Depends(get_user_from_token)):
     return UserProfileResponse(
         id=current_user.id,
         email=current_user.email,
+        username=current_user.username,
         phone_number=current_user.phone_number,
         full_name=profile.full_name if profile else None,
+        birthday=profile.birthday if profile else None,
+        profile_image=profile.profile_image if profile else None,
         default_account_number=profile.default_account_number if profile else None,
+        address=profile.address if profile else None,
+        city=profile.city if profile else None,
+        country=profile.country if profile else None,
         is_admin=current_user.is_admin,
         created_at=current_user.created_at,
     )
@@ -476,12 +501,33 @@ def update_profile(
             db.flush()
 
         # Update User fields
+        if payload.username is not None:
+            # Check uniqueness
+            existing = db.query(User).filter(User.username == payload.username, User.id != current_user.id).first()
+            if existing:
+                raise HTTPException(status_code=400, detail="Username already taken")
+            current_user.username = payload.username
+            
+        if payload.email is not None:
+            # Check uniqueness
+            existing = db.query(User).filter(User.email == payload.email, User.id != current_user.id).first()
+            if existing:
+                raise HTTPException(status_code=400, detail="Email already registered")
+            current_user.email = payload.email
+
         if payload.phone_number is not None:
             current_user.phone_number = payload.phone_number
+
+        if payload.new_password is not None:
+            current_user.hashed_password = get_password_hash(payload.new_password)
 
         # Update Profile fields
         if payload.full_name is not None:
             profile.full_name = payload.full_name
+        if payload.birthday is not None:
+            profile.birthday = payload.birthday
+        if payload.profile_image is not None:
+            profile.profile_image = payload.profile_image
         if payload.address is not None:
             profile.address = payload.address
         if payload.city is not None:
@@ -498,9 +544,15 @@ def update_profile(
         return UserProfileResponse(
             id=current_user.id,
             email=current_user.email,
+            username=current_user.username,
             phone_number=current_user.phone_number,
             full_name=profile.full_name,
+            birthday=profile.birthday,
+            profile_image=profile.profile_image,
             default_account_number=profile.default_account_number,
+            address=profile.address,
+            city=profile.city,
+            country=profile.country,
             is_admin=current_user.is_admin,
             created_at=current_user.created_at,
         )

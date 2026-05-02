@@ -87,19 +87,7 @@ const AnalysisScreen = ({ navigation }) => {
   const deletePlan = async (planId) => {
     const message = 'This will also delete all meter readings. Continue?';
 
-    // Fallback for Web since Alert.alert often fails on Web
-    if (Platform.OS === 'web') {
-      const confirmed = window.confirm(`Delete Plan?\n\n${message}`);
-      if (confirmed) {
-        try {
-          await analysisAPI.deletePlan(planId);
-          loadPlans();
-        } catch { alert('Error: Could not delete plan.'); }
-      }
-      return;
-    }
-
-    Alert.alert('Delete Plan', message, [
+    universalAlert('Delete Plan', message, [
       { text: 'Cancel', style: 'cancel' },
       {
         text: 'Delete', style: 'destructive',
@@ -107,7 +95,7 @@ const AnalysisScreen = ({ navigation }) => {
           try {
             await analysisAPI.deletePlan(planId);
             loadPlans();
-          } catch { Alert.alert('Error', 'Could not delete plan.'); }
+          } catch { universalAlert('Error', 'Could not delete plan.'); }
         },
       },
     ]);

@@ -19,7 +19,7 @@ class BudgetPlan(Base):
     id = Column(Integer, primary_key=True, index=True)
     
     # Reference to past bill
-    reference_bill_id = Column(Integer, ForeignKey('electricity_bills.id'), nullable=False)
+    reference_bill_id = Column(Integer, ForeignKey('electricity_bills.id', ondelete="SET NULL"), nullable=True)
     reference_bill = relationship("ElectricityBill", foreign_keys=[reference_bill_id])
     
     # User information

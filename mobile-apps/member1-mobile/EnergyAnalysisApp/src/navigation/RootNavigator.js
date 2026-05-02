@@ -77,14 +77,11 @@ const sharedHeaderOptions = {
 const SafetyTopTabs = () => (
   <TopTab.Navigator
     screenOptions={{
-      tabBarStyle: { backgroundColor: COLORS.bg2 },
       tabBarActiveTintColor: COLORS.primary,
-      tabBarInactiveTintColor: COLORS.textMuted,
-      tabBarIndicatorStyle: { backgroundColor: COLORS.primary },
-      tabBarLabelStyle: { fontSize: 11, fontWeight: '700', textTransform: 'capitalize' },
-      tabBarScrollEnabled: true,
-      tabBarItemStyle: { paddingHorizontal: 12, width: 'auto' },
-      tabBarContentContainerStyle: { justifyContent: 'center' }
+      tabBarInactiveTintColor: COLORS.textSecondary,
+      tabBarStyle: { backgroundColor: COLORS.bg2 },
+      tabBarIndicatorStyle: { backgroundColor: COLORS.primary, height: 3 },
+      tabBarLabelStyle: { ...FONTS.bold, fontSize: 12, textTransform: 'none' },
     }}
   >
     <TopTab.Screen name="Assistant" component={SafetyAssistantScreen} options={{ title: 'Safety Assistant' }} />
@@ -129,7 +126,7 @@ const DashboardStack = () => (
 // ─── Bills Stack ──────────────────────────────────────────────────────────────
 const BillsStack = () => (
   <Stack.Navigator screenOptions={sharedHeaderOptions}>
-    <Stack.Screen name="BillsList" component={BillsScreen} options={{ title: 'My Bills' }} />
+    <Stack.Screen name="BillsList" component={BillsScreen} options={{ headerShown: false }} />
     <Stack.Screen name="BillDetail" component={BillDetailScreen} options={{ title: 'Bill Analysis' }} />
     <Stack.Screen name="NILM" component={NILMScreen} options={{ title: 'NILM Disaggregation' }} />
   </Stack.Navigator>
@@ -138,7 +135,7 @@ const BillsStack = () => (
 // ─── Tracking Stack ───────────────────────────────────────────────────────────
 const TrackingStack = () => (
   <Stack.Navigator screenOptions={sharedHeaderOptions}>
-    <Stack.Screen name="TrackingHome" component={TrackingScreen} options={{ title: 'Bill Tracking' }} />
+    <Stack.Screen name="TrackingHome" component={TrackingScreen} options={{ headerShown: false }} />
   </Stack.Navigator>
 );
 
@@ -193,10 +190,7 @@ const MainNavigator = () => {
         name="Appliances"
         component={AppliancesScreen}
         options={{
-          title: 'Appliances',
-          headerStyle: { backgroundColor: COLORS.bg2 },
-          headerTintColor: COLORS.textPrimary,
-          headerTitleStyle: { ...FONTS.semiBold, fontSize: 17 },
+          headerShown: false,
         }}
       />
       <Tab.Screen name="Tracking" component={TrackingStack} options={{ headerShown: false }} />

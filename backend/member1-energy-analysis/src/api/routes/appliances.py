@@ -590,37 +590,36 @@ async def recognize_appliance_from_image(
         recognition_result = None
         attempted_v2 = False
         
-        # --- ATTEMPT 1: Gemini AI (V2) ---
-        if settings.GEMINI_API_KEY:
+        # --- ATTEMPT 1: CLIP Local Model (V1) ---
+        try:
+            logger.info("Attempting local appliance recognition with CLIP (V1)...")
+            clip_v1 = ApplianceRecognitionService()
+            v1_result = clip_v1.recognize_appliance(str(file_path))
+            
+            # Use CLIP if it succeeded AND has high confidence (>= 0.6)
+            if v1_result.get('success') and v1_result.get('confidence', 0) >= 0.6:
+                recognition_result = v1_result
+                logger.info(f"CLIP V1 succeeded with {v1_result['confidence']*100}% confidence")
+            else:
+                logger.warning(f"CLIP V1 failed or has low confidence: {v1_result.get('error') or 'low confidence'}")
+        except Exception as e:
+            logger.error(f"CLIP V1 critical error: {e}")
+
+        # --- ATTEMPT 2: Fallback to Gemini AI (V2) ---
+        if not recognition_result and settings.GEMINI_API_KEY:
             try:
-                logger.info("Attempting appliance recognition with Gemini V2...")
+                logger.info("Falling back to Gemini AI (V2)...")
                 gemini_v2 = GeminiVisionRecognitionService()
                 v2_result = gemini_v2.recognize_appliance(str(file_path))
                 
-                # Use Gemini if it succeeded AND has decent confidence
-                if v2_result.get('success') and v2_result.get('confidence', 0) >= 0.4:
+                if v2_result.get('success'):
                     recognition_result = v2_result
                     attempted_v2 = True
-                    logger.info(f"Gemini V2 succeeded with {v2_result['confidence']*100}% confidence")
+                    logger.info(f"Gemini V2 fallback succeeded with {v2_result.get('confidence', 0)*100}% confidence")
                 else:
-                    logger.warning(f"Gemini V2 failed or has low confidence: {v2_result.get('error') or 'low confidence'}")
+                    logger.warning(f"Gemini V2 fallback also failed: {v2_result.get('error')}")
             except Exception as e:
-                logger.error(f"Gemini V2 critical error: {e}")
-
-        # --- ATTEMPT 2: Fallback to CLIP Local Model (V1) ---
-        if not recognition_result:
-            try:
-                logger.info("Falling back to legacy pretrained CLIP model (V1)...")
-                clip_v1 = ApplianceRecognitionService()
-                v1_result = clip_v1.recognize_appliance(str(file_path))
-                
-                if v1_result.get('success'):
-                    recognition_result = v1_result
-                    logger.info("Fallback (V1) succeeded")
-                else:
-                    logger.error(f"Fallback (V1) also failed: {v1_result.get('error')}")
-            except Exception as e:
-                logger.error(f"Fallback (V1) critical error: {e}")
+                logger.error(f"Gemini V2 fallback critical error: {e}")
 
         if not recognition_result or not recognition_result.get('success'):
             return {

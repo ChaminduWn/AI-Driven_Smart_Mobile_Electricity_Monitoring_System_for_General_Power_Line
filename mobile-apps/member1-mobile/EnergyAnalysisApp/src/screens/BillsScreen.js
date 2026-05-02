@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
-  View, Text, ScrollView, StyleSheet, RefreshControl, TouchableOpacity, Platform,
+  View, Text, ScrollView, StyleSheet, RefreshControl, TouchableOpacity, Platform, Alert,
 } from 'react-native';
+import { ArrowLeft, FileText, Trash2, Edit3, Plus, Upload, Keyboard } from 'lucide-react-native';
 import { universalAlert } from '../utils/alerts';
 import * as DocumentPicker from 'expo-document-picker';
 import { billsAPI } from '../api/billsAPI';
@@ -23,6 +24,9 @@ const BillsScreen = ({ navigation }) => {
   const [refreshing, setRefreshing] = useState(false);
   const [showManualModal, setShowManualModal] = useState(false);
   const [showUploadModal, setShowUploadModal] = useState(false);
+  const [showRenameModal, setShowRenameModal] = useState(false);
+  const [editingBill, setEditingBill] = useState(null);
+  const [renameTitle, setRenameTitle] = useState('');
   const [pendingUploadAsset, setPendingUploadAsset] = useState(null);
   const [uploadTitle, setUploadTitle] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -51,8 +55,6 @@ const BillsScreen = ({ navigation }) => {
       for (const acct of seen) { await addAccount(acct); }
     } catch (err) {
       console.error('❌ Bills fetch error:', err.response?.data || err.message);
-      console.error('   Status:', err.response?.status);
-      console.error('   Headers:', err.response?.headers);
       Alert.alert('Error', `Failed to fetch bills: ${err.response?.data?.detail || err.message}`);
     } finally {
       setLoading(false);
@@ -123,7 +125,6 @@ const BillsScreen = ({ navigation }) => {
       }
     } catch (err) {
       console.error('❌ Upload failed:', err.response?.data || err.message);
-      console.error('   Status:', err.response?.status);
       const msg = err.response?.data?.detail || 'Upload failed. Check file and try again.';
       Alert.alert('Upload Failed', msg);
     } finally {
@@ -146,12 +147,33 @@ const BillsScreen = ({ navigation }) => {
             universalAlert('Success', 'Bill deleted.');
             fetchBills();
           } catch (err) {
-            console.error('❌ Delete bill error:', err);
-            universalAlert('Error', 'Failed to delete bill.');
+            console.error('❌ Delete bill error:', err.response?.data || err.message);
+            universalAlert('Error', 'Failed to delete bill. It might be referenced by an active budget plan.');
           }
         },
       },
     ]);
+  };
+
+  const openRenameModal = (bill) => {
+    setEditingBill(bill);
+    setRenameTitle(bill.title || '');
+    setShowRenameModal(true);
+  };
+
+  const handleRename = async () => {
+    if (!editingBill) return;
+    setSubmitting(true);
+    try {
+      await billsAPI.update(editingBill.id, { title: renameTitle });
+      universalAlert('Success', 'Bill renamed.');
+      setShowRenameModal(false);
+      fetchBills();
+    } catch (err) {
+      Alert.alert('Error', 'Failed to rename bill.');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const toggleActiveBill = async (bill) => {
@@ -209,11 +231,23 @@ const BillsScreen = ({ navigation }) => {
 
   return (
     <View style={styles.flex}>
+      <View style={styles.topHeader}>
+        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+          <ArrowLeft size={24} color={COLORS.textPrimary} />
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>My Bills</Text>
+        <View style={{ width: 40 }} />
+      </View>
+
       <ScrollView
         style={styles.container}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); fetchBills(); }} tintColor={COLORS.primary} />}
+        showsVerticalScrollIndicator={false}
       >
-        <SectionHeader title="Bill History" />
+        <View style={styles.sectionTitleRow}>
+          <FileText size={18} color={COLORS.primary} />
+          <Text style={styles.sectionTitle}>Bill History</Text>
+        </View>
 
         {filteredBills.length === 0 ? (
           <EmptyState
@@ -227,6 +261,7 @@ const BillsScreen = ({ navigation }) => {
               key={bill.id}
               bill={bill}
               onPress={() => navigation.navigate('BillDetail', { bill, billId: bill.id })}
+              onRename={() => openRenameModal(bill)}
               onDelete={() => deleteBill(bill)}
               onToggleActive={() => toggleActiveBill(bill)}
             />
@@ -255,6 +290,30 @@ const BillsScreen = ({ navigation }) => {
           Add past months' data to improve AI accuracy 📈
         </Text>
       </View>
+
+      {/* Rename Modal */}
+      <Modal visible={showRenameModal} animationType="fade" transparent>
+        <TouchableOpacity style={styles.overlay} activeOpacity={1} onPress={() => setShowRenameModal(false)}>
+          <TouchableOpacity style={[styles.bottomSheet, { maxHeight: '50%' }]} activeOpacity={1}>
+            <Text style={styles.sheetTitle}>Rename Bill</Text>
+            <Text style={styles.sheetSubtitle}>Enter a new name for this bill</Text>
+            
+            <ManualInput
+              label="Bill Title"
+              value={renameTitle}
+              onChangeText={setRenameTitle}
+              placeholder="e.g. Home - Feb 2024"
+            />
+            
+            <PrimaryButton
+              label={submitting ? "Updating..." : "Save Name"}
+              onPress={handleRename}
+              loading={submitting}
+              style={{ marginTop: SPACING.lg }}
+            />
+          </TouchableOpacity>
+        </TouchableOpacity>
+      </Modal>
 
       {/* Upload Title Modal */}
       <Modal visible={showUploadModal} animationType="fade" transparent>
@@ -346,7 +405,7 @@ const BillsScreen = ({ navigation }) => {
   );
 };
 
-const BillCard = ({ bill, onPress, onDelete, onToggleActive }) => (
+const BillCard = ({ bill, onPress, onRename, onDelete, onToggleActive }) => (
   <TouchableOpacity style={styles.billCard} onPress={onPress}>
     <View style={styles.billLeft}>
       <Text style={styles.billIcon}>🗒️</Text>
@@ -361,14 +420,19 @@ const BillCard = ({ bill, onPress, onDelete, onToggleActive }) => (
       )}
     </View>
     <View style={styles.billActions}>
-      <TouchableOpacity onPress={onToggleActive} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-        <Text style={{ fontSize: 20, color: bill.is_active_for_dashboard ? COLORS.primary : COLORS.border }}>
-          {bill.is_active_for_dashboard ? '✅' : '⚪'}
-        </Text>
-      </TouchableOpacity>
-      <TouchableOpacity onPress={onDelete} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-        <Text style={styles.deleteIcon}>🗑️</Text>
-      </TouchableOpacity>
+      <View style={styles.actionRow}>
+        <TouchableOpacity onPress={onToggleActive} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+          <Text style={{ fontSize: 20, color: bill.is_active_for_dashboard ? COLORS.primary : COLORS.border }}>
+            {bill.is_active_for_dashboard ? '✅' : '⚪'}
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity onPress={onRename} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+          <Edit3 size={18} color={COLORS.textSecondary} />
+        </TouchableOpacity>
+        <TouchableOpacity onPress={onDelete} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+          <Trash2 size={18} color={COLORS.danger} />
+        </TouchableOpacity>
+      </View>
     </View>
   </TouchableOpacity>
 );
@@ -389,7 +453,22 @@ const ManualInput = ({ label, value, onChangeText, placeholder, keyboardType = '
 
 const styles = StyleSheet.create({
   flex: { flex: 1, backgroundColor: COLORS.bg1 },
+  topHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingTop: Platform.OS === 'ios' ? 60 : 45,
+    paddingBottom: 20,
+    backgroundColor: COLORS.bg2,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
+  },
+  backBtn: { padding: 4 },
+  headerTitle: { ...FONTS.bold, fontSize: 18, color: COLORS.textPrimary },
   container: { flex: 1, padding: SPACING.lg },
+  sectionTitleRow: { flexDirection: 'row', alignItems: 'center', marginBottom: SPACING.md, gap: 8 },
+  sectionTitle: { ...FONTS.bold, fontSize: 16, color: COLORS.textPrimary },
   billCard: {
     backgroundColor: COLORS.bg2,
     borderRadius: RADIUS.lg,
@@ -407,7 +486,8 @@ const styles = StyleSheet.create({
   billMonth: { color: COLORS.textPrimary, fontSize: 16, ...FONTS.semiBold },
   billMeta: { color: COLORS.textSecondary, fontSize: 12, marginTop: 2 },
   billAmount: { color: COLORS.success, fontSize: 16, ...FONTS.bold, marginTop: 4 },
-  billActions: { alignItems: 'flex-end', gap: SPACING.sm },
+  billActions: { marginLeft: 10 },
+  actionRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   chevron: { color: COLORS.textMuted, fontSize: 24 },
   deleteIcon: { fontSize: 18 },
   fabArea: {
