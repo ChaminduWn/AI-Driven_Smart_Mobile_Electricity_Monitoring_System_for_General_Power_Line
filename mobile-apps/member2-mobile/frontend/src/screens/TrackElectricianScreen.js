@@ -1,218 +1,336 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Animated, Linking, Platform } from 'react-native';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, Linking, Alert, Image, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { theme } from '../theme';
 import { Button } from '../components/Button';
-import { MapView, Marker, Polyline } from '../components/MapWrapper';
 import Ionicons from 'react-native-vector-icons/Ionicons';
+import { buildApiUrl, buildAssetUrl } from '../api';
+import { MapView, Marker, Polyline, PROVIDER_GOOGLE } from '../components/MapWrapper.native';
+import { liveGoogleMapEnabled } from '../config/maps';
+import { useAuth } from '../context/AuthContext';
+import { useTranslation } from 'react-i18next';
+import { VoiceCommandButton } from '../components/VoiceCommandButton';
+import { TRACK_TECHNICIAN_INTENTS } from '../voice/intentMappings';
+
+const fallbackLocation = {
+    latitude: 6.9271,
+    longitude: 79.8612,
+};
+
+const formatCurrency = (amount, t) => {
+    if (amount === null || amount === undefined || Number.isNaN(Number(amount))) {
+        return t('member2.availableElectricians.pricePending');
+    }
+
+    return `LKR ${Number(amount).toLocaleString()}`;
+};
 
 export const TrackElectricianScreen = ({ route, navigation }) => {
-    const { electrician, location, job } = route.params;
-    const [eta, setEta] = useState(8);
-    const [status, setStatus] = useState('On the way');
-    const [jobStartTime] = useState(job?.createdAt ? new Date(job.createdAt) : new Date());
-    const pulseAnim = useRef(new Animated.Value(1)).current;
+    const { electrician, location, job: routeJob } = route.params;
+    const { user } = useAuth();
+    const { t } = useTranslation();
+    const [job, setJob] = useState(routeJob);
+    const [loading, setLoading] = useState(false);
+    const mapRef = useRef(null);
 
     useEffect(() => {
-        // Pulsing animation for status dot
-        const pulse = Animated.loop(
-            Animated.sequence([
-                Animated.timing(pulseAnim, { toValue: 1.4, duration: 800, useNativeDriver: true }),
-                Animated.timing(pulseAnim, { toValue: 1, duration: 800, useNativeDriver: true }),
-            ])
-        );
-        pulse.start();
+        if (!routeJob?.id) {
+            return undefined;
+        }
 
-        // ETA countdown simulation
-        const interval = setInterval(() => {
-            setEta((prev) => {
-                if (prev <= 1) {
-                    clearInterval(interval);
-                    setStatus('Arrived');
-                    return 0;
+        const intervalId = setInterval(async () => {
+            try {
+                const response = await fetch(buildApiUrl(`/jobs/${routeJob.id}`));
+                const data = await response.json();
+                if (response.ok && data.success && data.job) {
+                    setJob(data.job);
                 }
-                return prev - 1;
-            });
-        }, 10000);
+            } catch (error) {
+                console.error('Refresh tracked job error', error);
+            }
+        }, 8000);
 
-        return () => { pulse.stop(); clearInterval(interval); };
-    }, []);
+        return () => clearInterval(intervalId);
+    }, [routeJob?.id]);
+
+    const householderLocation = useMemo(
+        () => ({
+            latitude: job?.locationLat || location?.latitude || fallbackLocation.latitude,
+            longitude: job?.locationLng || location?.longitude || fallbackLocation.longitude,
+        }),
+        [job?.locationLat, job?.locationLng, location?.latitude, location?.longitude]
+    );
+
+    const electricianLocation = useMemo(
+        () => ({
+            latitude: job?.electricianLocationLat || householderLocation.latitude + 0.004,
+            longitude: job?.electricianLocationLng || householderLocation.longitude - 0.003,
+        }),
+        [job?.electricianLocationLat, job?.electricianLocationLng, householderLocation.latitude, householderLocation.longitude]
+    );
+
+    useEffect(() => {
+        if (!mapRef.current?.fitToCoordinates) {
+            return;
+        }
+
+        mapRef.current.fitToCoordinates([householderLocation, electricianLocation], {
+            edgePadding: { top: 120, right: 80, bottom: 300, left: 80 },
+            animated: true,
+        });
+    }, [householderLocation, electricianLocation]);
 
     const handleCall = () => {
-        Linking.openURL('tel:+94771234567');
+        const phone = job?.electrician?.phone || electrician?.phone;
+        if (phone) {
+            Linking.openURL(`tel:${phone}`);
+        }
+    };
+
+    const handleChat = () => {
+        navigation.navigate('Chat', {
+            job,
+            otherPartyName: job?.electrician?.fullName || electrician?.name || t('dashboard.electrician'),
+        });
+    };
+
+    const handleMakePayment = () => {
+        navigation.navigate('PaymentGateway', { job });
     };
 
     const handleCancel = () => {
-        const now = new Date();
-        const diffInMs = now - jobStartTime;
-        const diffInMinutes = Math.floor(diffInMs / 60000);
-
-        let cancelTitle = 'Cancel Request';
-        let cancelMessage = 'Are you sure you want to cancel?';
-        let isFree = true;
-
-        if (diffInMinutes > 5) {
-            cancelTitle = 'Travel Fee Applies';
-            cancelMessage = 'You are cancelling after the 5-minute free window. A small travel fee will be deducted to compensate the electrician.';
-            isFree = false;
-        } else {
-            const timeLeft = 5 - diffInMinutes;
-            cancelMessage = `Are you sure? You have ${timeLeft} minute(s) left to cancel for free.`;
-        }
-
         Alert.alert(
-            cancelTitle,
-            cancelMessage,
+            t('member2.track.cancelTitle'),
+            t('member2.track.cancelMsg'),
             [
-                { text: 'Keep Job', style: 'cancel' },
+                { text: t('member2.track.keepJob'), style: 'cancel' },
                 {
-                    text: isFree ? 'Cancel Job' : 'Accept Fee & Cancel',
+                    text: t('member2.track.cancelJob'),
                     style: 'destructive',
-                    // Here we send the cancellation to the backend
                     onPress: async () => {
                         try {
-                            setCanceling(true);
+                            setLoading(true);
                             if (job?.id) {
-                                await fetch(`http://192.168.8.101:8003/api/jobs/${job.id}/cancel`, {
+                                await fetch(buildApiUrl(`/jobs/${job.id}/cancel`), {
                                     method: 'POST',
                                     headers: {
                                         'Content-Type': 'application/json',
                                     },
-                                    body: JSON.stringify({ reason: 'Householder cancelled from UI' }),
+                                    body: JSON.stringify({ reason: 'Householder cancelled accepted technician job' }),
                                 });
                             }
-                        } catch (err) {
-                            console.error('Failed to cancel job on backend:', err);
+                        } catch (error) {
+                            console.error('Cancel tracked job error', error);
                         } finally {
+                            setLoading(false);
                             navigation.goBack();
                         }
-                    }
-                }
+                    },
+                },
             ]
         );
     };
 
-    const handleComplete = () => {
-        navigation.navigate('Rating', { electrician });
-    };
-
-    const electricianLocation = {
-        latitude: (location?.latitude || 6.9271) + 0.005,
-        longitude: (location?.longitude || 79.8612) - 0.003,
+    const handleVoiceIntent = async ({ intent }) => {
+        switch (intent) {
+            case 'open_chat':
+                handleChat();
+                return true;
+            case 'track_technician':
+                return true;
+            case 'make_payment':
+                if (job?.status === 'PaymentPending') {
+                    handleMakePayment();
+                    return true;
+                }
+                return false;
+            case 'rate_technician':
+                if (job?.status === 'Completed') {
+                    navigation.navigate('Rating', {
+                        electrician: {
+                            id: job?.electrician?.id,
+                            name: job?.electrician?.fullName || electrician?.name || t('member2.track.assignedTechnician'),
+                        },
+                        jobId: job?.id,
+                        householderId: user?.id,
+                    });
+                    return true;
+                }
+                return false;
+            case 'cancel_request':
+                handleCancel();
+                return true;
+            default:
+                return false;
+        }
     };
 
     return (
         <SafeAreaView style={styles.container}>
-            {/* Map */}
             <View style={styles.mapContainer}>
-                <MapView
-                    style={styles.map}
-                    initialRegion={{
-                        latitude: location?.latitude || 6.9271,
-                        longitude: location?.longitude || 79.8612,
-                        latitudeDelta: 0.02,
-                        longitudeDelta: 0.02,
-                    }}
-                >
-                    <Marker
-                        coordinate={{
-                            latitude: location?.latitude || 6.9271,
-                            longitude: location?.longitude || 79.8612,
+                {liveGoogleMapEnabled ? (
+                    <MapView
+                        ref={mapRef}
+                        style={styles.map}
+                        provider={PROVIDER_GOOGLE}
+                        initialRegion={{
+                            latitude: householderLocation.latitude,
+                            longitude: householderLocation.longitude,
+                            latitudeDelta: 0.03,
+                            longitudeDelta: 0.03,
                         }}
-                        title="Your Location"
-                    />
-                    <Marker
-                        coordinate={electricianLocation}
-                        title={electrician.name}
-                    />
-                    <Polyline
-                        coordinates={[
-                            { latitude: location?.latitude || 6.9271, longitude: location?.longitude || 79.8612 },
-                            electricianLocation,
-                        ]}
-                        strokeColor={theme.colors.primary}
-                        strokeWidth={3}
-                    />
-                </MapView>
+                        showsUserLocation
+                    >
+                        <Marker coordinate={householderLocation} title={t('member2.track.issueLocation')} pinColor={theme.colors.danger} />
+                        <Marker
+                            coordinate={electricianLocation}
+                            title={job?.electrician?.fullName || electrician?.name || t('member2.track.assignedTechnician')}
+                            description={job?.status || 'Accepted'}
+                            pinColor={theme.colors.success}
+                        />
+                        <Polyline
+                            coordinates={[electricianLocation, householderLocation]}
+                            strokeColor={theme.colors.primary}
+                            strokeWidth={4}
+                        />
+                    </MapView>
+                ) : (
+                    <View style={styles.mapDisabledState}>
+                        <Ionicons name="map-outline" size={34} color={theme.colors.warning} />
+                        <Text style={styles.mapDisabledTitle}>{t('member2.track.mapKeyTitle')}</Text>
+                        <Text style={styles.mapDisabledText}>
+                            {t('member2.track.mapKeyMsg')}
+                        </Text>
+                    </View>
+                )}
 
-                {/* ETA Overlay */}
                 <View style={styles.etaOverlay}>
                     <View style={styles.etaBadge}>
                         <Ionicons name="time" size={16} color={theme.colors.secondary} />
-                        <Text style={styles.etaText}>{eta > 0 ? `${eta} min` : 'Arrived!'}</Text>
+                        <Text style={styles.etaText}>
+                            {job?.etaMinutes ? `${job.etaMinutes} ${t('member2.availableElectricians.minutesAwaySuffix')}` : t('member2.track.etaUpdating')}
+                        </Text>
                     </View>
                 </View>
             </View>
 
-            {/* Bottom Sliding Card */}
             <View style={styles.bottomCard}>
                 <View style={styles.handleBar} />
 
-                {/* Status Row */}
                 <View style={styles.statusRow}>
-                    <Animated.View style={[styles.statusDot, { transform: [{ scale: pulseAnim }] }]} />
-                    <Text style={styles.statusText}>{status}</Text>
+                    <View style={styles.statusDot} />
+                    <Text style={styles.statusText}>{job?.status || 'Accepted'}</Text>
                 </View>
 
-                {/* Electrician Info */}
                 <View style={styles.electricianRow}>
                     <View style={styles.avatar}>
                         <Ionicons name="person" size={22} color={theme.colors.primary} />
                     </View>
                     <View style={styles.electricianInfo}>
-                        <Text style={styles.electricianName}>{electrician.name}</Text>
-                        <Text style={styles.vehicleText}>{electrician.vehicle}</Text>
+                        <Text style={styles.electricianName}>
+                            {job?.electrician?.fullName || electrician?.name || t('member2.track.assignedTechnician')}
+                        </Text>
+                        <Text style={styles.vehicleText}>
+                            {job?.electrician?.phone || electrician?.phone || t('member2.track.phoneUnavailable')}
+                        </Text>
+                        <Text style={styles.vehicleText}>
+                            {t('member2.track.acceptedAt')} {new Date(job?.acceptedAt || job?.updatedAt || Date.now()).toLocaleTimeString()}
+                        </Text>
                     </View>
                     <View style={styles.ratingBadge}>
                         <Ionicons name="star" size={14} color={theme.colors.warning} />
-                        <Text style={styles.ratingText}>{electrician.rating}</Text>
+                        <Text style={styles.ratingText}>{job?.electrician?.rating || electrician?.rating || 0}</Text>
                     </View>
                 </View>
 
-                {/* Start Code Display */}
-                {job?.startCode && (
+                <View style={styles.infoPanel}>
+                    <View style={styles.infoItem}>
+                        <Text style={styles.infoLabel}>{t('member2.track.chargeAmount')}</Text>
+                        <Text style={styles.infoValue}>{formatCurrency(job?.estimatedCost, t)}</Text>
+                    </View>
+                    <View style={styles.infoItem}>
+                        <Text style={styles.infoLabel}>{t('member2.track.distance')}</Text>
+                        <Text style={styles.infoValue}>
+                            {job?.distanceKm ? `${job.distanceKm} km` : t('member2.availableElectricians.calculating')}
+                        </Text>
+                    </View>
+                </View>
+
+                {job?.electrician?.acceptedCertificates?.length ? (
+                    <View style={styles.certificatesCard}>
+                        <Text style={styles.certificatesTitle}>{t('member2.track.verifiedQualifications')}</Text>
+                        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                            {job.electrician.acceptedCertificates.map((certificate) => (
+                                <View key={certificate.id} style={styles.certificateThumbWrap}>
+                                    <Image
+                                        source={{ uri: buildAssetUrl(certificate.imageUrl) }}
+                                        style={styles.certificateThumb}
+                                    />
+                                    <Text style={styles.certificateThumbText} numberOfLines={1}>{certificate.title}</Text>
+                                </View>
+                            ))}
+                        </ScrollView>
+                    </View>
+                ) : null}
+
+                {job?.startCode ? (
                     <View style={styles.startCodeContainer}>
                         <View style={styles.startCodeLeft}>
                             <Ionicons name="key" size={20} color={theme.colors.secondary} />
-                            <Text style={styles.startCodeLabel}>Provide this code to start the job:</Text>
+                            <Text style={styles.startCodeLabel}>{t('member2.track.shareCode')}</Text>
                         </View>
                         <View style={styles.startCodeValueBox}>
                             <Text style={styles.startCodeValue}>{job.startCode}</Text>
                         </View>
                     </View>
-                )}
+                ) : null}
 
-                {/* Action Buttons */}
                 <View style={styles.actionRow}>
                     <TouchableOpacity style={styles.callButton} onPress={handleCall}>
                         <Ionicons name="call" size={20} color={theme.colors.success} />
-                        <Text style={styles.callText}>Call</Text>
+                        <Text style={styles.callText}>{t('member2.common.call')}</Text>
                     </TouchableOpacity>
 
-                    <TouchableOpacity
-                        style={styles.msgButton}
-                        onPress={() => navigation.navigate('Chat', { job: job, otherPartyName: electrician.name })}
-                    >
+                    <TouchableOpacity style={styles.chatButton} onPress={handleChat}>
                         <Ionicons name="chatbubble-ellipses" size={20} color={theme.colors.primary} />
+                        <Text style={styles.chatText}>{t('member2.common.chat')}</Text>
                     </TouchableOpacity>
 
-                    {status === 'Arrived' ? (
-                        <Button
-                            title="Complete Job"
-                            variant="success"
-                            onPress={handleComplete}
-                            style={{ flex: 1, marginLeft: 12 }}
-                        />
-                    ) : (
-                        <Button
-                            title="Cancel"
-                            variant="danger"
-                            onPress={handleCancel}
-                            style={{ flex: 1, marginLeft: 12 }}
-                        />
-                    )}
+                    <Button
+                        title={
+                            job?.status === 'Completed'
+                                ? t('member2.track.rateTechnician')
+                                : job?.status === 'PaymentPending'
+                                    ? t('member2.track.makePayment')
+                                : loading
+                                    ? t('member2.track.cancelling')
+                                    : t('member2.track.cancelJob')
+                        }
+                        variant={job?.status === 'Completed' || job?.status === 'PaymentPending' ? 'primary' : 'danger'}
+                        onPress={
+                            job?.status === 'Completed'
+                                ? () => navigation.navigate('Rating', {
+                                    electrician: {
+                                        id: job?.electrician?.id,
+                                        name: job?.electrician?.fullName || electrician?.name || t('member2.track.assignedTechnician'),
+                                    },
+                                    jobId: job?.id,
+                                    householderId: user?.id,
+                                })
+                                : job?.status === 'PaymentPending'
+                                    ? handleMakePayment
+                                : handleCancel
+                        }
+                        style={{ flex: 1, marginLeft: 12 }}
+                        loading={loading}
+                    />
                 </View>
             </View>
+
+            <VoiceCommandButton
+                allowedIntents={TRACK_TECHNICIAN_INTENTS}
+                onIntentMatched={handleVoiceIntent}
+            />
         </SafeAreaView>
     );
 };
@@ -226,7 +344,26 @@ const styles = StyleSheet.create({
         flex: 1,
     },
     map: {
+        width: '100%',
+        height: '100%',
+    },
+    mapDisabledState: {
         flex: 1,
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: theme.colors.surface,
+        paddingHorizontal: theme.spacing.xl,
+    },
+    mapDisabledTitle: {
+        ...theme.typography.h3,
+        marginTop: 12,
+        marginBottom: 8,
+        textAlign: 'center',
+    },
+    mapDisabledText: {
+        ...theme.typography.bodySmall,
+        lineHeight: 18,
+        textAlign: 'center',
     },
     etaOverlay: {
         position: 'absolute',
@@ -241,7 +378,7 @@ const styles = StyleSheet.create({
         paddingVertical: 8,
         borderRadius: theme.borderRadius.lg,
         borderWidth: 1,
-        borderColor: theme.colors.secondary + '40',
+        borderColor: `${theme.colors.secondary}40`,
         ...theme.shadows.md,
     },
     etaText: {
@@ -295,7 +432,7 @@ const styles = StyleSheet.create({
         width: 44,
         height: 44,
         borderRadius: theme.borderRadius.md,
-        backgroundColor: theme.colors.primary + '15',
+        backgroundColor: `${theme.colors.primary}15`,
         justifyContent: 'center',
         alignItems: 'center',
         marginRight: 12,
@@ -314,7 +451,7 @@ const styles = StyleSheet.create({
     ratingBadge: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: theme.colors.warning + '15',
+        backgroundColor: `${theme.colors.warning}15`,
         paddingHorizontal: 10,
         paddingVertical: 4,
         borderRadius: theme.borderRadius.sm,
@@ -325,6 +462,56 @@ const styles = StyleSheet.create({
         fontWeight: '700',
         marginLeft: 4,
     },
+    infoPanel: {
+        flexDirection: 'row',
+        gap: 12,
+        marginBottom: theme.spacing.lg,
+    },
+    infoItem: {
+        flex: 1,
+        backgroundColor: theme.colors.background,
+        borderRadius: theme.borderRadius.lg,
+        padding: theme.spacing.md,
+        borderWidth: 1,
+        borderColor: theme.colors.border,
+    },
+    infoLabel: {
+        ...theme.typography.caption,
+        color: theme.colors.textMuted,
+        marginBottom: 6,
+    },
+    infoValue: {
+        ...theme.typography.body,
+        fontWeight: '700',
+    },
+    certificatesCard: {
+        backgroundColor: theme.colors.background,
+        borderRadius: theme.borderRadius.lg,
+        padding: theme.spacing.md,
+        borderWidth: 1,
+        borderColor: theme.colors.border,
+        marginBottom: theme.spacing.lg,
+    },
+    certificatesTitle: {
+        ...theme.typography.body,
+        fontWeight: '700',
+        marginBottom: theme.spacing.sm,
+    },
+    certificateThumbWrap: {
+        width: 90,
+        marginRight: theme.spacing.sm,
+    },
+    certificateThumb: {
+        width: 90,
+        height: 90,
+        borderRadius: theme.borderRadius.md,
+        backgroundColor: theme.colors.surface,
+        marginBottom: 6,
+    },
+    certificateThumbText: {
+        ...theme.typography.caption,
+        textAlign: 'center',
+    },
     actionRow: {
         flexDirection: 'row',
         alignItems: 'center',
@@ -332,38 +519,43 @@ const styles = StyleSheet.create({
     callButton: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: theme.colors.success + '15',
+        backgroundColor: `${theme.colors.success}15`,
         paddingHorizontal: 16,
         paddingVertical: 14,
         borderRadius: theme.borderRadius.lg,
         borderWidth: 1,
-        borderColor: theme.colors.success + '30',
+        borderColor: `${theme.colors.success}30`,
     },
     callText: {
         color: theme.colors.success,
         fontWeight: '700',
         marginLeft: 6,
     },
-    msgButton: {
-        justifyContent: 'center',
+    chatButton: {
+        flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: theme.colors.primary + '15',
-        width: 48,
-        height: 48,
+        backgroundColor: `${theme.colors.primary}15`,
+        paddingHorizontal: 16,
+        paddingVertical: 14,
         borderRadius: theme.borderRadius.lg,
         borderWidth: 1,
-        borderColor: theme.colors.primary + '30',
-        marginLeft: 8,
+        borderColor: `${theme.colors.primary}30`,
+        marginLeft: 12,
+    },
+    chatText: {
+        color: theme.colors.primary,
+        fontWeight: '700',
+        marginLeft: 6,
     },
     startCodeContainer: {
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
-        backgroundColor: theme.colors.secondary + '15',
+        backgroundColor: `${theme.colors.secondary}15`,
         padding: theme.spacing.md,
         borderRadius: theme.borderRadius.lg,
         borderWidth: 1,
-        borderColor: theme.colors.secondary + '40',
+        borderColor: `${theme.colors.secondary}40`,
         marginBottom: theme.spacing.lg,
     },
     startCodeLeft: {

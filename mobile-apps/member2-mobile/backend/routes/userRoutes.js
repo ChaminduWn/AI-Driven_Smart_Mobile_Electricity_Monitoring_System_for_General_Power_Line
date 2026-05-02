@@ -2,6 +2,8 @@ const express = require('express');
 const router = express.Router();
 const userController = require('../controllers/userController');
 
+router.post('/:id/certificates', userController.uploadQualificationCertificate);
+router.get('/:id', userController.getProfile);
 // Update user profile
 router.put('/:id', userController.updateProfile);
 

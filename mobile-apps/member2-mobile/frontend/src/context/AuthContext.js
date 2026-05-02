@@ -1,15 +1,28 @@
-import React, { createContext, useState, useContext, useEffect } from 'react';
+import React, { createContext, useState, useContext, useEffect, useCallback, useMemo } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import axios from 'axios';
+import { buildApiUrl } from '../api';
 
-// Set the API URL to localhost because traffic is being routed over the USB cable via ADB.
-// This 100% bypasses Windows Firewall and Wi-Fi issues.
-const API_URL = 'http://192.168.8.101:8003/api/auth';
-
-// Bypass localtunnel interstitial page (kept for safety if tunneling is used later)
-axios.defaults.headers.common['bypass-tunnel-reminder'] = 'true';
+const API_URL = buildApiUrl('/auth');
+const AUTH_REQUEST_TIMEOUT_MS = 15000;
 
 const AuthContext = createContext();
+
+const fetchJsonWithTimeout = async (url, options = {}, timeoutMs = AUTH_REQUEST_TIMEOUT_MS) => {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
+
+    try {
+        const response = await fetch(url, {
+            ...options,
+            signal: controller.signal,
+        });
+        const rawText = await response.text();
+        const data = rawText ? JSON.parse(rawText) : {};
+        return { response, data };
+    } finally {
+        clearTimeout(timer);
+    }
+};
 
 export const AuthProvider = ({ children }) => {
     const [user, setUser] = useState(null);
@@ -17,64 +30,122 @@ export const AuthProvider = ({ children }) => {
 
     useEffect(() => {
         loadUser();
-    }, []);
+    }, [loadUser]);
 
-    const loadUser = async () => {
+    const refreshUser = useCallback(async (userId = user?.id, options = {}) => {
+        try {
+            if (!userId) {
+                return { success: false, message: 'User id is required' };
+            }
+
+            const { response, data } = await fetchJsonWithTimeout(buildApiUrl(`/users/${userId}`), {
+                headers: {
+                    'bypass-tunnel-reminder': 'true',
+                },
+            });
+
+            if (!response.ok || !data.success || !data.user) {
+                return { success: false, message: data?.message || 'Could not refresh user state' };
+            }
+
+            setUser(data.user);
+            await AsyncStorage.setItem('user', JSON.stringify(data.user));
+            return { success: true, user: data.user };
+        } catch (error) {
+            if (!options.silent) {
+                console.error('Refresh user error', error);
+            }
+            return { success: false, message: error.message || 'Could not refresh user state' };
+        }
+    }, [user?.id]);
+
+    const loadUser = useCallback(async () => {
         try {
             const storedUser = await AsyncStorage.getItem('user');
-            const token = await AsyncStorage.getItem('token');
-            if (storedUser && token) {
-                setUser(JSON.parse(storedUser));
-                axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+            if (storedUser) {
+                const parsedUser = JSON.parse(storedUser);
+                setUser(parsedUser);
+                if (parsedUser?.id) {
+                    await refreshUser(parsedUser.id, { silent: true });
+                }
             }
         } catch (e) {
             console.error(e);
         } finally {
             setLoading(false);
         }
-    };
+    }, [refreshUser]);
 
-    const login = async (email, password) => {
+    const login = useCallback(async (email, password) => {
         try {
-            const response = await axios.post(`${API_URL}/login`, { email, password });
-            const { user, token } = response.data;
+            const { response, data } = await fetchJsonWithTimeout(`${API_URL}/login`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'bypass-tunnel-reminder': 'true',
+                },
+                body: JSON.stringify({ email, password }),
+            });
+
+            if (!response.ok) {
+                return { success: false, message: data?.message || 'Login failed' };
+            }
+
+            const { user, token } = data;
 
             setUser(user);
             await AsyncStorage.setItem('user', JSON.stringify(user));
             await AsyncStorage.setItem('token', token);
-            axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
             return { success: true };
         } catch (error) {
-            return { success: false, message: error.response?.data?.message || 'Login failed' };
+            return {
+                success: false,
+                message: error.name === 'AbortError'
+                    ? 'Request timed out. Please check the connection and try again.'
+                    : error.message || 'Login failed',
+            };
         }
-    };
+    }, []);
 
-    const signup = async (userData) => {
+    const signup = useCallback(async (userData) => {
         try {
             console.log('Signup: calling', `${API_URL}/signup`);
-            const response = await axios.post(`${API_URL}/signup`, userData);
-            return { success: true, data: response.data };
+            const { response, data } = await fetchJsonWithTimeout(`${API_URL}/signup`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'bypass-tunnel-reminder': 'true',
+                },
+                body: JSON.stringify(userData),
+            });
+
+            if (!response.ok) {
+                return { success: false, message: data?.message || 'Signup failed' };
+            }
+
+            return { success: true, data };
         } catch (error) {
             console.log('Signup error:', error.message);
-            console.log('Signup error code:', error.code);
-            console.log('Signup response status:', error.response?.status);
-            console.log('Signup response data:', JSON.stringify(error.response?.data));
-            return { success: false, message: error.response?.data?.message || error.message || 'Signup failed' };
+            return {
+                success: false,
+                message: error.name === 'AbortError'
+                    ? 'Request timed out. Please check the connection and try again.'
+                    : error.message || 'Signup failed',
+            };
         }
-    };
+    }, []);
 
-    const logout = async () => {
+    const logout = useCallback(async () => {
         try {
             await AsyncStorage.removeItem('user');
             await AsyncStorage.removeItem('token');
             setUser(null);
-            delete axios.defaults.headers.common['Authorization'];
         } catch (e) {
             console.error(e);
         }
-    };
+    }, []);
 
-    const updateUser = async (updatedData) => {
+    const updateUser = useCallback(async (updatedData) => {
         try {
             const newUser = { ...user, ...updatedData };
             setUser(newUser);
@@ -82,10 +153,20 @@ export const AuthProvider = ({ children }) => {
         } catch (e) {
             console.error('Update user error in context:', e);
         }
-    };
+    }, [user]);
+
+    const contextValue = useMemo(() => ({
+        user,
+        loading,
+        login,
+        signup,
+        logout,
+        updateUser,
+        refreshUser,
+    }), [user, loading, login, signup, logout, updateUser, refreshUser]);
 
     return (
-        <AuthContext.Provider value={{ user, loading, login, signup, logout, updateUser }}>
+        <AuthContext.Provider value={contextValue}>
             {children}
         </AuthContext.Provider>
     );

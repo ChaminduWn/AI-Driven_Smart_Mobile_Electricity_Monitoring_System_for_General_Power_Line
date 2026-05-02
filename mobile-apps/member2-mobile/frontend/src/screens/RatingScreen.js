@@ -1,40 +1,66 @@
 import React, { useState, useRef } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Animated } from 'react-native';
+import { Alert, View, Text, StyleSheet, TouchableOpacity, Animated } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { theme } from '../theme';
 import { GradientButton } from '../components/GradientButton';
 import { Input } from '../components/Input';
 import Ionicons from 'react-native-vector-icons/Ionicons';
+import { useTranslation } from 'react-i18next';
+import { buildApiUrl } from '../api';
 
 export const RatingScreen = ({ route, navigation }) => {
-    const { electrician } = route.params;
+    const { t } = useTranslation();
+    const { electrician, jobId, householderId } = route.params;
     const [rating, setRating] = useState(0);
     const [feedback, setFeedback] = useState('');
     const [submitted, setSubmitted] = useState(false);
+    const [submitting, setSubmitting] = useState(false);
     const scaleAnim = useRef(new Animated.Value(0)).current;
     const opacityAnim = useRef(new Animated.Value(0)).current;
 
-    const handleSubmit = () => {
-        // Animate thank you screen
-        setSubmitted(true);
-        Animated.parallel([
-            Animated.spring(scaleAnim, {
-                toValue: 1,
-                friction: 4,
-                tension: 40,
-                useNativeDriver: true,
-            }),
-            Animated.timing(opacityAnim, {
-                toValue: 1,
-                duration: 400,
-                useNativeDriver: true,
-            }),
-        ]).start();
+    const handleSubmit = async () => {
+        try {
+            setSubmitting(true);
+            const response = await fetch(buildApiUrl(`/jobs/${jobId}/rate`), {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    householderId,
+                    rating,
+                    feedback,
+                }),
+            });
 
-        // Navigate home after delay
-        setTimeout(() => {
-            navigation.navigate('HouseholderHome');
-        }, 2500);
+            const data = await response.json();
+            if (!response.ok || !data.success) {
+                throw new Error(data?.message || 'Could not submit your rating');
+            }
+
+            setSubmitted(true);
+            Animated.parallel([
+                Animated.spring(scaleAnim, {
+                    toValue: 1,
+                    friction: 4,
+                    tension: 40,
+                    useNativeDriver: true,
+                }),
+                Animated.timing(opacityAnim, {
+                    toValue: 1,
+                    duration: 400,
+                    useNativeDriver: true,
+                }),
+            ]).start();
+
+            setTimeout(() => {
+                navigation.getParent()?.navigate('ActivitiesTab', { screen: 'Activities' });
+            }, 2500);
+        } catch (error) {
+            Alert.alert('Rating failed', error.message || 'Could not send your feedback right now.');
+        } finally {
+            setSubmitting(false);
+        }
     };
 
     if (submitted) {
@@ -53,10 +79,10 @@ export const RatingScreen = ({ route, navigation }) => {
                         </View>
                     </Animated.View>
                     <Animated.Text style={[styles.thankYouTitle, { opacity: opacityAnim }]}>
-                        Thank You! 🎉
+                        {t('rating.thankYou')}
                     </Animated.Text>
                     <Animated.Text style={[styles.thankYouSubtitle, { opacity: opacityAnim }]}>
-                        Your feedback helps us improve
+                        {t('rating.thankYouSubtitle')}
                     </Animated.Text>
                 </View>
             </SafeAreaView>
@@ -71,8 +97,8 @@ export const RatingScreen = ({ route, navigation }) => {
                     <View style={styles.avatarLarge}>
                         <Ionicons name="person" size={32} color={theme.colors.primary} />
                     </View>
-                    <Text style={styles.title}>Rate Your Experience</Text>
-                    <Text style={styles.subtitle}>How was {electrician.name}?</Text>
+                    <Text style={styles.title}>{t('rating.title')}</Text>
+                    <Text style={styles.subtitle}>{t('rating.subtitle1')}{electrician.name}{t('rating.subtitle2')}</Text>
                 </View>
 
                 {/* Star Rating */}
@@ -92,16 +118,16 @@ export const RatingScreen = ({ route, navigation }) => {
                     ))}
                 </View>
                 <Text style={styles.ratingLabel}>
-                    {rating === 0 ? 'Tap to rate' :
-                        rating <= 2 ? 'Could be better' :
-                            rating <= 3 ? 'Good' :
-                                rating <= 4 ? 'Great!' : 'Excellent! ⭐'}
+                    {rating === 0 ? t('rating.tapToRate') :
+                        rating <= 2 ? t('rating.rating1_2') :
+                            rating <= 3 ? t('rating.rating3') :
+                                rating <= 4 ? t('rating.rating4') : t('rating.rating5')}
                 </Text>
 
                 {/* Feedback Input */}
                 <Input
-                    label="Feedback (Optional)"
-                    placeholder="Share your experience..."
+                    label={t('rating.feedbackLabel')}
+                    placeholder={t('rating.feedbackPlaceholder')}
                     value={feedback}
                     onChangeText={setFeedback}
                     multiline
@@ -110,10 +136,11 @@ export const RatingScreen = ({ route, navigation }) => {
 
                 {/* Submit */}
                 <GradientButton
-                    title="Submit Rating"
+                    title={t('rating.submitBtn')}
                     icon="send"
                     onPress={handleSubmit}
-                    disabled={rating === 0}
+                    disabled={rating === 0 || submitting}
+                    loading={submitting}
                     style={styles.submitButton}
                 />
             </View>

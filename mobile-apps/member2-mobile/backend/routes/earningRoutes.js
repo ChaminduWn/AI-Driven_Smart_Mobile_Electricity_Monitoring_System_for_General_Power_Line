@@ -11,5 +11,9 @@ router.get('/:userId', (req, res, next) => {
     req.user = { id: req.params.userId };
     next();
 }, earningController.getEarnings);
+router.post('/:userId/withdraw', (req, res, next) => {
+    req.user = { id: req.params.userId };
+    next();
+}, earningController.withdrawEarnings);
 
 module.exports = router;

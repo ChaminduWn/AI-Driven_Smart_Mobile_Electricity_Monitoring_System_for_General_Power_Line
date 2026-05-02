@@ -57,6 +57,11 @@ const User = sequelize.define('User', {
         type: DataTypes.STRING,
         allowNull: true, // Uploaded by Electrician during Registration
     },
+    qualificationCertificates: {
+        type: DataTypes.JSON,
+        allowNull: true,
+        defaultValue: [],
+    },
     isVerified: {
         type: DataTypes.BOOLEAN,
         defaultValue: false, // Must be true to accept jobs

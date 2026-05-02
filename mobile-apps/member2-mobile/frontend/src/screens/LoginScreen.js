@@ -7,8 +7,10 @@ import { Button } from '../components/Button';
 import { theme } from '../theme';
 import { useAuth } from '../context/AuthContext';
 import Ionicons from 'react-native-vector-icons/Ionicons';
+import { useTranslation } from 'react-i18next';
 
 export const LoginScreen = ({ navigation }) => {
+    const { t } = useTranslation();
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [errors, setErrors] = useState({});
@@ -18,10 +20,10 @@ export const LoginScreen = ({ navigation }) => {
     const validate = () => {
         const newErrors = {};
         if (!email.trim()) {
-            newErrors.email = 'Email or phone is required';
+            newErrors.email = t('validation.emailOrPhoneReq');
         }
         if (!password.trim()) {
-            newErrors.password = 'Password is required';
+            newErrors.password = t('validation.passwordReq');
         }
         setErrors(newErrors);
         return Object.keys(newErrors).length === 0;
@@ -51,15 +53,15 @@ export const LoginScreen = ({ navigation }) => {
                     <View style={styles.logoContainer}>
                         <Ionicons name="flash" size={36} color={theme.colors.secondary} />
                     </View>
-                    <Text style={styles.welcomeText}>Hi there 👋</Text>
-                    <Text style={styles.subText}>Welcome back to <Text style={styles.brandText}>PowerLink</Text></Text>
+                    <Text style={styles.welcomeText}>{t('auth.hiThere')}</Text>
+                    <Text style={styles.subText}>{t('auth.welcomeBack')}<Text style={styles.brandText}>{t('auth.powerLink')}</Text></Text>
                 </View>
 
                 {/* Form */}
                 <View style={styles.form}>
                     <Input
-                        label="Email or Phone"
-                        placeholder="Enter your email or phone"
+                        label={t('auth.emailOrPhone')}
+                        placeholder={t('auth.enterEmailOrPhone')}
                         value={email}
                         onChangeText={(t) => { setEmail(t); setErrors(e => ({ ...e, email: '' })); }}
                         keyboardType="email-address"
@@ -68,20 +70,20 @@ export const LoginScreen = ({ navigation }) => {
                     />
 
                     <Input
-                        label="Password"
-                        placeholder="Enter password"
+                        label={t('auth.password')}
+                        placeholder={t('auth.enterPassword')}
                         value={password}
-                        onChangeText={(t) => { setPassword(t); setErrors(e => ({ ...e, password: '' })); }}
+                        onChangeText={(textInput) => { setPassword(textInput); setErrors(e => ({ ...e, password: '' })); }}
                         secureTextEntry
                         error={errors.password}
                     />
 
                     <TouchableOpacity style={styles.forgotPassword}>
-                        <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
+                        <Text style={styles.forgotPasswordText}>{t('auth.forgotPassword')}</Text>
                     </TouchableOpacity>
 
                     <GradientButton
-                        title="Login"
+                        title={t('auth.login')}
                         iconRight="arrow-forward"
                         onPress={handleLogin}
                         loading={loading}
@@ -91,13 +93,13 @@ export const LoginScreen = ({ navigation }) => {
                     {/* Divider */}
                     <View style={styles.divider}>
                         <View style={styles.dividerLine} />
-                        <Text style={styles.dividerText}>or</Text>
+                        <Text style={styles.dividerText}>{t('auth.or')}</Text>
                         <View style={styles.dividerLine} />
                     </View>
 
                     {/* Google Login */}
                     <Button
-                        title="Continue with Google"
+                        title={t('auth.continueWithGoogle')}
                         variant="surface"
                         icon="logo-google"
                         onPress={() => Alert.alert('Google Auth', 'Coming soon')}
@@ -106,9 +108,9 @@ export const LoginScreen = ({ navigation }) => {
 
                     {/* Footer */}
                     <View style={styles.footer}>
-                        <Text style={styles.footerText}>Don't have an account? </Text>
+                        <Text style={styles.footerText}>{t('auth.noAccount')}</Text>
                         <TouchableOpacity onPress={() => navigation.navigate('Signup')}>
-                            <Text style={styles.signupText}>Sign Up</Text>
+                            <Text style={styles.signupText}>{t('auth.signup')}</Text>
                         </TouchableOpacity>
                     </View>
                 </View>

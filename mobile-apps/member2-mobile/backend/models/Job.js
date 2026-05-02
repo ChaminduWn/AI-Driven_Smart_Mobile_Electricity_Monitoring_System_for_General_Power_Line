@@ -19,9 +19,21 @@ const Job = sequelize.define('Job', {
         type: DataTypes.STRING,
         allowNull: false,
     },
+    serviceId: {
+        type: DataTypes.STRING,
+        allowNull: true,
+    },
+    serviceName: {
+        type: DataTypes.STRING,
+        allowNull: true,
+    },
     description: {
         type: DataTypes.TEXT,
         allowNull: false,
+    },
+    issueAddress: {
+        type: DataTypes.STRING,
+        allowNull: true,
     },
     locationLat: {
         type: DataTypes.FLOAT,
@@ -44,7 +56,7 @@ const Job = sequelize.define('Job', {
         allowNull: true,
     },
     status: {
-        type: DataTypes.ENUM('Pending', 'Accepted', 'InProgress', 'Completed', 'Cancelled'),
+        type: DataTypes.ENUM('Pending', 'Accepted', 'InProgress', 'PaymentPending', 'AwaitingTechnicianConfirmation', 'Completed', 'Cancelled'),
         defaultValue: 'Pending',
     },
     issuePhotos: {
@@ -56,7 +68,15 @@ const Job = sequelize.define('Job', {
         type: DataTypes.STRING(4), // 4-digit code generated upon acceptance
         allowNull: true,
     },
+    acceptedAt: {
+        type: DataTypes.DATE,
+        allowNull: true,
+    },
     startedAt: {
+        type: DataTypes.DATE,
+        allowNull: true,
+    },
+    startCodeVerifiedAt: {
         type: DataTypes.DATE,
         allowNull: true,
     },
@@ -76,12 +96,68 @@ const Job = sequelize.define('Job', {
         type: DataTypes.FLOAT,
         allowNull: true,
     },
+    electricianTravelDistanceKm: {
+        type: DataTypes.FLOAT,
+        allowNull: true,
+    },
+    electricianLocationLat: {
+        type: DataTypes.FLOAT,
+        allowNull: true,
+    },
+    electricianLocationLng: {
+        type: DataTypes.FLOAT,
+        allowNull: true,
+    },
+    electricianTravelDurationMinutes: {
+        type: DataTypes.INTEGER,
+        allowNull: true,
+    },
     finalCost: {
         type: DataTypes.FLOAT,
         allowNull: true,
     },
+    completedAt: {
+        type: DataTypes.DATE,
+        allowNull: true,
+    },
     paymentMethod: {
         type: DataTypes.ENUM('Cash', 'Digital'),
+        allowNull: true,
+    },
+    digitalPaymentStatus: {
+        type: DataTypes.ENUM('Pending', 'Paid', 'Confirmed'),
+        allowNull: true,
+    },
+    digitalPaymentAmount: {
+        type: DataTypes.FLOAT,
+        allowNull: true,
+    },
+    digitalPaymentReference: {
+        type: DataTypes.STRING,
+        allowNull: true,
+    },
+    digitalPaymentMeta: {
+        type: DataTypes.JSON,
+        allowNull: true,
+    },
+    digitalPaidAt: {
+        type: DataTypes.DATE,
+        allowNull: true,
+    },
+    paymentConfirmedAt: {
+        type: DataTypes.DATE,
+        allowNull: true,
+    },
+    householderRating: {
+        type: DataTypes.FLOAT,
+        allowNull: true,
+    },
+    householderFeedback: {
+        type: DataTypes.TEXT,
+        allowNull: true,
+    },
+    ratedAt: {
+        type: DataTypes.DATE,
         allowNull: true,
     }
 });

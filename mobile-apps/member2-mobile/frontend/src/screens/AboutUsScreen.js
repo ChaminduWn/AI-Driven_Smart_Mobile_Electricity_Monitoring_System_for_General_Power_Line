@@ -4,22 +4,24 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { theme } from '../theme';
 import { Card } from '../components/Card';
 import Ionicons from 'react-native-vector-icons/Ionicons';
+import { useTranslation } from 'react-i18next';
 
 const features = [
-    { icon: 'shield-checkmark', color: theme.colors.success, title: 'Reliable Support', desc: 'Connect with verified electricians in your area anytime.' },
-    { icon: 'flash', color: theme.colors.warning, title: 'Fast Emergency Response', desc: 'Get immediate help during power emergencies.' },
-    { icon: 'ribbon', color: theme.colors.primary, title: 'Certified Electricians', desc: 'All electricians are certified and background-checked.' },
-    { icon: 'analytics', color: theme.colors.secondary, title: 'Tech-Driven Service', desc: 'AI-powered matching and real-time tracking.' },
+    { key: 'reliable', icon: 'shield-checkmark', color: theme.colors.success },
+    { key: 'fast', icon: 'flash', color: theme.colors.warning },
+    { key: 'certified', icon: 'ribbon', color: theme.colors.primary },
+    { key: 'tech', icon: 'analytics', color: theme.colors.secondary },
 ];
 
 export const AboutUsScreen = ({ navigation }) => {
+    const { t } = useTranslation();
     return (
         <SafeAreaView style={styles.container}>
             <View style={styles.header}>
                 <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
                     <Ionicons name="arrow-back" size={24} color={theme.colors.text} />
                 </TouchableOpacity>
-                <Text style={styles.headerTitle}>About Us</Text>
+                <Text style={styles.headerTitle}>{t('aboutUs.title')}</Text>
             </View>
 
             <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
@@ -32,32 +34,32 @@ export const AboutUsScreen = ({ navigation }) => {
                         <Text style={{ fontWeight: '300' }}>Power</Text>
                         <Text style={{ fontWeight: '800' }}>Link</Text>
                     </Text>
-                    <Text style={styles.tagline}>Smart Electricity Monitoring System</Text>
+                    <Text style={styles.tagline}>{t('aboutUs.tagline')}</Text>
                 </View>
 
                 {/* Mission */}
                 <Card style={styles.missionCard}>
-                    <Text style={styles.sectionTitle}>Our Mission</Text>
+                    <Text style={styles.sectionTitle}>{t('aboutUs.missionTitle')}</Text>
                     <Text style={styles.missionText}>
-                        PowerLink is an AI-driven smart mobile electricity monitoring system designed to bridge the gap between households and certified electricians. We aim to make electrical services accessible, transparent, and efficient for everyone.
+                        {t('aboutUs.missionText')}
                     </Text>
                 </Card>
 
                 {/* Features */}
-                <Text style={styles.featuresTitle}>Why PowerLink?</Text>
+                <Text style={styles.featuresTitle}>{t('aboutUs.whyTitle')}</Text>
                 {features.map((f, i) => (
                     <View key={i} style={styles.featureRow}>
                         <View style={[styles.featureIcon, { backgroundColor: f.color + '15' }]}>
                             <Ionicons name={f.icon} size={22} color={f.color} />
                         </View>
                         <View style={{ flex: 1 }}>
-                            <Text style={styles.featureTitle}>{f.title}</Text>
-                            <Text style={styles.featureDesc}>{f.desc}</Text>
+                            <Text style={styles.featureTitle}>{t(`aboutUs.features.${f.key}.title`)}</Text>
+                            <Text style={styles.featureDesc}>{t(`aboutUs.features.${f.key}.desc`)}</Text>
                         </View>
                     </View>
                 ))}
 
-                <Text style={styles.footerText}>© 2025 PowerLink. All rights reserved.</Text>
+                <Text style={styles.footerText}>{t('aboutUs.footer')}</Text>
             </ScrollView>
         </SafeAreaView>
     );

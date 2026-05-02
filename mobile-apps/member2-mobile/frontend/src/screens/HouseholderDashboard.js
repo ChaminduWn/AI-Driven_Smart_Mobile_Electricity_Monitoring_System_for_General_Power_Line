@@ -1,23 +1,75 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, StatusBar } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { theme } from '../theme';
 import { useAuth } from '../context/AuthContext';
 import { Card } from '../components/Card';
-import { LanguageToggle } from '../components/LanguageToggle';
 import Ionicons from 'react-native-vector-icons/Ionicons';
+import { useTranslation } from 'react-i18next';
+import { VoiceCommandButton } from '../components/VoiceCommandButton';
+import {
+    DASHBOARD_CATEGORY_BY_INTENT,
+    HOUSEHOLDER_HOME_INTENTS,
+} from '../voice/intentMappings';
 
 export const HouseholderDashboard = ({ navigation }) => {
     const { user } = useAuth();
-    const [language, setLanguage] = useState('EN');
+    const { t, i18n } = useTranslation();
 
     const categories = [
-        { id: 'power', title: 'Power Supply Issues', subtitle: 'Outages, interruptions & supply problems', icon: 'flash', color: theme.colors.categoryAmber },
-        { id: 'voltage', title: 'Voltage & Technical Issues', subtitle: 'Voltage fluctuation & technical faults', icon: 'pulse', color: theme.colors.categoryBlue },
-        { id: 'safety', title: 'Safety-Related Issues', subtitle: 'Sparks, fire hazards & safety risks', icon: 'warning', color: theme.colors.categoryRed },
-        { id: 'infrastructure', title: 'Infrastructure Issues', subtitle: 'Damaged poles, wires & equipment', icon: 'construct', color: theme.colors.categoryOrange },
-        { id: 'monitoring', title: 'Monitoring & Device Issues', subtitle: 'Meter faults & device monitoring', icon: 'analytics', color: theme.colors.categoryGreen },
+        { id: 'power', title: t('householder.categories.power.title'), subtitle: t('householder.categories.power.subtitle'), icon: 'flash', color: theme.colors.categoryAmber },
+        { id: 'voltage', title: t('householder.categories.voltage.title'), subtitle: t('householder.categories.voltage.subtitle'), icon: 'pulse', color: theme.colors.categoryBlue },
+        { id: 'safety', title: t('householder.categories.safety.title'), subtitle: t('householder.categories.safety.subtitle'), icon: 'warning', color: theme.colors.categoryRed },
+        { id: 'infrastructure', title: t('householder.categories.infrastructure.title'), subtitle: t('householder.categories.infrastructure.subtitle'), icon: 'construct', color: theme.colors.categoryOrange },
+        { id: 'monitoring', title: t('householder.categories.monitoring.title'), subtitle: t('householder.categories.monitoring.subtitle'), icon: 'analytics', color: theme.colors.categoryGreen },
     ];
+
+    const handleVoiceIntent = async ({ intent }) => {
+        if (!intent) {
+            return false;
+        }
+
+        if (intent === 'open_report_to_electricity_board') {
+            navigation.navigate('BoardIssueReport');
+            return true;
+        }
+
+        if (intent in DASHBOARD_CATEGORY_BY_INTENT) {
+            const nextCategory = categories.find((item) => item.id === DASHBOARD_CATEGORY_BY_INTENT[intent]);
+            if (!nextCategory) {
+                return false;
+            }
+
+            navigation.navigate('SubCategory', { category: nextCategory });
+            return true;
+        }
+
+        switch (intent) {
+            case 'open_activities':
+            case 'view_activities':
+                navigation.getParent()?.navigate('ActivitiesTab');
+                return true;
+            case 'open_account':
+                navigation.getParent()?.navigate('AccountTab');
+                return true;
+            case 'open_profile_settings':
+                navigation.getParent()?.navigate('AccountTab', { screen: 'ProfileSettings' });
+                return true;
+            case 'open_help_support':
+                navigation.getParent()?.navigate('AccountTab', { screen: 'HelpSupport' });
+                return true;
+            case 'open_about_us':
+                navigation.getParent()?.navigate('AccountTab', { screen: 'AboutUs' });
+                return true;
+            case 'change_language':
+                await i18n.changeLanguage(i18n.language === 'en' ? 'si' : 'en');
+                return true;
+            case 'go_home':
+                return true;
+            default:
+                return false;
+        }
+    };
 
     return (
         <SafeAreaView style={styles.container}>
@@ -26,16 +78,15 @@ export const HouseholderDashboard = ({ navigation }) => {
             {/* Header */}
             <View style={styles.header}>
                 <View style={styles.headerLeft}>
-                    <Text style={styles.userName}>{user?.firstName || 'User'}</Text>
+                    <Text style={styles.userName}>{t('dashboard.hello')}{user?.firstName || t('householder.user')}</Text>
                     <Text style={styles.userInfo}>
-                        📍 {user?.district || 'Location'}
+                        📍 {user?.district || t('householder.location')}
                     </Text>
                 </View>
                 <View style={styles.headerRight}>
                     <View style={styles.idBadge}>
                         <Text style={styles.idText}>00H#{user?.displayId || '1'}</Text>
                     </View>
-                    <LanguageToggle language={language} onToggle={setLanguage} />
                 </View>
             </View>
 
@@ -44,23 +95,27 @@ export const HouseholderDashboard = ({ navigation }) => {
                 showsVerticalScrollIndicator={false}
             >
                 {/* Quick Help Banner */}
-                <Card style={styles.helpBanner} glowColor={theme.colors.secondary}>
+                <Card
+                    style={styles.helpBanner}
+                    glowColor={theme.colors.warning}
+                    onPress={() => navigation.navigate('BoardIssueReport')}
+                >
                     <View style={styles.helpContent}>
                         <View style={styles.helpIconContainer}>
-                            <Ionicons name="headset" size={24} color={theme.colors.secondary} />
+                            <Ionicons name="business" size={24} color={theme.colors.warning} />
                         </View>
                         <View style={{ flex: 1 }}>
-                            <Text style={styles.helpTitle}>Need quick help?</Text>
-                            <Text style={styles.helpSubtitle}>Select a category below to report an issue</Text>
+                            <Text style={styles.helpTitle}>{t('householder.needQuickHelp')}</Text>
+                            <Text style={styles.helpSubtitle}>{t('householder.helpSubtitle')}</Text>
                         </View>
-                        <Ionicons name="arrow-forward-circle" size={24} color={theme.colors.secondary} />
+                        <Ionicons name="arrow-forward-circle" size={24} color={theme.colors.warning} />
                     </View>
                 </Card>
 
                 {/* Quick Actions Section */}
                 <View style={styles.sectionHeader}>
                     <Text style={styles.sectionTitle}>
-                        ⚡ Quick Actions
+                        {t('householder.quickActions')}
                     </Text>
                 </View>
 
@@ -83,6 +138,12 @@ export const HouseholderDashboard = ({ navigation }) => {
                     </TouchableOpacity>
                 ))}
             </ScrollView>
+
+            <VoiceCommandButton
+                allowedIntents={HOUSEHOLDER_HOME_INTENTS}
+                onIntentMatched={handleVoiceIntent}
+                disableBackendFallback
+            />
         </SafeAreaView>
     );
 };
@@ -136,7 +197,7 @@ const styles = StyleSheet.create({
     },
     helpBanner: {
         marginBottom: theme.spacing.lg,
-        borderColor: theme.colors.secondary + '30',
+        borderColor: theme.colors.warning + '30',
     },
     helpContent: {
         flexDirection: 'row',
@@ -146,7 +207,7 @@ const styles = StyleSheet.create({
         width: 44,
         height: 44,
         borderRadius: theme.borderRadius.md,
-        backgroundColor: theme.colors.secondary + '15',
+        backgroundColor: theme.colors.warning + '15',
         justifyContent: 'center',
         alignItems: 'center',
         marginRight: 12,

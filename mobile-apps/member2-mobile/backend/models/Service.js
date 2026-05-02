@@ -13,16 +13,29 @@ const Service = sequelize.define('Service', {
         unique: true,
     },
     category: {
-        type: DataTypes.ENUM('Installation', 'Repair', 'Maintenance'),
+        type: DataTypes.STRING,
         allowNull: false,
+    },
+    categoryKey: {
+        type: DataTypes.STRING,
+        allowNull: true,
     },
     name: {
         type: DataTypes.STRING,
         allowNull: false,
     },
+    description: {
+        type: DataTypes.TEXT,
+        allowNull: true,
+    },
     basePrice: {
         type: DataTypes.FLOAT,
         allowNull: false,
+    },
+    displayOrder: {
+        type: DataTypes.INTEGER,
+        allowNull: false,
+        defaultValue: 0,
     },
     isActive: {
         type: DataTypes.BOOLEAN,

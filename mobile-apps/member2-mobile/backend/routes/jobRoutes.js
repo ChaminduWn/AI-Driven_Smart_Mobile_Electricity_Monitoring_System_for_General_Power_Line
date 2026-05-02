@@ -1,20 +1,18 @@
 const express = require('express');
 const router = express.Router();
 const jobController = require('../controllers/jobController');
-// const authMiddleware = require('../middleware/auth'); // Optional: Add later when wiring up tokens
 
-// Create a new Job Request (from Householder)
 router.post('/', jobController.createJob);
-
-// Get available Jobs (for Electrician Dashboard)
-// In a real app, this should easily be protected: router.get('/', authMiddleware, jobController.getJobsForElectrician)
 router.get('/', jobController.getJobsForElectrician);
-
-// Cancel a Job (from Householder tracking screen)
-// Cancel a Job (from Householder tracking screen)
-router.post('/:jobId/cancel', jobController.cancelJob);
-
-// Get Job history for User or Electrician
+router.get('/active/householder/:householderId', jobController.getHouseholderActiveJob);
+router.get('/active/electrician/:electricianId', jobController.getElectricianActiveJobs);
 router.get('/history/:userId', jobController.getJobHistory);
+router.get('/:jobId', jobController.getJobById);
+router.post('/:jobId/accept', jobController.acceptJob);
+router.post('/:jobId/status', jobController.updateJobStatus);
+router.post('/:jobId/pay', jobController.submitDigitalPayment);
+router.post('/:jobId/confirm-digital-payment', jobController.confirmDigitalPayment);
+router.post('/:jobId/rate', jobController.rateJob);
+router.post('/:jobId/cancel', jobController.cancelJob);
 
 module.exports = router;

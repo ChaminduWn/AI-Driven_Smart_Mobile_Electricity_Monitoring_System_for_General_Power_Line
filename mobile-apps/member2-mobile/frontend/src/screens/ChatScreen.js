@@ -4,8 +4,11 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { theme } from '../theme';
 import { useAuth } from '../context/AuthContext';
+import { useTranslation } from 'react-i18next';
+import { buildApiUrl } from '../api';
 
 export const ChatScreen = ({ route, navigation }) => {
+    const { t } = useTranslation();
     // Both Householders and Electricians can be routed here. We need the active job and the other party's name.
     const { job, otherPartyName } = route.params;
     const { user } = useAuth();
@@ -18,7 +21,7 @@ export const ChatScreen = ({ route, navigation }) => {
     const fetchMessages = async () => {
         if (!job?.id) return;
         try {
-            const response = await fetch(`http://192.168.8.101:8003/api/messages/${job.id}`);
+            const response = await fetch(buildApiUrl(`/messages/${job.id}`));
             const data = await response.json();
             if (data.success) {
                 setMessages(data.messages);
@@ -51,7 +54,7 @@ export const ChatScreen = ({ route, navigation }) => {
         setInputText('');
 
         try {
-            await fetch('http://192.168.8.101:8003/api/messages', {
+            await fetch(buildApiUrl('/messages'), {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -92,8 +95,8 @@ export const ChatScreen = ({ route, navigation }) => {
                     <Ionicons name="arrow-back" size={24} color={theme.colors.text} />
                 </TouchableOpacity>
                 <View style={styles.headerInfo}>
-                    <Text style={styles.headerTitle}>{otherPartyName || 'Chat'}</Text>
-                    <Text style={styles.headerSubtitle}>Active Job #{job?.id?.substring(0, 5) || '123'}</Text>
+                    <Text style={styles.headerTitle}>{otherPartyName || t('chat.title')}</Text>
+                    <Text style={styles.headerSubtitle}>{t('chat.activeJob')}{job?.id?.substring(0, 5) || '123'}</Text>
                 </View>
             </View>
 
@@ -117,7 +120,7 @@ export const ChatScreen = ({ route, navigation }) => {
                         ListEmptyComponent={
                             <View style={styles.emptyContainer}>
                                 <Ionicons name="chatbubbles-outline" size={48} color={theme.colors.textMuted} />
-                                <Text style={styles.emptyText}>Send a message to provide directions or details.</Text>
+                                <Text style={styles.emptyText}>{t('chat.emptyState')}</Text>
                             </View>
                         }
                     />
@@ -126,7 +129,7 @@ export const ChatScreen = ({ route, navigation }) => {
                 <View style={styles.inputContainer}>
                     <TextInput
                         style={styles.textInput}
-                        placeholder="Type a message..."
+                        placeholder={t('chat.placeholder')}
                         placeholderTextColor={theme.colors.textMuted}
                         value={inputText}
                         onChangeText={setInputText}

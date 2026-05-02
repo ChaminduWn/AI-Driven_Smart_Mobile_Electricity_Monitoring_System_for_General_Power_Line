@@ -1,11 +1,22 @@
 const User = require('../models/User');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const { buildUserPayload } = require('../utils/userPayload');
+
+const stripLegacyRolePrefix = (password = '', role) => {
+    if (typeof password !== 'string') {
+        return '';
+    }
+
+    const expectedPrefix = role === 'Householder' ? '00H-' : '00E-';
+    return password.startsWith(expectedPrefix) ? password.slice(expectedPrefix.length) : password;
+};
 
 exports.signup = async (req, res) => {
     try {
         console.log('Signup initialized with body:', req.body);
         const { firstName, lastName, address, district, phone, email, password, role, nvqCertificateUrl } = req.body;
+        const normalizedPassword = stripLegacyRolePrefix(password, role);
 
         // Check if user exists by email OR phone
         console.log('Checking if user exists for email or phone:', email, phone);
@@ -28,7 +39,7 @@ exports.signup = async (req, res) => {
         // Hash password
         console.log('Hashing password...');
         const salt = await bcrypt.genSalt(10);
-        const hashedPassword = await bcrypt.hash(password, salt);
+        const hashedPassword = await bcrypt.hash(normalizedPassword, salt);
 
         // Create User
         console.log('Creating User in DB...');
@@ -52,7 +63,7 @@ exports.signup = async (req, res) => {
         user.displayId = `${prefix}#${count}`; // Note: count might be off if deleted, but simple enough for now
         await user.save();
 
-        res.status(201).json({ message: 'User registered successfully', user: { id: user.id, displayId: user.displayId, role: user.role } });
+        res.status(201).json({ message: 'User registered successfully', user: buildUserPayload(user) });
     } catch (error) {
         console.error('--- SIGNUP ERROR CAUGHT ---');
         console.error('Error Message:', error.message);
@@ -79,12 +90,16 @@ exports.login = async (req, res) => {
         });
         if (!user) return res.status(400).json({ message: 'Invalid Credentials' });
 
-        // Validate Password
-        // Reconstruct the frontend prefix based on the found user's role
-        const prefix = user.role === 'Householder' ? '00H-' : '00E-';
-        const fullPassword = prefix + password;
+        // Support both the legacy prefixed password format and the new plain-password format.
+        const normalizedPassword = stripLegacyRolePrefix(password, user.role);
+        const legacyPrefixedPassword = `${user.role === 'Householder' ? '00H-' : '00E-'}${normalizedPassword}`;
 
-        const isMatch = await bcrypt.compare(fullPassword, user.password);
+        const exactMatch = await bcrypt.compare(password, user.password);
+        const normalizedMatch = normalizedPassword !== password
+            ? await bcrypt.compare(normalizedPassword, user.password)
+            : false;
+        const legacyMatch = await bcrypt.compare(legacyPrefixedPassword, user.password);
+        const isMatch = exactMatch || normalizedMatch || legacyMatch;
         if (!isMatch) return res.status(400).json({ message: 'Invalid Credentials' });
 
         // Generate Token
@@ -102,7 +117,7 @@ exports.login = async (req, res) => {
             { expiresIn: '7d' },
             (err, token) => {
                 if (err) throw err;
-                res.json({ token, user: { id: user.id, firstName: user.firstName, role: user.role, displayId: user.displayId } });
+                res.json({ token, user: buildUserPayload(user) });
             }
         );
     } catch (error) {

@@ -1,127 +1,187 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, Alert, Linking } from 'react-native';
+import React, { useEffect, useMemo, useState } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, Alert, Linking, ActivityIndicator, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { theme } from '../theme';
 import { Card } from '../components/Card';
 import { GradientButton } from '../components/GradientButton';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { useAuth } from '../context/AuthContext';
+import { buildApiUrl } from '../api';
+import { useTranslation } from 'react-i18next';
+
+const formatCurrency = (amount, t) => {
+    if (amount === null || amount === undefined || Number.isNaN(Number(amount))) {
+        return t('member2.availableElectricians.pricePending');
+    }
+
+    return `LKR ${Number(amount).toLocaleString()}`;
+};
+
+const formatEta = (minutes, t) => {
+    if (!minutes) {
+        return t('member2.availableElectricians.calculatingEta');
+    }
+
+    return `${minutes} ${t('member2.availableElectricians.minutesAwaySuffix')}`;
+};
 
 export const AvailableElectriciansScreen = ({ route, navigation }) => {
-    const { category, subCategory, description, location, issuePhotos } = route.params;
+    const { category, subCategory, description, location, issuePhotos, address, service } = route.params;
     const { user } = useAuth();
+    const { t } = useTranslation();
 
-    const [electricians] = useState([
-        { id: '1', name: 'Roshan Perera', rating: 4.8, distance: '1.2 km', vehicle: 'WP CAB-1234', amount: 'LKR 1,500', reviews: 48 },
-        { id: '2', name: 'Nimal Silva', rating: 4.5, distance: '2.5 km', vehicle: 'WP BAT-5678', amount: 'LKR 1,200', reviews: 32 },
-        { id: '3', name: 'Kamal De Soysa', rating: 4.9, distance: '0.8 km', vehicle: 'WP AAB-9999', amount: 'LKR 2,000', reviews: 67 },
-    ]);
+    const [job, setJob] = useState(null);
+    const [creatingJob, setCreatingJob] = useState(true);
+    const [polling, setPolling] = useState(false);
+    const [searchSeconds, setSearchSeconds] = useState(0);
 
-    const handleAccept = (electrician) => {
-        Alert.alert(
-            'Confirm Request',
-            `Request ${electrician.name} for ${electrician.amount}?`,
-            [
-                { text: 'Cancel', style: 'cancel' },
-                {
-                    text: 'Confirm',
-                    onPress: async () => {
-                        try {
-                            const payload = {
-                                householderId: user?.id,
-                                electricianId: electrician.id, // Currently hardcoded IDs in frontend state, would need real IDs if this was a live live list
-                                title: `${category.title} Issue`,
-                                description: description,
-                                locationLat: location.latitude,
-                                locationLng: location.longitude,
-                                district: user?.district || 'Colombo', // Fallback
-                                category: category.id,
-                                subCategory: subCategory,
-                                issuePhotos: issuePhotos || [],
-                            };
+    const acceptedJob = job?.status === 'Accepted' || job?.status === 'InProgress' ? job : null;
 
-                            const response = await fetch('http://192.168.8.101:8003/api/jobs', {
-                                method: 'POST',
-                                headers: {
-                                    'Content-Type': 'application/json',
-                                },
-                                body: JSON.stringify(payload)
-                            });
+    useEffect(() => {
+        let mounted = true;
+        let pollInterval;
+        let timerInterval;
 
-                            const data = await response.json();
-                            if (data.success) {
-                                // Pass the generated startCode from the backend job to the tracking screen
-                                navigation.navigate('TrackElectrician', {
-                                    electrician,
-                                    location,
-                                    job: data.job
-                                });
-                            } else {
-                                Alert.alert('Error', data.message || 'Failed to create job request.');
-                            }
-                        } catch (err) {
-                            Alert.alert('Network Error', 'Could not connect to the server to create the job.');
-                        }
+        const createJob = async () => {
+            try {
+                setCreatingJob(true);
+                const response = await fetch(buildApiUrl('/jobs'), {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
                     },
-                },
-            ]
-        );
-    };
+                    body: JSON.stringify({
+                        householderId: user?.id,
+                        title: `${category.title} ${t('member2.availableElectricians.issueSuffix')}`,
+                        serviceId: service?.serviceId,
+                        serviceName: service?.name || subCategory,
+                        serviceAmount: service?.basePrice ?? null,
+                        description,
+                        issueAddress: address,
+                        locationLat: location.latitude,
+                        locationLng: location.longitude,
+                        district: user?.district || 'Colombo',
+                        category: category.title,
+                        subCategory,
+                        issuePhotos: issuePhotos || [],
+                    }),
+                });
 
-    const renderStars = (rating) => {
-        const stars = [];
-        for (let i = 1; i <= 5; i++) {
-            stars.push(
-                <Ionicons
-                    key={i}
-                    name={i <= rating ? 'star' : i - 0.5 <= rating ? 'star-half' : 'star-outline'}
-                    size={14}
-                    color={theme.colors.warning}
-                />
-            );
+                const data = await response.json();
+
+                if (!response.ok || !data.success) {
+                    throw new Error(data?.message || t('member2.availableElectricians.requestFailedMsg'));
+                }
+
+                if (mounted) {
+                    setJob(data.job);
+                }
+            } catch (error) {
+                Alert.alert(t('member2.availableElectricians.requestFailedTitle'), error.message || t('member2.availableElectricians.requestFailedMsg'));
+                navigation.goBack();
+            } finally {
+                if (mounted) {
+                    setCreatingJob(false);
+                }
+            }
+        };
+
+        createJob();
+
+        timerInterval = setInterval(() => {
+            if (mounted) {
+                setSearchSeconds((current) => current + 1);
+            }
+        }, 1000);
+
+        return () => {
+            mounted = false;
+            clearInterval(timerInterval);
+            clearInterval(pollInterval);
+        };
+    }, []);
+
+    useEffect(() => {
+        if (!job?.id || acceptedJob) {
+            return undefined;
         }
-        return stars;
+
+        const intervalId = setInterval(async () => {
+            try {
+                setPolling(true);
+                const response = await fetch(buildApiUrl(`/jobs/${job.id}`));
+                const data = await response.json();
+
+                if (response.ok && data.success && data.job) {
+                    setJob(data.job);
+                }
+            } catch (error) {
+                console.error('Poll job status error', error);
+            } finally {
+                setPolling(false);
+            }
+        }, 5000);
+
+        return () => clearInterval(intervalId);
+    }, [job?.id, acceptedJob]);
+
+    const searchingMinutes = useMemo(() => Math.floor(searchSeconds / 60), [searchSeconds]);
+    const searchingRemainderSeconds = useMemo(() => searchSeconds % 60, [searchSeconds]);
+
+    const handleCancel = async () => {
+        if (!job?.id) {
+            navigation.goBack();
+            return;
+        }
+
+        try {
+            await fetch(buildApiUrl(`/jobs/${job.id}/cancel`), {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ reason: 'Householder cancelled while waiting for technician' }),
+            });
+        } catch (error) {
+            console.error('Cancel request error', error);
+        } finally {
+            navigation.goBack();
+        }
     };
 
-    const renderItem = ({ item }) => (
-        <Card style={styles.card} glowColor={theme.colors.primary}>
-            <View style={styles.cardTop}>
-                {/* Avatar */}
-                <View style={styles.avatar}>
-                    <Ionicons name="person" size={22} color={theme.colors.primary} />
-                </View>
+    const openTracking = () => {
+        if (!acceptedJob) {
+            return;
+        }
 
-                {/* Info */}
-                <View style={styles.info}>
-                    <Text style={styles.name}>{item.name}</Text>
-                    <View style={styles.ratingRow}>
-                        {renderStars(item.rating)}
-                        <Text style={styles.ratingText}>{item.rating}</Text>
-                        <Text style={styles.reviewCount}>({item.reviews})</Text>
-                    </View>
-                    <View style={styles.detailRow}>
-                        <Ionicons name="car" size={14} color={theme.colors.textMuted} />
-                        <Text style={styles.detailText}>{item.vehicle}</Text>
-                    </View>
-                </View>
+        navigation.navigate('TrackElectrician', {
+            electrician: {
+                name: acceptedJob.electrician?.fullName,
+                rating: acceptedJob.electrician?.rating,
+                vehicle: acceptedJob.electrician?.vehicleNumber,
+                phone: acceptedJob.electrician?.phone,
+            },
+            location,
+            job: acceptedJob,
+        });
+    };
 
-                {/* Amount */}
-                <View style={styles.amountContainer}>
-                    <Text style={styles.amount}>{item.amount}</Text>
-                    <View style={styles.distanceBadge}>
-                        <Ionicons name="navigate" size={12} color={theme.colors.secondary} />
-                        <Text style={styles.distanceText}>{item.distance}</Text>
-                    </View>
-                </View>
-            </View>
+    const handleCallElectrician = () => {
+        if (acceptedJob?.electrician?.phone) {
+            Linking.openURL(`tel:${acceptedJob.electrician.phone}`);
+        }
+    };
 
-            <GradientButton
-                title="Accept"
-                onPress={() => handleAccept(item)}
-                style={styles.acceptButton}
-            />
-        </Card>
-    );
+    const openChat = () => {
+        if (!acceptedJob) {
+            return;
+        }
+
+        navigation.navigate('Chat', {
+            job: acceptedJob,
+            otherPartyName: acceptedJob.electrician?.fullName || 'Technician',
+        });
+    };
 
     return (
         <SafeAreaView style={styles.container}>
@@ -130,45 +190,137 @@ export const AvailableElectriciansScreen = ({ route, navigation }) => {
                     <Ionicons name="arrow-back" size={24} color={theme.colors.text} />
                 </TouchableOpacity>
                 <View>
-                    <Text style={styles.headerTitle}>Nearby Electricians</Text>
+                    <Text style={styles.headerTitle}>
+                        {acceptedJob ? t('member2.availableElectricians.technicianAccepted') : t('member2.availableElectricians.searchingNearby')}
+                    </Text>
                     <Text style={styles.headerSubtitle}>{category.title} • {subCategory}</Text>
                 </View>
             </View>
 
-            {electricians.length === 0 ? (
-                <View style={styles.emptyState}>
-                    <View style={styles.emptyIconContainer}>
-                        <Ionicons name="sad-outline" size={64} color={theme.colors.textMuted} />
-                    </View>
-                    <Text style={styles.emptyTitle}>No Electricians Available</Text>
-                    <Text style={styles.emptyDesc}>
-                        We couldn't find any available electricians near your location at this moment.
-                    </Text>
+            <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+                <Card style={styles.summaryCard}>
+                    <Text style={styles.summaryLabel}>{t('member2.availableElectricians.selectedServiceCharge')}</Text>
+                    <Text style={styles.summaryAmount}>{formatCurrency(service?.basePrice ?? job?.estimatedCost, t)}</Text>
+                    <Text style={styles.summaryAddress}>{address}</Text>
+                </Card>
 
-                    <View style={styles.cebBox}>
-                        <Ionicons name="call" size={24} color={theme.colors.primary} />
-                        <View style={styles.cebInfo}>
-                            <Text style={styles.cebTitle}>Call CEB Hotline</Text>
-                            <Text style={styles.cebDesc}>Ceylon Electricity Board 24/7 Support</Text>
+                {creatingJob ? (
+                    <Card style={styles.centerCard}>
+                        <ActivityIndicator size="large" color={theme.colors.primary} />
+                        <Text style={styles.centerTitle}>{t('member2.availableElectricians.sendingRequestTitle')}</Text>
+                        <Text style={styles.centerSubtitle}>{t('member2.availableElectricians.sendingRequestMsg')}</Text>
+                    </Card>
+                ) : acceptedJob ? (
+                    <Card style={styles.acceptedCard} glowColor={theme.colors.success}>
+                        <View style={styles.acceptedHeader}>
+                            <View style={styles.acceptedBadge}>
+                                <Ionicons name="checkmark-done-circle" size={28} color={theme.colors.success} />
+                            </View>
+                            <View style={styles.acceptedInfo}>
+                                <Text style={styles.acceptedTitle}>{t('member2.availableElectricians.acceptedTitle')}</Text>
+                                <Text style={styles.acceptedSubtitle}>
+                                    {t('member2.availableElectricians.acceptedAt')} {new Date(acceptedJob.acceptedAt || acceptedJob.updatedAt).toLocaleTimeString()}
+                                </Text>
+                            </View>
                         </View>
-                    </View>
 
-                    <GradientButton
-                        title="Call 1987 Now"
-                        icon="call"
-                        onPress={() => Linking.openURL('tel:1987')}
-                        style={{ marginTop: theme.spacing.lg }}
-                    />
-                </View>
-            ) : (
-                <FlatList
-                    data={electricians}
-                    renderItem={renderItem}
-                    keyExtractor={(item) => item.id}
-                    contentContainerStyle={styles.list}
-                    showsVerticalScrollIndicator={false}
-                />
-            )}
+                        <View style={styles.electricianRow}>
+                            <View style={styles.avatar}>
+                                <Ionicons name="person" size={22} color={theme.colors.primary} />
+                            </View>
+                            <View style={styles.electricianInfo}>
+                                <Text style={styles.electricianName}>{acceptedJob.electrician?.fullName || t('member2.availableElectricians.assignedTechnician')}</Text>
+                                <Text style={styles.electricianMeta}>
+                                    Rating {acceptedJob.electrician?.rating || 0} • {formatEta(acceptedJob.etaMinutes)}
+                                </Text>
+                                <Text style={styles.electricianMeta}>
+                                    {acceptedJob.electrician?.phone || t('member2.availableElectricians.phoneUnavailable')}
+                                </Text>
+                            </View>
+                            <View style={styles.amountTag}>
+                                <Text style={styles.amountTagText}>{formatCurrency(acceptedJob.estimatedCost, t)}</Text>
+                            </View>
+                        </View>
+
+                        <View style={styles.metaGrid}>
+                            <View style={styles.metaItem}>
+                                <Text style={styles.metaLabel}>{t('member2.track.distance')}</Text>
+                                <Text style={styles.metaValue}>
+                                    {acceptedJob.distanceKm ? `${acceptedJob.distanceKm} km` : t('member2.availableElectricians.calculating')}
+                                </Text>
+                            </View>
+                            <View style={styles.metaItem}>
+                                <Text style={styles.metaLabel}>{t('member2.availableElectricians.jobCode')}</Text>
+                                <Text style={styles.metaValue}>{acceptedJob.startCode || t('member2.dashboard.pendingPrice')}</Text>
+                            </View>
+                        </View>
+
+                        <View style={styles.acceptedActions}>
+                            <TouchableOpacity style={styles.secondaryAction} onPress={handleCallElectrician}>
+                                <Ionicons name="call" size={18} color={theme.colors.success} />
+                                <Text style={styles.secondaryActionText}>{t('member2.common.call')}</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity style={styles.secondaryAction} onPress={openChat}>
+                                <Ionicons name="chatbubble-ellipses" size={18} color={theme.colors.primary} />
+                                <Text style={[styles.secondaryActionText, { color: theme.colors.primary }]}>{t('member2.common.chat')}</Text>
+                            </TouchableOpacity>
+                            <GradientButton
+                                title={t('member2.availableElectricians.trackTechnician')}
+                                icon="navigate-circle"
+                                onPress={openTracking}
+                                style={styles.primaryTrackButton}
+                            />
+                        </View>
+                    </Card>
+                ) : (
+                    <Card style={styles.searchCard} glowColor={theme.colors.primary}>
+                        <View style={styles.searchPulseWrap}>
+                            <View style={styles.searchPulseOuter}>
+                                <View style={styles.searchPulseMiddle}>
+                                    <View style={styles.searchPulseInner}>
+                                        <Ionicons name="flash" size={28} color={theme.colors.warning} />
+                                    </View>
+                                </View>
+                            </View>
+                        </View>
+
+                        <Text style={styles.searchTitle}>{t('member2.availableElectricians.searchTitle')}</Text>
+                        <Text style={styles.searchSubtitle}>{t('member2.availableElectricians.searchSubtitle')}</Text>
+
+                        <View style={styles.searchStats}>
+                            <View style={styles.searchStatBox}>
+                                <Text style={styles.searchStatLabel}>{t('member2.availableElectricians.elapsedTime')}</Text>
+                                <Text style={styles.searchStatValue}>
+                                    {String(searchingMinutes).padStart(2, '0')}:{String(searchingRemainderSeconds).padStart(2, '0')}
+                                </Text>
+                            </View>
+                            <View style={styles.searchStatBox}>
+                                <Text style={styles.searchStatLabel}>{t('member2.common.status')}</Text>
+                                <Text style={styles.searchStatValue}>{polling ? t('member2.availableElectricians.refreshing') : t('member2.availableElectricians.waiting')}</Text>
+                            </View>
+                        </View>
+
+                        <View style={styles.requestChecklist}>
+                            <View style={styles.checkItem}>
+                                <Ionicons name="checkmark-circle" size={18} color={theme.colors.success} />
+                                <Text style={styles.checkText}>{t('member2.availableElectricians.checklistDetails')}</Text>
+                            </View>
+                            <View style={styles.checkItem}>
+                                <Ionicons name="checkmark-circle" size={18} color={theme.colors.success} />
+                                <Text style={styles.checkText}>{t('member2.availableElectricians.checklistLocation')}</Text>
+                            </View>
+                            <View style={styles.checkItem}>
+                                <Ionicons name="time" size={18} color={theme.colors.warning} />
+                                <Text style={styles.checkText}>{t('member2.availableElectricians.checklistWaiting')}</Text>
+                            </View>
+                        </View>
+
+                        <TouchableOpacity style={styles.cancelButton} onPress={handleCancel}>
+                            <Text style={styles.cancelButtonText}>{t('member2.availableElectricians.cancelRequest')}</Text>
+                        </TouchableOpacity>
+                    </Card>
+                )}
+            </ScrollView>
         </SafeAreaView>
     );
 };
@@ -197,135 +349,247 @@ const styles = StyleSheet.create({
         ...theme.typography.caption,
         marginTop: 2,
     },
-    list: {
-        padding: theme.spacing.md,
-        paddingBottom: 100,
+    content: {
+        padding: theme.spacing.lg,
+        paddingBottom: 120,
     },
-    card: {
+    summaryCard: {
+        marginBottom: theme.spacing.md,
+        backgroundColor: `${theme.colors.secondary}12`,
+        borderColor: `${theme.colors.secondary}25`,
+    },
+    summaryLabel: {
+        ...theme.typography.caption,
+        color: theme.colors.textMuted,
+        marginBottom: 6,
+    },
+    summaryAmount: {
+        ...theme.typography.h2,
+        color: theme.colors.success,
+        marginBottom: 6,
+    },
+    summaryAddress: {
+        ...theme.typography.bodySmall,
+        lineHeight: 18,
+    },
+    centerCard: {
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingVertical: theme.spacing.xxl,
+    },
+    centerTitle: {
+        ...theme.typography.h3,
+        marginTop: 14,
+    },
+    centerSubtitle: {
+        ...theme.typography.bodySmall,
+        color: theme.colors.textSecondary,
+        marginTop: 8,
+        textAlign: 'center',
+    },
+    searchCard: {
+        alignItems: 'center',
+        paddingVertical: theme.spacing.xl,
+    },
+    searchPulseWrap: {
+        marginBottom: theme.spacing.lg,
+    },
+    searchPulseOuter: {
+        width: 140,
+        height: 140,
+        borderRadius: 70,
+        backgroundColor: 'rgba(37, 99, 235, 0.10)',
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    searchPulseMiddle: {
+        width: 96,
+        height: 96,
+        borderRadius: 48,
+        backgroundColor: 'rgba(37, 99, 235, 0.16)',
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    searchPulseInner: {
+        width: 62,
+        height: 62,
+        borderRadius: 31,
+        backgroundColor: theme.colors.surface,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    searchTitle: {
+        ...theme.typography.h2,
+        textAlign: 'center',
+        marginBottom: 8,
+    },
+    searchSubtitle: {
+        ...theme.typography.body,
+        color: theme.colors.textSecondary,
+        textAlign: 'center',
+        lineHeight: 22,
+        marginBottom: theme.spacing.lg,
+    },
+    searchStats: {
+        flexDirection: 'row',
+        width: '100%',
+        gap: 12,
+        marginBottom: theme.spacing.lg,
+    },
+    searchStatBox: {
+        flex: 1,
+        backgroundColor: theme.colors.background,
+        borderRadius: theme.borderRadius.lg,
+        borderWidth: 1,
+        borderColor: theme.colors.border,
+        padding: theme.spacing.md,
+    },
+    searchStatLabel: {
+        ...theme.typography.caption,
+        color: theme.colors.textMuted,
+        marginBottom: 6,
+    },
+    searchStatValue: {
+        ...theme.typography.h3,
+    },
+    requestChecklist: {
+        width: '100%',
+        backgroundColor: theme.colors.background,
+        borderRadius: theme.borderRadius.lg,
+        borderWidth: 1,
+        borderColor: theme.colors.border,
+        padding: theme.spacing.md,
+    },
+    checkItem: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginBottom: 10,
+    },
+    checkText: {
+        ...theme.typography.bodySmall,
+        marginLeft: 10,
+        flex: 1,
+    },
+    cancelButton: {
+        marginTop: theme.spacing.lg,
+        paddingVertical: 12,
+        paddingHorizontal: 18,
+    },
+    cancelButtonText: {
+        color: theme.colors.danger,
+        fontWeight: '700',
+    },
+    acceptedCard: {
+        paddingBottom: theme.spacing.lg,
+    },
+    acceptedHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
         marginBottom: theme.spacing.md,
     },
-    cardTop: {
+    acceptedBadge: {
+        width: 46,
+        height: 46,
+        borderRadius: 23,
+        backgroundColor: `${theme.colors.success}15`,
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginRight: 12,
+    },
+    acceptedInfo: {
+        flex: 1,
+    },
+    acceptedTitle: {
+        ...theme.typography.h3,
+    },
+    acceptedSubtitle: {
+        ...theme.typography.bodySmall,
+        color: theme.colors.textSecondary,
+        marginTop: 4,
+    },
+    electricianRow: {
         flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: theme.colors.background,
+        borderRadius: theme.borderRadius.lg,
+        padding: theme.spacing.md,
         marginBottom: theme.spacing.md,
     },
     avatar: {
         width: 48,
         height: 48,
-        borderRadius: theme.borderRadius.lg,
-        backgroundColor: theme.colors.primary + '15',
+        borderRadius: theme.borderRadius.md,
+        backgroundColor: `${theme.colors.primary}15`,
         justifyContent: 'center',
         alignItems: 'center',
         marginRight: 12,
     },
-    info: {
+    electricianInfo: {
         flex: 1,
     },
-    name: {
+    electricianName: {
         ...theme.typography.body,
         fontWeight: '700',
-        marginBottom: 4,
     },
-    ratingRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        marginBottom: 4,
-    },
-    ratingText: {
-        color: theme.colors.text,
-        fontSize: 13,
-        fontWeight: '700',
-        marginLeft: 4,
-    },
-    reviewCount: {
-        color: theme.colors.textMuted,
-        fontSize: 12,
-        marginLeft: 2,
-    },
-    detailRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-    },
-    detailText: {
-        color: theme.colors.textMuted,
-        fontSize: 12,
-        marginLeft: 4,
-    },
-    amountContainer: {
-        alignItems: 'flex-end',
-    },
-    amount: {
-        ...theme.typography.h3,
-        color: theme.colors.success,
-        fontSize: 16,
-    },
-    distanceBadge: {
-        flexDirection: 'row',
-        alignItems: 'center',
+    electricianMeta: {
+        ...theme.typography.caption,
         marginTop: 4,
-        backgroundColor: theme.colors.secondary + '15',
-        paddingHorizontal: 8,
-        paddingVertical: 3,
+    },
+    amountTag: {
+        backgroundColor: `${theme.colors.success}15`,
         borderRadius: theme.borderRadius.sm,
+        paddingHorizontal: 10,
+        paddingVertical: 6,
     },
-    distanceText: {
-        color: theme.colors.secondary,
-        fontSize: 11,
-        fontWeight: '600',
-        marginLeft: 4,
+    amountTagText: {
+        color: theme.colors.success,
+        fontWeight: '700',
+        fontSize: 12,
     },
-    acceptButton: {
-        marginTop: 0,
-    },
-    emptyState: {
-        flex: 1,
-        justifyContent: 'center',
-        alignItems: 'center',
-        padding: theme.spacing.xl,
-    },
-    emptyIconContainer: {
-        width: 120,
-        height: 120,
-        borderRadius: 60,
-        backgroundColor: theme.colors.surface,
-        justifyContent: 'center',
-        alignItems: 'center',
-        marginBottom: theme.spacing.lg,
-        borderWidth: 1,
-        borderColor: theme.colors.border,
-    },
-    emptyTitle: {
-        ...theme.typography.h2,
-        marginBottom: theme.spacing.sm,
-        textAlign: 'center',
-    },
-    emptyDesc: {
-        ...theme.typography.body,
-        color: theme.colors.textSecondary,
-        textAlign: 'center',
-        marginBottom: theme.spacing.xl,
-        lineHeight: 22,
-    },
-    cebBox: {
+    metaGrid: {
         flexDirection: 'row',
-        alignItems: 'center',
-        backgroundColor: theme.colors.primary + '15',
-        padding: theme.spacing.lg,
+        gap: 12,
+        marginBottom: theme.spacing.md,
+    },
+    metaItem: {
+        flex: 1,
+        backgroundColor: theme.colors.background,
         borderRadius: theme.borderRadius.lg,
         borderWidth: 1,
-        borderColor: theme.colors.primary + '30',
-        width: '100%',
+        borderColor: theme.colors.border,
+        padding: theme.spacing.md,
     },
-    cebInfo: {
-        marginLeft: theme.spacing.md,
-        flex: 1,
-    },
-    cebTitle: {
-        ...theme.typography.h3,
-        color: theme.colors.primary,
-        marginBottom: 2,
-    },
-    cebDesc: {
+    metaLabel: {
         ...theme.typography.caption,
-        color: theme.colors.textSecondary,
+        color: theme.colors.textMuted,
+        marginBottom: 6,
+    },
+    metaValue: {
+        ...theme.typography.body,
+        fontWeight: '700',
+    },
+    acceptedActions: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 12,
+    },
+    secondaryAction: {
+        width: 92,
+        minHeight: 52,
+        borderRadius: theme.borderRadius.lg,
+        backgroundColor: `${theme.colors.success}15`,
+        borderWidth: 1,
+        borderColor: `${theme.colors.success}30`,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    secondaryActionText: {
+        color: theme.colors.success,
+        fontWeight: '700',
+        marginTop: 4,
+        fontSize: 12,
+    },
+    primaryTrackButton: {
+        flex: 1,
     },
 });

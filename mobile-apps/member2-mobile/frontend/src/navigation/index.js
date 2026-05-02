@@ -12,6 +12,8 @@ import { SignupScreen } from '../screens/SignupScreen';
 
 // Householder Screens
 import { HouseholderDashboard } from '../screens/HouseholderDashboard';
+import { BoardIssueReportScreen } from '../screens/BoardIssueReportScreen';
+import { BoardReportReviewScreen } from '../screens/BoardReportReviewScreen';
 import { SubCategoryScreen } from '../screens/SubCategoryScreen';
 import { LocationSelectionScreen } from '../screens/LocationSelectionScreen';
 import { AvailableElectriciansScreen } from '../screens/AvailableElectriciansScreen';
@@ -20,12 +22,14 @@ import { RatingScreen } from '../screens/RatingScreen';
 import { ChatScreen } from '../screens/ChatScreen';
 import { ActivitiesScreen } from '../screens/ActivitiesScreen';
 import { ActivityDetailScreen } from '../screens/ActivityDetailScreen';
+import { PaymentGatewayScreen } from '../screens/PaymentGatewayScreen';
 
 // Electrician Screens
 import { ElectricianDashboard } from '../screens/ElectricianDashboard';
 import { ElectricianServiceSetupScreen } from '../screens/ElectricianServiceSetupScreen';
 import { ElectricianPastActivitiesScreen } from '../screens/ElectricianPastActivitiesScreen';
 import { ElectricianEarnedScreen } from '../screens/ElectricianEarnedScreen';
+import { ElectricianJobDetailsScreen } from '../screens/ElectricianJobDetailsScreen';
 
 // Shared Screens
 import { AccountScreen } from '../screens/AccountScreen';
@@ -89,12 +93,15 @@ const tabScreenOptions = ({ route }) => ({
 const HouseholderHomeStack = () => (
     <Stack.Navigator screenOptions={screenOptions}>
         <Stack.Screen name="HouseholderHome" component={HouseholderDashboard} />
+        <Stack.Screen name="BoardIssueReport" component={BoardIssueReportScreen} />
         <Stack.Screen name="SubCategory" component={SubCategoryScreen} />
         <Stack.Screen name="LocationSelection" component={LocationSelectionScreen} />
+        <Stack.Screen name="BoardReportReview" component={BoardReportReviewScreen} />
         <Stack.Screen name="AvailableElectricians" component={AvailableElectriciansScreen} />
         <Stack.Screen name="TrackElectrician" component={TrackElectricianScreen} />
         <Stack.Screen name="Chat" component={ChatScreen} />
         <Stack.Screen name="Rating" component={RatingScreen} />
+        <Stack.Screen name="PaymentGateway" component={PaymentGatewayScreen} />
     </Stack.Navigator>
 );
 
@@ -102,6 +109,7 @@ const HouseholderActivitiesStack = () => (
     <Stack.Navigator screenOptions={screenOptions}>
         <Stack.Screen name="Activities" component={ActivitiesScreen} />
         <Stack.Screen name="ActivityDetail" component={ActivityDetailScreen} />
+        <Stack.Screen name="PaymentGateway" component={PaymentGatewayScreen} />
     </Stack.Navigator>
 );
 
@@ -131,12 +139,16 @@ const ElectricianJobsStack = () => (
     <Stack.Navigator screenOptions={screenOptions}>
         <Stack.Screen name="ElectricianHome" component={ElectricianDashboard} />
         <Stack.Screen name="ElectricianServiceSetup" component={ElectricianServiceSetupScreen} />
+        <Stack.Screen name="ElectricianJobDetails" component={ElectricianJobDetailsScreen} />
+        <Stack.Screen name="Chat" component={ChatScreen} />
     </Stack.Navigator>
 );
 
 const ElectricianPastStack = () => (
     <Stack.Navigator screenOptions={screenOptions}>
         <Stack.Screen name="PastActivities" component={ElectricianPastActivitiesScreen} />
+        <Stack.Screen name="ElectricianJobDetails" component={ElectricianJobDetailsScreen} />
+        <Stack.Screen name="Chat" component={ChatScreen} />
     </Stack.Navigator>
 );
 
