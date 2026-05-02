@@ -18,9 +18,9 @@ const pfColor = (pf) => pf >= 0.95 ? 'var(--green)' : pf >= 0.85 ? 'var(--accent
 const CustomTooltip = ({ active, payload, label }) => {
   if (!active || !payload?.length) return null;
   return (
-    <div style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-default)', borderRadius: 8, padding: '8px 12px', fontSize: 11 }}>
-      <p style={{ color: 'var(--text-muted)', marginBottom: 4 }}>{label}</p>
-      {payload.map((p, i) => <p key={i} style={{ color: p.color, fontWeight: 600 }}>{p.name}: {p.value}</p>)}
+    <div className="bg-[#131520] border border-[#1E293B] rounded-xl p-3 text-xs shadow-lg">
+      <p className="text-[#64748B] mb-1 font-medium">{label}</p>
+      {payload.map((p, i) => <p key={i} style={{ color: p.color }} className="font-bold m-0 mt-0.5">{p.name}: {p.value}</p>)}
     </div>
   );
 };
@@ -202,15 +202,20 @@ export default function LiveMeterPage() {
   if (devicesLoading) return <PageLoader />;
 
   return (
-    <div style={{ animation: 'fadeIn 0.3s ease' }}>
+    <div className="animate-[fadeIn_0.3s_ease]">
       {/* Header controls */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: 16, marginBottom: 24 }}>
-        <Card>
+      <div className="grid grid-cols-1 lg:grid-cols-[1fr_auto] gap-4 mb-6">
+        <Card className="flex-1">
           <SectionHeader title="Device & Session Control" subtitle="Start a live monitoring session" />
-          <div style={{ display: 'flex', gap: 12, alignItems: 'flex-end', flexWrap: 'wrap' }}>
-            <div style={{ flex: 1, minWidth: 180 }}>
-              <label style={{ display: 'block', fontSize: 11, fontWeight: 700, letterSpacing: 1, color: 'var(--text-muted)', marginBottom: 6, textTransform: 'uppercase' }}>Device</label>
-              <select value={selectedDevice} onChange={e => setSelectedDevice(e.target.value)} disabled={isRunning}>
+          <div className="flex flex-wrap items-end gap-3">
+            <div className="flex-1 min-w-[180px]">
+              <label className="block text-[10px] font-bold tracking-widest text-[#64748B] uppercase mb-1.5">Device</label>
+              <select 
+                value={selectedDevice} 
+                onChange={e => setSelectedDevice(e.target.value)} 
+                disabled={isRunning}
+                className="w-full bg-[#0A0D14] border border-[#1E293B] rounded-xl px-4 py-2 text-white text-sm focus:outline-none focus:border-[#00E5FF] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
                 {devices.length === 0 && <option value="">No devices found</option>}
                 {devices.map(d => (
                   <option key={d.device_id || d.id || d} value={d.device_id || d.id || d}>
@@ -221,30 +226,38 @@ export default function LiveMeterPage() {
             </div>
 
             <div>
-              <label style={{ display: 'block', fontSize: 11, fontWeight: 700, letterSpacing: 1, color: 'var(--text-muted)', marginBottom: 6, textTransform: 'uppercase' }}>Duration</label>
-              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+              <label className="block text-[10px] font-bold tracking-widest text-[#64748B] uppercase mb-1.5">Duration</label>
+              <div className="flex flex-wrap gap-2">
                 {DURATION_PRESETS.map(m => (
-                  <button key={m} onClick={() => { setDuration(m); setCustomDuration(''); }} disabled={isRunning} style={{
-                    padding: '7px 12px', borderRadius: 6, fontSize: 12, fontWeight: 600, cursor: isRunning ? 'not-allowed' : 'pointer',
-                    border: '1px solid', borderColor: duration === m && !customDuration ? 'var(--accent)' : 'var(--border-default)',
-                    background: duration === m && !customDuration ? 'var(--accent-dim)' : 'var(--bg-base)',
-                    color: duration === m && !customDuration ? 'var(--accent)' : 'var(--text-muted)',
-                  }}>{m}m</button>
+                  <button 
+                    key={m} 
+                    onClick={() => { setDuration(m); setCustomDuration(''); }} 
+                    disabled={isRunning} 
+                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all border ${
+                      isRunning ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:border-[#333B53]'
+                    } ${
+                      duration === m && !customDuration 
+                        ? 'bg-[#00E5FF]/10 text-[#00E5FF] border-[#00E5FF]/30' 
+                        : 'bg-[#0A0D14] text-[#64748B] border-[#1E293B] hover:text-white'
+                    }`}
+                  >
+                    {m}m
+                  </button>
                 ))}
                 <input
                   type="number" placeholder="Custom" disabled={isRunning}
                   value={customDuration} onChange={e => setCustomDuration(e.target.value)}
-                  style={{ width: 80 }}
+                  className="w-20 bg-[#0A0D14] border border-[#1E293B] rounded-lg px-3 py-1.5 text-white text-xs focus:outline-none focus:border-[#00E5FF] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 />
               </div>
             </div>
 
             {!isRunning ? (
-              <Btn onClick={startSession} loading={starting} disabled={!selectedDevice} icon={<Play size={14} />} variant="primary">
+              <Btn onClick={startSession} loading={starting} disabled={!selectedDevice} icon={<Play size={14} />} variant="primary" className="shrink-0">
                 Start Session
               </Btn>
             ) : (
-              <Btn onClick={stopSession} loading={stopping} icon={<StopCircle size={14} />} variant="danger">
+              <Btn onClick={stopSession} loading={stopping} icon={<StopCircle size={14} />} variant="danger" className="shrink-0">
                 Stop
               </Btn>
             )}
@@ -252,23 +265,23 @@ export default function LiveMeterPage() {
         </Card>
 
         {/* Status */}
-        <Card style={{ minWidth: 180, display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', gap: 8 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            {wsStatus === 'connected' ? <Wifi size={20} style={{ color: 'var(--green)' }} /> : wsStatus === 'connecting' ? <Radio size={20} style={{ color: 'var(--yellow)', animation: 'blink 1s infinite' }} /> : <WifiOff size={20} style={{ color: 'var(--text-muted)' }} />}
-            <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: wsStatus === 'connected' ? 'var(--green)' : wsStatus === 'connecting' ? 'var(--yellow)' : 'var(--text-muted)', textTransform: 'uppercase' }}>{wsStatus}</span>
+        <Card className="min-w-[180px] flex flex-col justify-center items-center gap-2">
+          <div className="flex items-center gap-2">
+            {wsStatus === 'connected' ? <Wifi size={20} className="text-green-400" /> : wsStatus === 'connecting' ? <Radio size={20} className="text-yellow-400 animate-pulse" /> : <WifiOff size={20} className="text-[#64748B]" />}
+            <span className={`font-mono text-xs font-bold uppercase tracking-widest ${wsStatus === 'connected' ? 'text-green-400' : wsStatus === 'connecting' ? 'text-yellow-400' : 'text-[#64748B]'}`}>{wsStatus}</span>
           </div>
           {isRunning && (
-            <div style={{ fontFamily: 'var(--font-mono)', fontSize: 24, fontWeight: 700, color: 'var(--accent)' }}>
+            <div className="font-mono text-2xl font-bold text-[#00E5FF]">
               {fmtSecs(elapsed)}
             </div>
           )}
-          {session && <Badge color={session.status === 'completed' ? 'green' : 'accent'}>{session.status || 'running'}</Badge>}
+          {session && <Badge color={session.status === 'completed' ? 'green' : 'accent'} className="uppercase font-bold tracking-widest !text-[9px]">{session.status || 'running'}</Badge>}
         </Card>
       </div>
 
       {/* Live metrics */}
       {liveData && (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 12, marginBottom: 20 }}>
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 mb-5">
           {[
             { label: 'Power', value: `${fmtF(liveData.power_w || liveData.power)} W`, color: 'accent', glow: true },
             { label: 'Voltage', value: `${fmtF(liveData.voltage_v || liveData.voltage)} V`, color: 'yellow' },
@@ -283,22 +296,26 @@ export default function LiveMeterPage() {
 
       {/* Env metrics */}
       {liveData && (liveData.temperature_c !== undefined || liveData.humidity_pct !== undefined) && (
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 20 }}>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-5">
           <Card>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              <Thermometer size={24} style={{ color: 'var(--orange)' }} />
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-xl bg-orange-500/10 flex items-center justify-center shrink-0">
+                <Thermometer size={24} className="text-orange-400" />
+              </div>
               <div>
-                <div style={{ fontSize: 11, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: 1 }}>Temperature</div>
-                <div style={{ fontFamily: 'var(--font-mono)', fontSize: 28, fontWeight: 700, color: 'var(--orange)' }}>{fmtF(liveData.temperature_c)}°C</div>
+                <div className="text-[10px] font-bold tracking-widest text-[#64748B] uppercase mb-1">Temperature</div>
+                <div className="font-mono text-2xl font-bold text-orange-400">{fmtF(liveData.temperature_c)}°C</div>
               </div>
             </div>
           </Card>
           <Card>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              <Droplets size={24} style={{ color: 'var(--accent)' }} />
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-xl bg-[#00E5FF]/10 flex items-center justify-center shrink-0">
+                <Droplets size={24} className="text-[#00E5FF]" />
+              </div>
               <div>
-                <div style={{ fontSize: 11, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: 1 }}>Humidity</div>
-                <div style={{ fontFamily: 'var(--font-mono)', fontSize: 28, fontWeight: 700, color: 'var(--accent)' }}>{fmtF(liveData.humidity_pct)}%</div>
+                <div className="text-[10px] font-bold tracking-widest text-[#64748B] uppercase mb-1">Humidity</div>
+                <div className="font-mono text-2xl font-bold text-[#00E5FF]">{fmtF(liveData.humidity_pct)}%</div>
               </div>
             </div>
           </Card>
@@ -307,20 +324,20 @@ export default function LiveMeterPage() {
 
       {/* Chart */}
       {chartData.length > 0 && (
-        <Card style={{ marginBottom: 20 }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
-            <SectionHeader title="Live Waveform" subtitle={`${chartData.length} data points`} />
-            <div style={{ display: 'flex', gap: 8 }}>
-              <Btn size="sm" variant="ghost" icon={<Download size={12} />} onClick={() => downloadData('csv')}>CSV</Btn>
-              <Btn size="sm" variant="ghost" icon={<Download size={12} />} onClick={() => downloadData('json')}>JSON</Btn>
+        <Card className="mb-5">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
+            <SectionHeader title="Live Waveform" subtitle={`${chartData.length} data points`} className="!mb-0" />
+            <div className="flex gap-2">
+              <Btn size="sm" variant="ghost" icon={<Download size={14} />} onClick={() => downloadData('csv')}>CSV</Btn>
+              <Btn size="sm" variant="ghost" icon={<Download size={14} />} onClick={() => downloadData('json')}>JSON</Btn>
             </div>
           </div>
-          <ResponsiveContainer width="100%" height={200}>
+          <ResponsiveContainer width="100%" height={240}>
             <LineChart data={chartData}>
               <CartesianGrid stroke="var(--border-subtle)" strokeDasharray="3 3" />
-              <XAxis dataKey="time" tick={{ fill: 'var(--text-muted)', fontSize: 9 }} axisLine={false} tickLine={false} interval="preserveStartEnd" />
-              <YAxis yAxisId="power" orientation="left" tick={{ fill: 'var(--text-muted)', fontSize: 9 }} axisLine={false} tickLine={false} width={50} />
-              <YAxis yAxisId="current" orientation="right" tick={{ fill: 'var(--text-muted)', fontSize: 9 }} axisLine={false} tickLine={false} width={40} />
+              <XAxis dataKey="time" tick={{ fill: 'var(--text-muted)', fontSize: 10 }} axisLine={false} tickLine={false} interval="preserveStartEnd" />
+              <YAxis yAxisId="power" orientation="left" tick={{ fill: 'var(--text-muted)', fontSize: 10 }} axisLine={false} tickLine={false} width={50} />
+              <YAxis yAxisId="current" orientation="right" tick={{ fill: 'var(--text-muted)', fontSize: 10 }} axisLine={false} tickLine={false} width={40} />
               <Tooltip content={<CustomTooltip />} />
               <Line yAxisId="power" type="monotone" dataKey="power" name="Power (W)" stroke="#00D4FF" strokeWidth={2} dot={false} />
               <Line yAxisId="current" type="monotone" dataKey="current" name="Current (A)" stroke="#22D48A" strokeWidth={1.5} dot={false} strokeDasharray="4 2" />
@@ -333,20 +350,16 @@ export default function LiveMeterPage() {
       {selectedDevice && (
         <Card>
           <SectionHeader title="Relay Control" subtitle="Toggle the device relay remotely" />
-          <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-            <div style={{
-              width: 12, height: 12, borderRadius: '50%',
-              background: relayState ? 'var(--green)' : 'var(--text-disabled)',
-              boxShadow: relayState ? '0 0 10px var(--green)' : 'none',
-              transition: '0.3s',
-            }} />
-            <span style={{ color: 'var(--text-secondary)', fontSize: 13 }}>
+          <div className="flex items-center gap-4 bg-[#0A0D14] p-4 rounded-xl border border-[#1E293B]">
+            <div className={`w-3 h-3 rounded-full transition-all duration-300 ${relayState ? 'bg-green-400 shadow-[0_0_10px_rgba(74,222,128,0.8)]' : 'bg-[#64748B]'}`} />
+            <span className="text-[#94A3B8] text-sm font-medium">
               Relay is {relayState ? 'ON' : 'OFF'}
             </span>
             <Btn
               onClick={toggleRelay}
               variant={relayState ? 'danger' : 'success'}
               icon={<Zap size={14} />}
+              className="ml-auto"
             >
               Turn {relayState ? 'Off' : 'On'}
             </Btn>

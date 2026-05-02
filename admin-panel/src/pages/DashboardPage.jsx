@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Zap, TrendingUp, TrendingDown, DollarSign, Activity,
-  Plug, FileText, Target, ShieldAlert, ArrowRight, RefreshCw
+  Plug, FileText, Target, ShieldAlert, ArrowRight, RefreshCw, Sun
 } from 'lucide-react';
 import {
   AreaChart, Area, LineChart, Line, BarChart, Bar,
@@ -15,13 +15,10 @@ import { Card, StatCard, SectionHeader, Btn, PageLoader, EmptyState } from '../c
 const CustomTooltip = ({ active, payload, label }) => {
   if (!active || !payload?.length) return null;
   return (
-    <div style={{
-      background: 'var(--bg-elevated)', border: '1px solid var(--border-default)',
-      borderRadius: 8, padding: '8px 12px', fontSize: 12,
-    }}>
-      <p style={{ color: 'var(--text-muted)', marginBottom: 4 }}>{label}</p>
+    <div className="bg-[#131520] border border-[#1E293B] rounded-xl p-3 text-xs shadow-lg">
+      <p className="text-[#64748B] mb-1 font-medium">{label}</p>
       {payload.map((p, i) => (
-        <p key={i} style={{ color: p.color, fontWeight: 600 }}>
+        <p key={i} style={{ color: p.color }} className="font-bold">
           {p.name}: {p.value}
         </p>
       ))}
@@ -78,10 +75,11 @@ export default function DashboardPage() {
   }));
 
   const quickActions = [
-    { label: 'Add Bill',         icon: FileText,    to: '/bills',      color: 'var(--accent)' },
-    { label: 'Live Meter',       icon: Activity,    to: '/live',       color: 'var(--green)' },
-    { label: 'Budget Plans',     icon: Target,      to: '/plans',      color: 'var(--yellow)' },
-    { label: 'Safety',           icon: ShieldAlert, to: '/safety',     color: 'var(--red)' },
+    { label: 'Add Bill',         icon: FileText,    to: '/d/analysis', color: 'var(--accent)' },
+    { label: 'Live Meter',       icon: Activity,    to: '/d/monitoring',color: 'var(--green)' },
+    { label: 'NILM Report',      icon: Zap,         to: '/d/nilm',     color: 'var(--purple)' },
+    { label: 'Solar Sizing',     icon: Sun,         to: '/d/solar',    color: 'var(--yellow)' },
+    { label: 'Safety',           icon: ShieldAlert, to: '/d/safety',   color: 'var(--red)' },
   ];
 
   if (!selectedAccount) return (
@@ -95,32 +93,26 @@ export default function DashboardPage() {
   if (loading) return <PageLoader />;
 
   return (
-    <div style={{ animation: 'fadeIn 0.3s ease' }}>
+    <div className="animate-[fadeIn_0.3s_ease]">
       {/* Welcome strip */}
-      <div style={{
-        background: 'linear-gradient(135deg, var(--bg-card) 0%, var(--bg-elevated) 100%)',
-        border: '1px solid var(--border-subtle)',
-        borderRadius: 'var(--radius-xl)', padding: '20px 24px',
-        marginBottom: 24, display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        overflow: 'hidden', position: 'relative',
-      }}>
-        <div style={{ position: 'absolute', right: -40, top: -40, width: 200, height: 200, background: 'radial-gradient(circle, var(--accent-dim) 0%, transparent 70%)', borderRadius: '50%' }} />
-        <div>
-          <p style={{ color: 'var(--text-muted)', fontSize: 12, marginBottom: 2 }}>Welcome back</p>
-          <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 22, fontWeight: 800, color: 'var(--text-primary)' }}>
+      <div className="bg-gradient-to-br from-[#0A0D14] to-[#131520] border border-[#1E293B] rounded-[24px] p-6 mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4 relative overflow-hidden">
+        <div className="absolute -right-10 -top-10 w-48 h-48 bg-[radial-gradient(circle,rgba(0,229,255,0.15)_0%,transparent_70%)] rounded-full" />
+        <div className="relative z-10">
+          <p className="text-[#64748B] text-xs mb-1 uppercase tracking-wider font-bold">Welcome back</p>
+          <h2 className="font-display text-2xl sm:text-3xl font-black text-white">
             {user?.name || user?.email?.split('@')[0] || 'User'} ⚡
           </h2>
-          <p style={{ color: 'var(--text-secondary)', fontSize: 13, marginTop: 4 }}>
-            Account <span style={{ fontFamily: 'var(--font-mono)', color: 'var(--accent)' }}>{selectedAccount}</span>
+          <p className="text-[#94A3B8] text-sm mt-1">
+            Account <span className="font-mono text-[#00E5FF] font-bold">{selectedAccount}</span>
           </p>
         </div>
-        <Btn icon={<RefreshCw size={14} />} variant="secondary" size="sm" onClick={() => window.location.reload()}>
+        <Btn icon={<RefreshCw size={14} />} variant="secondary" size="sm" onClick={() => window.location.reload()} className="relative z-10 w-fit">
           Refresh
         </Btn>
       </div>
 
       {/* Stat cards */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16, marginBottom: 24 }}>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         <StatCard
           label="Latest Bill"
           value={latestBill ? `Rs. ${(latestBill.amount || latestBill.total_amount || 0).toLocaleString()}` : '—'}
@@ -153,7 +145,7 @@ export default function DashboardPage() {
       </div>
 
       {/* Charts row */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 24 }}>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
         {/* Usage trend */}
         <Card>
           <SectionHeader title="Consumption Trend" subtitle="Monthly kWh usage" />
@@ -198,9 +190,9 @@ export default function DashboardPage() {
       </div>
 
       {/* Bottom row */}
-      <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 16 }}>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         {/* Appliance power chart */}
-        <Card>
+        <Card className="lg:col-span-2">
           <SectionHeader
             title="Appliance Power Ratings"
             subtitle="Top registered appliances (Watt)"
@@ -224,34 +216,24 @@ export default function DashboardPage() {
         {/* Quick actions */}
         <Card>
           <SectionHeader title="Quick Actions" />
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          <div className="flex flex-col gap-2">
             {quickActions.map(({ label, icon: Icon, to, color }) => (
               <button
                 key={to}
                 onClick={() => navigate(to)}
-                style={{
-                  display: 'flex', alignItems: 'center', gap: 12,
-                  padding: '12px 14px',
-                  background: 'var(--bg-surface)',
-                  border: '1px solid var(--border-subtle)',
-                  borderRadius: 'var(--radius-md)',
-                  color: 'var(--text-primary)',
-                  cursor: 'pointer', transition: 'all 0.15s',
-                  fontFamily: 'var(--font-body)', fontSize: 13, fontWeight: 500,
-                  textAlign: 'left',
-                }}
-                onMouseEnter={e => { e.currentTarget.style.borderColor = color; e.currentTarget.style.background = 'var(--bg-elevated)'; }}
-                onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border-subtle)'; e.currentTarget.style.background = 'var(--bg-surface)'; }}
+                className="flex items-center gap-3 p-3 bg-[#0A0D14] border border-[#1E293B] rounded-xl text-white cursor-pointer transition-all duration-200 text-sm font-bold text-left group hover:bg-[#131520]"
+                style={{ '--hover-color': color }}
+                onMouseEnter={e => { e.currentTarget.style.borderColor = color; }}
+                onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border-subtle)'; }}
               >
-                <div style={{
-                  width: 32, height: 32, borderRadius: 8,
-                  background: color + '18',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                }}>
-                  <Icon size={15} style={{ color }} />
+                <div 
+                  className="w-10 h-10 rounded-lg flex items-center justify-center shrink-0 transition-colors"
+                  style={{ background: `${color}15` }}
+                >
+                  <Icon size={18} style={{ color }} />
                 </div>
                 <span>{label}</span>
-                <ArrowRight size={12} style={{ marginLeft: 'auto', color: 'var(--text-muted)' }} />
+                <ArrowRight size={14} className="ml-auto text-[#64748B] group-hover:text-white transition-colors" />
               </button>
             ))}
           </div>

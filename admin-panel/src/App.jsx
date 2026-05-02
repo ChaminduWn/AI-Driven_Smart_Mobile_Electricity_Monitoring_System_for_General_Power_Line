@@ -18,6 +18,13 @@ import DashboardPage from './pages/DashboardPage';
 import AnalysisPage from './pages/AnalysisPage';
 import SafetyPage from './pages/SafetyPage';
 import LiveMeterPage from './pages/LiveMeterPage';
+import SolarPage from './pages/SolarPage';
+import NILMPage from './pages/NILMPage';
+import AppliancesPage from './pages/AppliancesPage';
+import BillsPage from './pages/BillsPage';
+import PlansPage from './pages/PlansPage';
+import SmartInsightsPage from './pages/SmartInsightsPage';
+import TariffPage from './pages/TariffPage';
 
 import Home from './pages/Homepage';
 import MobileAppView from './pages/MobileAppView';
@@ -29,9 +36,39 @@ import ProfilePage from './pages/ProfilePage';
 
 const theme = createTheme({
   palette: {
-    mode: 'light',
-    primary: { main: '#1976d2' },
-    secondary: { main: '#dc004e' },
+    mode: 'dark',
+    primary: { main: '#00E5FF' }, // Cyan
+    secondary: { main: '#3B82F6' }, // Blue
+    background: {
+      default: '#0A0D14', // Base bg
+      paper: '#131520', // Card bg
+    },
+    text: {
+      primary: '#ffffff',
+      secondary: '#94A3B8',
+    },
+  },
+  typography: {
+    fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+  },
+  components: {
+    MuiDrawer: {
+      styleOverrides: {
+        paper: {
+          backgroundColor: '#0A0D14',
+          borderRight: '1px solid #1E293B',
+        },
+      },
+    },
+    MuiAppBar: {
+      styleOverrides: {
+        root: {
+          backgroundColor: '#0A0D14',
+          borderBottom: '1px solid #1E293B',
+          boxShadow: 'none',
+        },
+      },
+    },
   },
 });
 
@@ -56,16 +93,12 @@ function App() {
             <Route element={<PublicLayout />}>
               <Route path="/" element={<Home />} />
 
-              {/* Public Modules */}
-              <Route path="/Solar Intelligence" element={<AnalysisPage />} />
-              <Route path="/Safety Assistant" element={<SafetyPage />} />
-
-              {/* Protected Modules */}
-              <Route element={<ProtectedRoute />}>
-                <Route path="/Energy Analysis" element={<AnalysisPage />}/>
-                <Route path="/Outage Tracking" element={<LiveMeterPage />} />
-                <Route path="/profile" element={<ProfilePage />} />
-              </Route>
+              {/* Legacy Route Redirects */}
+              <Route path="/Solar Intelligence" element={<Navigate to="/d/solar" replace />} />
+              <Route path="/Safety Assistant" element={<Navigate to="/d/safety" replace />} />
+              <Route path="/Energy Analysis" element={<Navigate to="/d/analysis" replace />} />
+              <Route path="/Outage Tracking" element={<Navigate to="/d/monitoring" replace />} />
+              <Route path="/profile" element={<Navigate to="/d/profile" replace />} />
               
               <Route path="/login" element={<UserLoginPage />} />
               <Route path="/register" element={<UserRegisterPage />} />
@@ -84,9 +117,15 @@ function App() {
               <Route element={<DashboardLayout />}>
                 <Route index element={<DashboardPage />} />
                 <Route path="analysis" element={<AnalysisPage />} />
+                <Route path="insights" element={<SmartInsightsPage />} />
+                <Route path="nilm" element={<NILMPage />} />
                 <Route path="monitoring" element={<LiveMeterPage />} />
-                <Route path="solar" element={<AnalysisPage />} />
+                <Route path="solar" element={<SolarPage />} />
                 <Route path="safety" element={<SafetyPage />} />
+                <Route path="appliances" element={<AppliancesPage />} />
+                <Route path="bills" element={<BillsPage />} />
+                <Route path="plans" element={<PlansPage />} />
+                <Route path="tariff" element={<TariffPage />} />
                 <Route path="profile" element={<ProfilePage />} />
                 <Route path="homepage" element={<Home/>} />
               </Route>

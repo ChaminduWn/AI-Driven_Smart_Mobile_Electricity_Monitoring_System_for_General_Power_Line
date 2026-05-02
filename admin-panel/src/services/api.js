@@ -54,6 +54,12 @@ export const safetyAPI = {
   getWeather: (loc) => apiClient.get(`/api/v1/safety/weather?location=${loc}`),
 };
 
+export const nilmAPI = {
+  verifySetup: (acc) => apiClient.get(`/api/v1/nilm/setup/${acc}`),
+  getAccuracyReport: (acc) => apiClient.get(`/api/v1/nilm/accuracy/${acc}`),
+  disaggregate: (acc) => apiClient.post(`/api/v1/nilm/disaggregate/${acc}`),
+};
+
 export const plansAPI = {}; // Placeholder if imported but not specifically used as plansAPI.method
 
 export default apiClient;

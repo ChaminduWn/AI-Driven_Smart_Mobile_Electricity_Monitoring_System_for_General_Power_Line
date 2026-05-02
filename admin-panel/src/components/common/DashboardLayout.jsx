@@ -27,6 +27,12 @@ import {
   Security,
   AccountCircle,
   ExitToApp,
+  Analytics,
+  Receipt,
+  FactCheck,
+  Kitchen,
+  Lightbulb,
+  Calculate
 } from '@mui/icons-material';
 import { useAuth } from '../../contexts/AuthContext';
 
@@ -34,8 +40,13 @@ const drawerWidth = 240;
 
 const menuItems = [
   { text: 'Overview', icon: <DashboardIcon />, path: '/d' },
-  { text: 'Profile', icon: <AccountCircle />, path: '/d/profile' },
+  { text: 'Appliances', icon: <Kitchen />, path: '/d/appliances' },
+  { text: 'Bills & Usage', icon: <Receipt />, path: '/d/bills' },
+  { text: 'Budget Plans', icon: <FactCheck />, path: '/d/plans' },
+  { text: 'Tariff Calculator', icon: <Calculate />, path: '/d/tariff' },
+  { text: 'Smart Insights', icon: <Lightbulb />, path: '/d/insights' },
   { text: 'Energy Analysis', icon: <ElectricBolt />, path: '/d/analysis' },
+  { text: 'NILM Report', icon: <Analytics />, path: '/d/nilm' },
   { text: 'Live Monitoring', icon: <ReportProblem />, path: '/d/monitoring' },
   { text: 'Solar Intelligence', icon: <WbSunny />, path: '/d/solar' },
   { text: 'Safety Assistant', icon: <Security />, path: '/d/safety' },
@@ -71,9 +82,19 @@ export default function DashboardLayout() {
 
   const drawer = (
     <div>
-      <Toolbar>
-        <Typography variant="h6" noWrap component="div">
-          EnergyIQ Admin
+      <Toolbar sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+        <Box sx={{ 
+          width: 32, height: 32, 
+          backgroundColor: '#3B82F6', 
+          borderRadius: 2, 
+          display: 'flex', justifyContent: 'center', alignItems: 'center' 
+        }}>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="#F97316">
+            <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />
+          </svg>
+        </Box>
+        <Typography variant="h6" noWrap component="div" sx={{ fontWeight: 800, fontFamily: 'var(--font-display)', letterSpacing: '-0.5px' }}>
+          EnergyIQ
         </Typography>
       </Toolbar>
       <Divider />
@@ -119,8 +140,8 @@ export default function DashboardLayout() {
           >
             <MenuIcon />
           </IconButton>
-          <Typography variant="h6" noWrap component="div">
-            Electricity Management System
+          <Typography variant="h6" noWrap component="div" sx={{ fontFamily: 'var(--font-display)', fontWeight: 600 }}>
+            EnergyIQ Admin Panel
           </Typography>
           <Box sx={{ flexGrow: 1 }} />
           <Box sx={{ display: 'flex', alignItems: 'center' }}>

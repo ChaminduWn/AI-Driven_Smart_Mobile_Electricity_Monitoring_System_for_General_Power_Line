@@ -20,58 +20,51 @@ function BillCard({ bill, onView, onDelete }) {
   const isPaid = bill.is_paid || bill.paid || false;
 
   return (
-    <div style={{
-      background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)',
-      borderRadius: 'var(--radius-md)', overflow: 'hidden',
-      transition: 'border-color 0.2s',
-    }}>
+    <div className="bg-[#0A0D14] border border-[#1E293B] rounded-xl overflow-hidden transition-colors hover:border-[#333B53]">
       <div
-        style={{ padding: '14px 16px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 12 }}
+        className="px-4 py-3.5 cursor-pointer flex items-center gap-3 bg-[#131520] hover:bg-[#1A1E2D] transition-colors"
         onClick={() => setOpen(!open)}
       >
-        <div style={{
-          width: 36, height: 36, borderRadius: 8,
-          background: 'var(--accent-dim)', display: 'flex', alignItems: 'center', justifyContent: 'center',
-        }}>
-          <FileText size={16} style={{ color: 'var(--accent)' }} />
+        <div className="w-10 h-10 rounded-lg bg-[#00E5FF]/10 flex items-center justify-center shrink-0">
+          <FileText size={18} className="text-[#00E5FF]" />
         </div>
-        <div style={{ flex: 1 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <span style={{ fontWeight: 600, color: 'var(--text-primary)', fontSize: 14 }}>{month}</span>
-            <Badge color={isPaid ? 'green' : 'yellow'}>{isPaid ? 'Paid' : 'Unpaid'}</Badge>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 mb-1">
+            <span className="font-bold text-white text-sm truncate">{month}</span>
+            <Badge color={isPaid ? 'green' : 'yellow'} className="!text-[9px] !px-2 !py-0.5 shrink-0">{isPaid ? 'Paid' : 'Unpaid'}</Badge>
           </div>
-          <div style={{ color: 'var(--text-muted)', fontSize: 12, marginTop: 2 }}>
+          <div className="text-[#64748B] text-xs">
             {units} kWh · Due: {bill.due_date ? new Date(bill.due_date).toLocaleDateString() : 'N/A'}
           </div>
         </div>
-        <div style={{ textAlign: 'right' }}>
-          <div style={{ fontFamily: 'var(--font-mono)', fontSize: 18, fontWeight: 700, color: 'var(--accent)' }}>
+        <div className="text-right shrink-0">
+          <div className="font-mono text-lg font-bold text-[#00E5FF]">
             Rs. {amount.toLocaleString()}
           </div>
         </div>
-        <div style={{ color: 'var(--text-muted)' }}>
-          {open ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+        <div className="text-[#64748B] shrink-0 ml-2">
+          {open ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
         </div>
       </div>
 
       {open && (
-        <div style={{ borderTop: '1px solid var(--border-subtle)', padding: '14px 16px', background: 'var(--bg-base)' }}>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10, marginBottom: 12 }}>
+        <div className="border-t border-[#1E293B] p-4 bg-[#0A0D14]">
+          <div className="grid grid-cols-3 gap-3 mb-4">
             {[
               { label: 'Meter Start', value: bill.meter_reading_start ?? '—' },
               { label: 'Meter End', value: bill.meter_reading_end ?? '—' },
               { label: 'Rate (Rs/kWh)', value: units ? (amount / units).toFixed(2) : '—' },
             ].map(({ label, value }) => (
-              <div key={label} style={{ textAlign: 'center' }}>
-                <div style={{ fontSize: 10, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: 1 }}>{label}</div>
-                <div style={{ fontFamily: 'var(--font-mono)', fontWeight: 700, color: 'var(--text-secondary)', marginTop: 2 }}>{value}</div>
+              <div key={label} className="text-center bg-[#131520] p-2 rounded-lg border border-[#1E293B]/50">
+                <div className="text-[9px] text-[#64748B] uppercase tracking-wider font-bold mb-1">{label}</div>
+                <div className="font-mono font-bold text-white text-xs truncate">{value}</div>
               </div>
             ))}
           </div>
-          {bill.notes && <p style={{ color: 'var(--text-muted)', fontSize: 12, marginBottom: 12 }}>{bill.notes}</p>}
-          <div style={{ display: 'flex', gap: 8 }}>
-            <Btn size="sm" variant="secondary" icon={<Eye size={12} />} onClick={() => onView(bill)}>View Analysis</Btn>
-            <Btn size="sm" variant="danger" icon={<Trash2 size={12} />} onClick={() => onDelete(bill)}>Delete</Btn>
+          {bill.notes && <p className="text-[#94A3B8] text-xs mb-4 p-3 bg-[#131520] rounded-lg border border-[#1E293B]/50">{bill.notes}</p>}
+          <div className="flex gap-2 justify-end">
+            <Btn size="sm" variant="secondary" icon={<Eye size={14} />} onClick={() => onView(bill)}>Analysis</Btn>
+            <Btn size="sm" variant="danger" icon={<Trash2 size={14} />} onClick={() => onDelete(bill)}>Delete</Btn>
           </div>
         </div>
       )}
@@ -140,8 +133,8 @@ export default function BillsPage() {
   if (loading) return <PageLoader />;
 
   return (
-    <div style={{ animation: 'fadeIn 0.3s ease' }}>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16, marginBottom: 24 }}>
+    <div className="animate-[fadeIn_0.3s_ease]">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
         <StatCard label="Total Bills" value={bills.length} sub="All time records" icon={FileText} color="accent" />
         <StatCard label="Total Units" value={`${totalUnits.toLocaleString()} kWh`} sub="All recorded consumption" icon={Zap} color="yellow" />
         <StatCard label="Avg Monthly" value={`Rs. ${Number(avgMonthly).toLocaleString()}`} sub="Average bill amount" icon={DollarSign} color="green" glow />
@@ -150,9 +143,9 @@ export default function BillsPage() {
       {error && <ErrorBanner message={error} onRetry={load} />}
 
       <Card>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
-          <SectionHeader title="Electricity Bills" subtitle={`${bills.length} bill${bills.length !== 1 ? 's' : ''} on record`} />
-          <Btn icon={<Plus size={14} />} onClick={() => setModal(true)}>Add Bill</Btn>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-5 border-b border-[#1E293B] pb-5">
+          <SectionHeader title="Electricity Bills" subtitle={`${bills.length} bill${bills.length !== 1 ? 's' : ''} on record`} className="!mb-0" />
+          <Btn icon={<Plus size={14} />} onClick={() => setModal(true)} className="shrink-0">Add Bill</Btn>
         </div>
 
         {bills.length === 0 ? (
@@ -163,7 +156,7 @@ export default function BillsPage() {
             action={<Btn icon={<Plus size={14} />} onClick={() => setModal(true)}>Add First Bill</Btn>}
           />
         ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <div className="flex flex-col gap-3">
             {bills.map(b => (
               <BillCard
                 key={b.id || b._id}
@@ -177,27 +170,27 @@ export default function BillsPage() {
       </Card>
 
       <Modal open={modal} onClose={() => setModal(false)} title="Add New Bill" width={520}>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-          <Field label="Billing Month" style={{ gridColumn: '1/-1' }}>
-            <input type="month" value={form.billing_month} onChange={set('billing_month')} />
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <Field label="Billing Month" className="sm:col-span-2">
+            <input type="month" value={form.billing_month} onChange={set('billing_month')} className="w-full bg-[#0A0D14] border border-[#1E293B] rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[#00E5FF] transition-colors" />
           </Field>
           <Field label="Units Consumed (kWh)" hint="Total kWh for this period">
-            <input type="number" step="0.1" value={form.units_consumed} onChange={set('units_consumed')} placeholder="e.g. 250" />
+            <input type="number" step="0.1" value={form.units_consumed} onChange={set('units_consumed')} placeholder="e.g. 250" className="w-full bg-[#0A0D14] border border-[#1E293B] rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[#00E5FF] transition-colors" />
           </Field>
           <Field label="Amount (Rs.)">
-            <input type="number" step="0.01" value={form.amount} onChange={set('amount')} placeholder="e.g. 4500" />
+            <input type="number" step="0.01" value={form.amount} onChange={set('amount')} placeholder="e.g. 4500" className="w-full bg-[#0A0D14] border border-[#1E293B] rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[#00E5FF] transition-colors" />
           </Field>
           <Field label="Meter Reading Start">
-            <input type="number" value={form.meter_reading_start} onChange={set('meter_reading_start')} placeholder="e.g. 12300" />
+            <input type="number" value={form.meter_reading_start} onChange={set('meter_reading_start')} placeholder="e.g. 12300" className="w-full bg-[#0A0D14] border border-[#1E293B] rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[#00E5FF] transition-colors" />
           </Field>
           <Field label="Meter Reading End">
-            <input type="number" value={form.meter_reading_end} onChange={set('meter_reading_end')} placeholder="e.g. 12550" />
+            <input type="number" value={form.meter_reading_end} onChange={set('meter_reading_end')} placeholder="e.g. 12550" className="w-full bg-[#0A0D14] border border-[#1E293B] rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[#00E5FF] transition-colors" />
           </Field>
-          <Field label="Due Date" style={{ gridColumn: '1/-1' }}>
-            <input type="date" value={form.due_date} onChange={set('due_date')} />
+          <Field label="Due Date" className="sm:col-span-2">
+            <input type="date" value={form.due_date} onChange={set('due_date')} className="w-full bg-[#0A0D14] border border-[#1E293B] rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[#00E5FF] transition-colors" />
           </Field>
         </div>
-        <div style={{ display: 'flex', gap: 10, marginTop: 20, justifyContent: 'flex-end' }}>
+        <div className="flex gap-3 mt-6 justify-end">
           <Btn variant="ghost" onClick={() => setModal(false)}>Cancel</Btn>
           <Btn loading={saving} onClick={handleSave}>Save Bill</Btn>
         </div>
