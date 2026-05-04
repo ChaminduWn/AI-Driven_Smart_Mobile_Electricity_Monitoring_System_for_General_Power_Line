@@ -49,7 +49,7 @@ app.json = _SafeJSONProvider(app)
 
 
 
-DB_FILE = 'solar_app.db'
+DB_FILE = os.path.join(os.path.dirname(__file__), 'solar_app.db')
 
 def get_db():
     conn = sqlite3.connect(DB_FILE)
@@ -136,7 +136,7 @@ def auth_required():
 
 
 
-MODEL_FILE = 'solar_ml_models.pkl'
+MODEL_FILE = os.path.join(os.path.dirname(__file__), 'solar_ml_models.pkl')
 
 models = {}
 encoders = {}
