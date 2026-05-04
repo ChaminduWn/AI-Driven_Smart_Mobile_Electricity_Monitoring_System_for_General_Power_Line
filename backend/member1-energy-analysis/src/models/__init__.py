@@ -18,6 +18,7 @@ from src.models.budget_plan import (
 )
 from src.models.iot_reading import LiveMeterReading, ApplianceEvent, IoTReading
 from src.models.device_session import DeviceSession, DeviceReading, DeviceApplianceEvent  # ← ADDED
+from src.models.outage import BoardReport, Job, Message  # ← ADDED (Outage Integration)
 
 # Export all models
 __all__ = [
@@ -37,4 +38,7 @@ __all__ = [
     'DeviceSession',            # ← ADDED
     'DeviceReading',            # ← ADDED
     'DeviceApplianceEvent',     # ← ADDED
+    'BoardReport',              # ← ADDED (Outage)
+    'Job',                      # ← ADDED (Outage)
+    'Message',                  # ← ADDED (Outage)
 ]

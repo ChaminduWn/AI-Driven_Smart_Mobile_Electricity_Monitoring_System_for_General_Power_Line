@@ -15,8 +15,8 @@ export const theme = {
         danger: '#EF4444',           // Red
         dangerDark: '#DC2626',
         text: '#FFFFFF',
-        textSecondary: '#94A3B8',    // Slate 400
-        textMuted: '#64748B',        // Slate 500
+        textSecondary: '#CBD5E1',    // Slate 300 (Brighter)
+        textMuted: '#94A3B8',        // Slate 400 (Brighter)
         border: '#334155',           // Slate 700
         borderLight: '#475569',      // Slate 600
         inputBackground: '#1E293B',

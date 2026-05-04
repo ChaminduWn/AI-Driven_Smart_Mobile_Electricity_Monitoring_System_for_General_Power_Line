@@ -32,6 +32,9 @@ from src.models import (
     DeviceSession,          # ← ADDED
     DeviceReading,          # ← ADDED
     DeviceApplianceEvent,   # ← ADDED
+    BoardReport,            # ← ADDED (Outage)
+    Job,                    # ← ADDED (Outage)
+    Message,                # ← ADDED (Outage)
 )
 
 import logging

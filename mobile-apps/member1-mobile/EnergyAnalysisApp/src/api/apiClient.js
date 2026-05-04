@@ -15,6 +15,14 @@ const apiClient = axios.create({
 apiClient.interceptors.request.use(
   async (config) => {
     try {
+      // ─── Path Fix: strip leading slash to keep it relative to baseURL ───
+      // Axios replaces the baseURL path if the url starts with a slash.
+      // e.g. baseURL='host/api/v1', url='/auth/login' -> 'host/auth/login'
+      // We want: 'host/api/v1/auth/login'
+      if (config.url?.startsWith('/')) {
+        config.url = config.url.substring(1);
+      }
+
       const token = await storage.getItem('accessToken');
       console.log(`📤 [${config.method?.toUpperCase()}] ${config.url}`);
       if (token) {

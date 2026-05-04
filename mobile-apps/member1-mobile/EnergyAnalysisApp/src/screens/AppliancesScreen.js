@@ -1,12 +1,3 @@
-/**
- * AppliancesScreen.jsx — Redesigned with:
- * ✅ Fixed AI scan (422 error was wrong FormData field + MIME type handling)
- * ✅ Professional category UI with icons & colors
- * ✅ Corrected kWh calculations (daily/weekly/monthly frequency)
- * ✅ Rich analysis view
- * ✅ Polished dark-glass aesthetic
- */
-
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   View, Text, ScrollView, StyleSheet, TouchableOpacity,
@@ -51,7 +42,7 @@ const getCatMeta = (key) =>
   CATEGORIES.find((c) => c.key === key) || CATEGORIES[CATEGORIES.length - 1];
 
 /**
- * ✅ CORRECT kWh calculation:
+ *   kWh calculation:
  *   daily_kwh  = (wattage × minutes_per_use × times_per_day) / (1000 × 60)
  *   monthly_kwh = daily_kwh × frequency_multiplier (30 for daily, 4.33 for weekly, 1 for monthly)
  */
@@ -138,7 +129,7 @@ const AppliancesScreen = () => {
     })();
   }, []);
 
-  // ── AI SCAN — FIXED 422 ──────────────────────────────────────────────────
+  // ── AI SCAN ──────────────────────────────────────────────────
   const scanImage = async () => {
     try {
       const { status } = await ImagePicker.requestCameraPermissionsAsync();
@@ -148,7 +139,7 @@ const AppliancesScreen = () => {
       }
 
       const result = await ImagePicker.launchCameraAsync({
-        // ✅ FIX 1: Use MediaType (not deprecated MediaTypeOptions)
+        // Use MediaType (not deprecated MediaTypeOptions)
         mediaTypes: ['images'],
         allowsEditing: true,
         aspect: [4, 3],
@@ -167,11 +158,11 @@ const AppliancesScreen = () => {
     setScanning(true);
     try {
       const uri = asset.uri;
-      // Improved filename handling for web/mobile to avoid 400 error (missing extension)
+      //filename handling for web/mobile to avoid 400 error
       let filename = uri.split('/').pop() || 'photo.jpg';
       let ext = filename.split('.').pop()?.toLowerCase() || 'jpg';
 
-      // Ensure we have a valid image extension for the backend
+      //valid image extension for the backend
       const validExts = ['jpg', 'jpeg', 'png', 'webp'];
       if (!validExts.includes(ext)) {
         ext = 'jpg';

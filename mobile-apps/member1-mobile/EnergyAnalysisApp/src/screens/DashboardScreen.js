@@ -19,7 +19,7 @@ import {
   formatCurrency, formatKwh, formatMonthYear,
   getStatusColor, getStatusLabel, extractAccountNumbers,
 } from '../utils/helpers';
-import { Bell, LogOut, User } from 'lucide-react-native';
+import { Bell, LogOut, User, ClipboardList } from 'lucide-react-native';
 
 /* ─────────────────────────────────────────────
    DESIGN TOKENS  (deep navy-teal dark theme)
@@ -251,284 +251,291 @@ const DashboardScreen = ({ navigation }) => {
         />
       }
     >
-      {/* ── HEADER ── */}
-      <View style={styles.header}>
-        <View>
-          <Text style={styles.headerGreeting}>Good day, {firstName} 👋</Text>
-          <Text style={styles.headerSub}>ElecSmart Management System</Text>
+        {/* ── HEADER ── */}
+        <View style={styles.header}>
+          <View>
+            <Text style={styles.headerGreeting}>Good day, {firstName} 👋</Text>
+            <Text style={styles.headerSub}>ElecSmart Management System</Text>
+          </View>
+
+          {/* Header action buttons (from v1) */}
+          <View style={styles.headerRight}>
+            {/* Activities */}
+            <TouchableOpacity
+              style={styles.headerIconBtn}
+              onPress={() => navigation.navigate('Activities')}
+            >
+              <ClipboardList size={22} color={C.textPrimary} strokeWidth={2} />
+            </TouchableOpacity>
+
+            {/* Profile */}
+            <TouchableOpacity
+              style={styles.headerIconBtn}
+              onPress={() => navigation.navigate('Profile')}
+            >
+              <User size={22} color={C.textPrimary} strokeWidth={2} />
+            </TouchableOpacity>
+
+            {/* Bell with badge */}
+            <TouchableOpacity
+              style={styles.headerIconBtn}
+              onPress={() => setShowNotifModal(true)}
+            >
+              <Bell size={22} color={C.textPrimary} strokeWidth={2} />
+              {notifications.length > 0 && (
+                <View style={styles.notifBadge}>
+                  <Text style={styles.notifBadgeText}>{notifications.length}</Text>
+                </View>
+              )}
+            </TouchableOpacity>
+
+            {/* Logout */}
+            <TouchableOpacity style={styles.logoutBtn} onPress={logout}>
+              <LogOut size={20} color={C.textSecondary} strokeWidth={2} />
+            </TouchableOpacity>
+          </View>
         </View>
 
-        {/* Header action buttons (from v1) */}
-        <View style={styles.headerRight}>
-          {/* Profile */}
+        {/* ── READING REMINDER BANNER ── */}
+        {applianceAnalysis?.reminders?.reading_needed && (
           <TouchableOpacity
-            style={styles.headerIconBtn}
-            onPress={() => navigation.navigate('Profile')}
+            style={styles.reminderBanner}
+            activeOpacity={0.9}
+            onPress={() => navigation.navigate('Tracking')}
           >
-            <User size={22} color={C.textPrimary} strokeWidth={2} />
-          </TouchableOpacity>
-
-          {/* Bell with badge */}
-          <TouchableOpacity
-            style={styles.headerIconBtn}
-            onPress={() => setShowNotifModal(true)}
-          >
-            <Bell size={22} color={C.textPrimary} strokeWidth={2} />
-            {notifications.length > 0 && (
-              <View style={styles.notifBadge}>
-                <Text style={styles.notifBadgeText}>{notifications.length}</Text>
-              </View>
-            )}
-          </TouchableOpacity>
-
-          {/* Logout */}
-          <TouchableOpacity style={styles.logoutBtn} onPress={logout}>
-            <LogOut size={20} color={C.textSecondary} strokeWidth={2} />
-          </TouchableOpacity>
-        </View>
-      </View>
-
-      {/* ── READING REMINDER BANNER ── */}
-      {applianceAnalysis?.reminders?.reading_needed && (
-        <TouchableOpacity 
-          style={styles.reminderBanner}
-          activeOpacity={0.9}
-          onPress={() => navigation.navigate('Tracking')}
-        >
-          <View style={styles.reminderIconWrap}>
-            <Text style={styles.reminderIcon}>⚠️</Text>
-          </View>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.reminderTitle}>Daily Reading Needed</Text>
-            <Text style={styles.reminderSub}>Please enter today's meter reading to keep your budget plan accurate.</Text>
-          </View>
-          <Text style={styles.reminderArrow}>→</Text>
-        </TouchableOpacity>
-      )}
-
-      {/* ── ACCOUNT SELECTOR ── */}
-      {allAccounts.length > 0 && (
-        <AccountSelector
-          selectedAccount={selectedAccount || allAccounts[0]}
-          accounts={allAccounts}
-          onSelect={selectAccount}
-        />
-      )}
-
-      {/* ── EMPTY STATE ── */}
-      {/* ── BILL HERO OR WELCOME CARD ── */}
-      {bills.length === 0 ? (
-        <GlowCard accentColor={C.energy} style={{ marginBottom: 18 }}>
-          <View style={styles.billHeroTop}>
-            <View>
-              <Text style={styles.billHeroMonth}>Welcome, {firstName}!</Text>
-              <Text style={styles.headerSub}>Start your energy journey today</Text>
+            <View style={styles.reminderIconWrap}>
+              <Text style={styles.reminderIcon}>⚠️</Text>
             </View>
-            <Pill label="New User" color={C.energy} />
-          </View>
-          <View style={styles.welcomeContent}>
-            <Text style={styles.welcomeText}>
-              Upload your first electricity bill to unlock personalized energy analysis, 
-              cost predictions, and appliance-level insights.
-            </Text>
-          </View>
-          <TouchableOpacity
-            style={[styles.analyseBtn, { backgroundColor: C.energy + '15', borderColor: C.energy + '50' }]}
-            onPress={() => navigation.navigate('Bills')}
-          >
-            <Text style={[styles.analyseBtnText, { color: C.energy }]}>📤  Upload Your First Bill  →</Text>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.reminderTitle}>Daily Reading Needed</Text>
+              <Text style={styles.reminderSub}>Please enter today's meter reading to keep your budget plan accurate.</Text>
+            </View>
+            <Text style={styles.reminderArrow}>→</Text>
           </TouchableOpacity>
-        </GlowCard>
-      ) : (
-        <>
-          {/* ── LATEST BILL HERO ── */}
-          {latestBill && (
-            <GlowCard accentColor={C.energy} style={{ marginBottom: 18 }}>
-              <View style={styles.billHeroTop}>
-                <View>
-                  <Text style={styles.billHeroMonth}>{latestBill.title || formatMonthYear(latestBill.bill_date)}</Text>
-                  <Text style={styles.billHeroAcct}>Account  ·  {latestBill.account_number}</Text>
-                </View>
-                <Pill label={latestBill.is_active_for_dashboard ? "Active" : "Latest"} color={C.energy} />
-              </View>
-              <View style={styles.billHeroNumbers}>
-                <View style={styles.billHeroNum}>
-                  <Text style={[styles.billHeroBig, { color: C.energy }]}>
-                    {formatCurrency(latestBill.total_charge)}
-                  </Text>
-                  <Text style={styles.billHeroSmall}>Total Charge</Text>
-                </View>
-                <View style={styles.billHeroDivider} />
-                <View style={styles.billHeroNum}>
-                  <Text style={[styles.billHeroBig, { color: C.solar }]}>
-                    {latestBill.units_consumed} kWh
-                  </Text>
-                  <Text style={styles.billHeroSmall}>Units Consumed</Text>
-                </View>
-              </View>
-              <TouchableOpacity
-                style={[styles.analyseBtn, { backgroundColor: C.energy + '15', borderColor: C.energy + '50' }]}
-                onPress={() => navigation.navigate('BillDetail', { bill: latestBill })}
-              >
-                <Text style={[styles.analyseBtnText, { color: C.energy }]}>📊  Analyse This Bill  →</Text>
-              </TouchableOpacity>
-            </GlowCard>
-          )}
-        </>
-      )}
+        )}
 
-      {/* ── METRIC TILES ── */}
-      <View style={styles.metricRow}>
-        <MetricTile icon="⚡" value={totalAppliances ?? '—'} label="Appliances" color={C.energy} />
-        <MetricTile icon="🔋" value={monthlyKwh ? monthlyKwh.toFixed(1) : '—'} label="Monthly kWh" color={C.solar} />
-        <MetricTile icon="💰" value={estimatedCost ? formatCurrency(estimatedCost, 0) : '—'} label="Est. Cost" color={C.safety} />
-        <MetricTile icon="📅" value={dailyAvg ? `${dailyAvg.toFixed(0)} Rs` : '—'} label="Daily Avg" color={C.outage} />
-      </View>
-
-      {/* ════════════════════════════════
-          4 MAIN MODULE CARDS
-      ════════════════════════════════ */}
-      <SLabel text="System Modules" />
-
-      <ModuleCard
-        icon="⚡"
-        title="Energy Analysis & Bill Management"
-        subtitle="Track consumption · upload bills · analyse trends"
-        accent={C.energy}
-        stat={latestBill ? formatCurrency(latestBill.total_charge, 0) : '—'}
-        statLabel="latest bill"
-        onPress={() => navigation.navigate('Bills')}
-      />
-
-      <ModuleCard
-        icon="☀️"
-        title="Solar Power Recommendation"
-        subtitle="AI-powered solar sizing · ROI calculator · guide"
-        accent={C.solar}
-        badge="New"
-        badgeColor={C.solar}
-        onPress={() => navigation.navigate('Solar')}
-      />
-
-      <ModuleCard
-        icon="🔴"
-        title="Outage Reporting & Management"
-        subtitle={user?.role === 'Electrician' ? "View job requests · manage availability" : "Report outages · live status · area fault map"}
-        accent={C.outage}
-        badge="Live"
-        badgeColor={C.outage}
-        onPress={() => {
-          if (user?.role === 'Electrician') {
-            navigation.navigate('ElectricianDashboard');
-          } else {
-            navigation.navigate('BoardIssueReport');
-          }
-        }}
-      />
-
-      <ModuleCard
-        icon="🛡️"
-        title="Safety & Disaster Management"
-        subtitle="AI assistant · live weather · emergency alerts"
-        accent={C.safety}
-        badge="AI"
-        badgeColor={C.safety}
-        onPress={() => navigation.navigate('SafetyTab')}
-      />
-
-      {/* ── ACTIVE BUDGET PLANS ── */}
-      {activePlans.length > 0 && (
-        <>
-          <SLabel
-            text="Active Budget Plans"
-            action={() => navigation.navigate('Tracking')}
-            actionLabel="View all →"
+        {/* ── ACCOUNT SELECTOR ── */}
+        {allAccounts.length > 0 && (
+          <AccountSelector
+            selectedAccount={selectedAccount || allAccounts[0]}
+            accounts={allAccounts}
+            onSelect={selectAccount}
           />
-          {activePlans.map(plan => (
-            <GlowCard key={plan.id} accentColor={getStatusColor(plan.progress_status)} style={{ marginBottom: 16 }}>
-              <View style={styles.planRow}>
-                <View>
-                  <Text style={[styles.planAmount, { color: getStatusColor(plan.progress_status) }]}>
-                    {formatCurrency(plan.target_budget)}
-                  </Text>
-                  <Text style={styles.planAmountLabel}>Target Budget</Text>
-                </View>
-                <Pill
-                  label={getStatusLabel(plan.progress_status)}
-                  color={getStatusColor(plan.progress_status)}
-                />
+        )}
+
+        {/* ── BILL HERO OR WELCOME CARD ── */}
+        {bills.length === 0 ? (
+          <GlowCard accentColor={C.energy} style={{ marginBottom: 18 }}>
+            <View style={styles.billHeroTop}>
+              <View>
+                <Text style={styles.billHeroMonth}>Welcome, {firstName}!</Text>
+                <Text style={styles.headerSub}>Start your energy journey today</Text>
               </View>
-              <Text style={styles.planMetaTxt}>
-                📅 {plan.planning_days} days  ·  🎯 {plan.target_daily_units?.toFixed(1)} kWh / day
+              <Pill label="New User" color={C.energy} />
+            </View>
+            <View style={styles.welcomeContent}>
+              <Text style={styles.welcomeText}>
+                Upload your first electricity bill to unlock personalized energy analysis,
+                cost predictions, and appliance-level insights.
               </Text>
-              
-              {/* Action buttons */}
-              <View style={{ flexDirection: 'row', gap: 10 }}>
+            </View>
+            <TouchableOpacity
+              style={[styles.analyseBtn, { backgroundColor: C.energy + '15', borderColor: C.energy + '50' }]}
+              onPress={() => navigation.navigate('Bills')}
+            >
+              <Text style={[styles.analyseBtnText, { color: C.energy }]}>📤  Upload Your First Bill  →</Text>
+            </TouchableOpacity>
+          </GlowCard>
+        ) : (
+          <>
+            {/* ── LATEST BILL HERO ── */}
+            {latestBill && (
+              <GlowCard accentColor={C.energy} style={{ marginBottom: 18 }}>
+                <View style={styles.billHeroTop}>
+                  <View>
+                    <Text style={styles.billHeroMonth}>{latestBill.title || formatMonthYear(latestBill.bill_date)}</Text>
+                    <Text style={styles.billHeroAcct}>Account  ·  {latestBill.account_number}</Text>
+                  </View>
+                  <Pill label={latestBill.is_active_for_dashboard ? "Active" : "Latest"} color={C.energy} />
+                </View>
+                <View style={styles.billHeroNumbers}>
+                  <View style={styles.billHeroNum}>
+                    <Text style={[styles.billHeroBig, { color: C.energy }]}>
+                      {formatCurrency(latestBill.total_charge)}
+                    </Text>
+                    <Text style={styles.billHeroSmall}>Total Charge</Text>
+                  </View>
+                  <View style={styles.billHeroDivider} />
+                  <View style={styles.billHeroNum}>
+                    <Text style={[styles.billHeroBig, { color: C.solar }]}>
+                      {latestBill.units_consumed} kWh
+                    </Text>
+                    <Text style={styles.billHeroSmall}>Units Consumed</Text>
+                  </View>
+                </View>
                 <TouchableOpacity
-                  onPress={() => {
-                    universalAlert('Stop Tracking', 'End this plan and start a new period?', [
-                      { text: 'Cancel', style: 'cancel' },
-                      {
-                        text: 'End Plan',
-                        style: 'destructive',
-                        onPress: async () => {
-                          try {
-                            const res = await analysisAPI.endPlan(plan.id);
-                            if (res.data?.success) {
-                              universalAlert('Success', 'Budget plan ended successfully.');
-                              fetchData();
-                            } else {
-                              universalAlert('Notice', res.data?.message || 'Plan ended.');
-                              fetchData();
+                  style={[styles.analyseBtn, { backgroundColor: C.energy + '15', borderColor: C.energy + '50' }]}
+                  onPress={() => navigation.navigate('BillDetail', { bill: latestBill })}
+                >
+                  <Text style={[styles.analyseBtnText, { color: C.energy }]}>📊  Analyse This Bill  →</Text>
+                </TouchableOpacity>
+              </GlowCard>
+            )}
+          </>
+        )}
+
+        {/* ── METRIC TILES ── */}
+        <View style={styles.metricRow}>
+          <MetricTile icon="⚡" value={totalAppliances ?? '—'} label="Appliances" color={C.energy} />
+          <MetricTile icon="🔋" value={monthlyKwh ? monthlyKwh.toFixed(1) : '—'} label="Monthly kWh" color={C.solar} />
+          <MetricTile icon="💰" value={estimatedCost ? formatCurrency(estimatedCost, 0) : '—'} label="Est. Cost" color={C.safety} />
+          <MetricTile icon="📅" value={dailyAvg ? `${dailyAvg.toFixed(0)} Rs` : '—'} label="Daily Avg" color={C.outage} />
+        </View>
+
+        {/* ════════════════════════════════
+            4 MAIN MODULE CARDS
+        ════════════════════════════════ */}
+        <SLabel text="System Modules" />
+
+        <ModuleCard
+          icon="⚡"
+          title="Energy Analysis & Bill Management"
+          subtitle="Track consumption · upload bills · analyse trends"
+          accent={C.energy}
+          stat={latestBill ? formatCurrency(latestBill.total_charge, 0) : '—'}
+          statLabel="latest bill"
+          onPress={() => navigation.navigate('Bills')}
+        />
+
+        <ModuleCard
+          icon="☀️"
+          title="Solar Power Recommendation"
+          subtitle="AI-powered solar sizing · ROI calculator · guide"
+          accent={C.solar}
+          badge="New"
+          badgeColor={C.solar}
+          onPress={() => navigation.navigate('Solar')}
+        />
+
+        <ModuleCard
+          icon="🔴"
+          title="Outage Reporting & Management"
+          subtitle={user?.role === 'Electrician' ? "View job requests · manage availability" : "Report outages · live status · area fault map"}
+          accent={C.outage}
+          badge="Live"
+          badgeColor={C.outage}
+          onPress={() => {
+            if (user?.role === 'Electrician') {
+              navigation.navigate('ElectricianDashboard');
+            } else {
+              navigation.navigate('BoardIssueReport');
+            }
+          }}
+        />
+
+        <ModuleCard
+          icon="🛡️"
+          title="Safety & Disaster Management"
+          subtitle="AI assistant · live weather · emergency alerts"
+          accent={C.safety}
+          badge="AI"
+          badgeColor={C.safety}
+          onPress={() => navigation.navigate('SafetyTab')}
+        />
+
+        {/* ── ACTIVE BUDGET PLANS ── */}
+        {activePlans.length > 0 && (
+          <>
+            <SLabel
+              text="Active Budget Plans"
+              action={() => navigation.navigate('Tracking')}
+              actionLabel="View all →"
+            />
+            {activePlans.map(plan => (
+              <GlowCard key={plan.id} accentColor={getStatusColor(plan.progress_status)} style={{ marginBottom: 16 }}>
+                <View style={styles.planRow}>
+                  <View>
+                    <Text style={[styles.planAmount, { color: getStatusColor(plan.progress_status) }]}>
+                      {formatCurrency(plan.target_budget)}
+                    </Text>
+                    <Text style={styles.planAmountLabel}>Target Budget</Text>
+                  </View>
+                  <Pill
+                    label={getStatusLabel(plan.progress_status)}
+                    color={getStatusColor(plan.progress_status)}
+                  />
+                </View>
+                <Text style={styles.planMetaTxt}>
+                  📅 {plan.planning_days} days  ·  🎯 {plan.target_daily_units?.toFixed(1)} kWh / day
+                </Text>
+
+                {/* Action buttons */}
+                <View style={{ flexDirection: 'row', gap: 10 }}>
+                  <TouchableOpacity
+                    onPress={() => {
+                      universalAlert('Stop Tracking', 'End this plan and start a new period?', [
+                        { text: 'Cancel', style: 'cancel' },
+                        {
+                          text: 'End Plan',
+                          style: 'destructive',
+                          onPress: async () => {
+                            try {
+                              const res = await analysisAPI.endPlan(plan.id);
+                              if (res.data?.success) {
+                                universalAlert('Success', 'Budget plan ended successfully.');
+                                fetchData();
+                              } else {
+                                universalAlert('Notice', res.data?.message || 'Plan ended.');
+                                fetchData();
+                              }
+                            } catch (err) {
+                              universalAlert('Error', 'Failed to end budget plan. Please try again.');
                             }
-                          } catch (err) {
-                            universalAlert('Error', 'Failed to end budget plan. Please try again.');
-                          }
+                          },
                         },
-                      },
-                    ]);
-                  }}
-                  style={styles.stopBtnCompact}
-                >
-                  <Text style={styles.stopBtnCompactText}>Stop tracking</Text>
-                </TouchableOpacity>
+                      ]);
+                    }}
+                    style={styles.stopBtnCompact}
+                  >
+                    <Text style={styles.stopBtnCompactText}>Stop tracking</Text>
+                  </TouchableOpacity>
 
-                <TouchableOpacity
-                  onPress={() => {
-                    universalAlert('Delete Plan', 'Are you sure you want to permanently delete this plan?', [
-                      { text: 'Cancel', style: 'cancel' },
-                      {
-                        text: 'Delete',
-                        style: 'destructive',
-                        onPress: async () => {
-                          try {
-                            const res = await analysisAPI.deletePlan(plan.id);
-                            if (res.data?.success) fetchData();
-                          } catch (err) {
-                            universalAlert('Error', 'Failed to delete plan.');
-                          }
+                  <TouchableOpacity
+                    onPress={() => {
+                      universalAlert('Delete Plan', 'Are you sure you want to permanently delete this plan?', [
+                        { text: 'Cancel', style: 'cancel' },
+                        {
+                          text: 'Delete',
+                          style: 'destructive',
+                          onPress: async () => {
+                            try {
+                              const res = await analysisAPI.deletePlan(plan.id);
+                              if (res.data?.success) fetchData();
+                            } catch (err) {
+                              universalAlert('Error', 'Failed to delete plan.');
+                            }
+                          },
                         },
-                      },
-                    ]);
-                  }}
-                  style={[styles.stopBtnCompact, { backgroundColor: '#FF4D6D15', borderColor: '#FF4D6D30' }]}
-                >
-                  <Text style={[styles.stopBtnCompactText, { color: '#FF4D6D' }]}>Delete</Text>
-                </TouchableOpacity>
-              </View>
-            </GlowCard>
-          ))}
-        </>
-      )}
+                      ]);
+                    }}
+                    style={[styles.stopBtnCompact, { backgroundColor: '#FF4D6D15', borderColor: '#FF4D6D30' }]}
+                  >
+                    <Text style={[styles.stopBtnCompactText, { color: '#FF4D6D' }]}>Delete</Text>
+                  </TouchableOpacity>
+                </View>
+              </GlowCard>
+            ))}
+          </>
+        )}
 
-      {/* ── QUICK ACTIONS ── */}
-      <SLabel text="Quick Actions" />
-      <View style={styles.qaGrid}>
-        <QA icon="📤" label="Upload Bill" color={C.energy} onPress={() => navigation.navigate('Bills')} />
-        <QA icon="⚡" label="Appliances" color={C.solar} onPress={() => navigation.navigate('Appliances')} />
-        <QA icon="📊" label="NILM Report" color={C.safety} onPress={() => navigation.navigate('NILM')} />
-        <QA icon="🎯" label="Budget Plan" color={C.outage} onPress={() => navigation.navigate('Analysis')} />
-      </View>
+        {/* ── QUICK ACTIONS ── */}
+        <SLabel text="Quick Actions" />
+        <View style={styles.qaGrid}>
+          <QA icon="📤" label="Upload Bill" color={C.energy} onPress={() => navigation.navigate('Bills')} />
+          <QA icon="⚡" label="Appliances" color={C.solar} onPress={() => navigation.navigate('Appliances')} />
+          <QA icon="📊" label="NILM Report" color={C.safety} onPress={() => navigation.navigate('NILM')} />
+          <QA icon="🎯" label="Budget Plan" color={C.outage} onPress={() => navigation.navigate('Analysis')} />
+        </View>
 
 
       <View style={{ height: 48 }} />

@@ -65,12 +65,11 @@ class UserProfileResponse(BaseModel):
     profile_image: Optional[str]
     default_account_number: Optional[str]
     address: Optional[str] = None
-    city: Optional[str] = None
     district: Optional[str] = None
     role: Optional[str] = "Householder"
     nvq_certificate_url: Optional[str] = None
     is_verified: bool = False
-    country: Optional[str] = None
+
     is_admin: bool = False
     created_at: datetime
 
@@ -87,8 +86,7 @@ class UserProfileUpdate(BaseModel):
     birthday: Optional[datetime] = None
     profile_image: Optional[str] = None
     address: Optional[str] = Field(None, max_length=500)
-    city: Optional[str] = Field(None, max_length=100)
-    country: Optional[str] = Field(None, max_length=100)
+
     default_account_number: Optional[str] = Field(None, max_length=100)
     new_password: Optional[str] = Field(None, min_length=1, max_length=128)
 

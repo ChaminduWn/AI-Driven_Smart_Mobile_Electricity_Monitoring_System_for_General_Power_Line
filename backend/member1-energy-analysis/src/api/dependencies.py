@@ -35,6 +35,18 @@ def get_db() -> Generator[Session, None, None]:
 def get_current_user(db: Session = Depends(get_db), token: str = Depends(oauth2_scheme)) -> User:
     """
     Dependency to get current authenticated user using JWT bearer token.
+    (Legacy name for get_user_from_token)
+    """
+    return get_user_from_token(token, db)
+
+
+def get_user_from_token(
+    token: str = Depends(oauth2_scheme),
+    db: Session = Depends(get_db)
+) -> User:
+    """
+    Centralized dependency to get user from JWT token.
+    Resolves circular imports by living in dependencies.py.
     """
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
@@ -42,17 +54,27 @@ def get_current_user(db: Session = Depends(get_db), token: str = Depends(oauth2_
         headers={"WWW-Authenticate": "Bearer"},
     )
 
+    if not token:
+        raise credentials_exception
+
     try:
         payload = jwt.decode(token, settings.SECRET_KEY, algorithms=["HS256"])
         user_id = payload.get("sub")
-        if user_id is None:
+        token_type = payload.get("type", "access") # Default to access for safety
+
+        if user_id is None or (token_type != "access" and token_type != "refresh"):
+            # Note: We usually only want access tokens for general API calls
+            if token_type != "access":
+                raise credentials_exception
             raise credentials_exception
+            
     except JWTError:
         raise credentials_exception
 
     user = db.query(User).filter(User.id == int(user_id)).first()
     if user is None or not user.is_active:
         raise credentials_exception
+
     return user
 
 

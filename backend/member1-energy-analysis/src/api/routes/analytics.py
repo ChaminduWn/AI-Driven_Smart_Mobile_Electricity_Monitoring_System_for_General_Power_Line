@@ -23,7 +23,7 @@ from src.models.bill import ElectricityBill
 from src.models.budget_plan import BudgetPlan, MeterReading as PlanReading
 from src.models.iot_reading import LiveMeterReading
 from src.models.device_session import DeviceSession
-from src.api.routes.auth import get_user_from_token
+from src.api.dependencies import get_user_from_token
 from src.services.alert_engine import alert_engine
 
 router = APIRouter(prefix="/analytics", tags=["Analytics"])

@@ -68,9 +68,7 @@ class UserProfile(Base):
     profile_image = Column(Text, nullable=True) # Base64 or URL
     
     address = Column(String(500), nullable=True)
-    city = Column(String(100), nullable=True)
     district = Column(String(100), nullable=True)
-    country = Column(String(100), nullable=True)
     
     # Member 2 integration fields
     role = Column(String(50), default="Householder") # Householder, Electrician

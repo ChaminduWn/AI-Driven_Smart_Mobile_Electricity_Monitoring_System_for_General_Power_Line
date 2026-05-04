@@ -189,328 +189,330 @@ const ProfileScreen = ({ navigation }) => {
                 </TouchableOpacity>
             </View>
 
-            <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-                {/* Avatar Section */}
-                <View style={styles.avatarSection}>
-                    <TouchableOpacity onPress={pickImage} style={styles.avatarWrapper}>
-                        {profile.profile_image ? (
-                            <Image source={{ uri: profile.profile_image }} style={styles.avatar} />
-                        ) : (
-                            <View style={styles.avatarPlaceholder}>
-                                <User size={40} color={COLORS.textMuted} />
+            <ScrollView style={styles.content} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+                <View style={styles.responsiveWrapper}>
+                    {/* Avatar Section */}
+                    <View style={styles.avatarSection}>
+                        <TouchableOpacity onPress={pickImage} style={styles.avatarWrapper}>
+                            {profile.profile_image ? (
+                                <Image source={{ uri: profile.profile_image }} style={styles.avatar} />
+                            ) : (
+                                <View style={styles.avatarPlaceholder}>
+                                    <User size={40} color={COLORS.textMuted} />
+                                </View>
+                            )}
+                            <View style={styles.cameraBadge}>
+                                <Camera size={14} color={COLORS.white} />
                             </View>
-                        )}
-                        <View style={styles.cameraBadge}>
-                            <Camera size={14} color={COLORS.white} />
-                        </View>
-                    </TouchableOpacity>
-                    <Text style={styles.userNameText}>{profile.full_name || 'Your Name'}</Text>
-                    <Text style={styles.userEmailText}>{profile.email}</Text>
-                </View>
-
-                {/* Personal Details Section */}
-                <View style={styles.section}>
-                    <View style={styles.sectionHeader}>
-                        <User size={20} color={COLORS.primary} />
-                        <Text style={styles.sectionTitle}>Personal Details</Text>
+                        </TouchableOpacity>
+                        <Text style={styles.userNameText}>{profile.full_name || 'Your Name'}</Text>
+                        <Text style={styles.userEmailText}>{profile.email}</Text>
                     </View>
 
-                    <View style={styles.inputGroup}>
-                        <Text style={styles.label}>Full Name</Text>
-                        <View style={styles.inputContainer}>
-                            <User size={18} color={COLORS.textMuted} style={styles.inputIcon} />
-                            <TextInput
-                                style={styles.input}
-                                value={profile.full_name}
-                                onChangeText={(text) => setProfile({ ...profile, full_name: text })}
-                                placeholder="Full Name"
-                                placeholderTextColor={COLORS.textMuted}
-                            />
+                    {/* Personal Details Section */}
+                    <View style={styles.section}>
+                        <View style={styles.sectionHeader}>
+                            <User size={20} color={COLORS.primary} />
+                            <Text style={styles.sectionTitle}>Personal Details</Text>
                         </View>
-                    </View>
 
-                    <View style={styles.row}>
-                        <View style={[styles.inputGroup, { flex: 1, marginRight: 8 }]}>
-                            <Text style={styles.label}>Username</Text>
-                            <View style={styles.inputContainer}>
-                                <TextInput
-                                    style={styles.input}
-                                    value={profile.username}
-                                    onChangeText={(text) => setProfile({ ...profile, username: text })}
-                                    autoCapitalize="none"
-                                    placeholder="username"
-                                    placeholderTextColor={COLORS.textMuted}
-                                />
-                            </View>
-                        </View>
-                        <View style={[styles.inputGroup, { flex: 1.2, marginLeft: 8 }]}>
-                            <Text style={styles.label}>Birthday</Text>
-                            <View style={styles.inputContainer}>
-                                <Calendar size={18} color={COLORS.textMuted} style={styles.inputIcon} />
-                                <TextInput
-                                    style={styles.input}
-                                    value={profile.birthday}
-                                    onChangeText={(text) => setProfile({ ...profile, birthday: text })}
-                                    placeholder="YYYY-MM-DD"
-                                    placeholderTextColor={COLORS.textMuted}
-                                />
-                            </View>
-                        </View>
-                    </View>
-
-                    <View style={styles.inputGroup}>
-                        <Text style={styles.label}>Email Address</Text>
-                        <View style={styles.inputContainer}>
-                            <Mail size={18} color={COLORS.textMuted} style={styles.inputIcon} />
-                            <TextInput
-                                style={styles.input}
-                                value={profile.email}
-                                onChangeText={(text) => setProfile({ ...profile, email: text })}
-                                keyboardType="email-address"
-                                autoCapitalize="none"
-                                placeholder="Email"
-                                placeholderTextColor={COLORS.textMuted}
-                            />
-                        </View>
-                    </View>
-
-                    <View style={styles.inputGroup}>
-                        <Text style={styles.label}>Phone Number</Text>
-                        <View style={styles.inputContainer}>
-                            <Phone size={18} color={COLORS.textMuted} style={styles.inputIcon} />
-                            <TextInput
-                                style={styles.input}
-                                value={profile.phone_number}
-                                onChangeText={(text) => setProfile({ ...profile, phone_number: text })}
-                                keyboardType="phone-pad"
-                                placeholder="Phone"
-                                placeholderTextColor={COLORS.textMuted}
-                            />
-                        </View>
-                    </View>
-                </View>
-
-                {/* Location & Energy Details */}
-                <View style={styles.section}>
-                    <View style={styles.sectionHeader}>
-                        <Hash size={20} color={COLORS.secondary} />
-                        <Text style={styles.sectionTitle}>Energy & Location</Text>
-                    </View>
-
-                    <View style={styles.inputGroup}>
-                        <Text style={styles.label}>Electricity Account Number</Text>
-                        <View style={styles.inputContainer}>
-                            <Hash size={18} color={COLORS.textMuted} style={styles.inputIcon} />
-                            <TextInput
-                                style={styles.input}
-                                value={profile.default_account_number}
-                                onChangeText={(text) => setProfile({ ...profile, default_account_number: text })}
-                                placeholder="Account Number"
-                                placeholderTextColor={COLORS.textMuted}
-                            />
-                        </View>
-                    </View>
-
-                    <View style={styles.inputGroup}>
-                        <Text style={styles.label}>Address</Text>
-                        <View style={styles.inputContainer}>
-                            <MapPin size={18} color={COLORS.textMuted} style={styles.inputIcon} />
-                            <TextInput
-                                style={styles.input}
-                                value={profile.address}
-                                onChangeText={(text) => setProfile({ ...profile, address: text })}
-                                placeholder="Address"
-                                placeholderTextColor={COLORS.textMuted}
-                            />
-                        </View>
-                    </View>
-
-                    <View style={styles.row}>
-                        <View style={[styles.inputGroup, { flex: 1, marginRight: 8 }]}>
-                            <Text style={styles.label}>City</Text>
-                            <TextInput
-                                style={styles.smallInput}
-                                value={profile.city}
-                                onChangeText={(text) => setProfile({ ...profile, city: text })}
-                                placeholder="City"
-                                placeholderTextColor={COLORS.textMuted}
-                            />
-                        </View>
-                        <View style={[styles.inputGroup, { flex: 1, marginLeft: 8 }]}>
-                            <Text style={styles.label}>Country</Text>
-                            <TextInput
-                                style={styles.smallInput}
-                                value={profile.country}
-                                onChangeText={(text) => setProfile({ ...profile, country: text })}
-                                placeholder="Country"
-                                placeholderTextColor={COLORS.textMuted}
-                            />
-                        </View>
-                    </View>
-                </View>
-
-                {/* Service Professional Details */}
-                <View style={styles.section}>
-                    <View style={styles.sectionHeader}>
-                        <User size={20} color={'#FF6B35'} />
-                        <Text style={styles.sectionTitle}>Service Professional Details</Text>
-                    </View>
-
-                    <View style={styles.inputGroup}>
-                        <Text style={styles.label}>Account Role</Text>
-                        <View style={styles.row}>
-                            <TouchableOpacity 
-                                style={[styles.typeTag, profile.role === 'householder' && styles.typeTagActive]}
-                                onPress={() => setProfile({ ...profile, role: 'householder' })}
-                            >
-                                <Text style={[styles.typeTagText, profile.role === 'householder' && styles.typeTagTextActive]}>Householder</Text>
-                            </TouchableOpacity>
-                            <TouchableOpacity 
-                                style={[styles.typeTag, profile.role === 'electrician' && { backgroundColor: '#FF6B35', borderColor: '#FF6B35' }, {marginLeft: 10}]}
-                                onPress={() => setProfile({ ...profile, role: 'electrician' })}
-                            >
-                                <Text style={[styles.typeTagText, profile.role === 'electrician' && styles.typeTagTextActive]}>Electrician</Text>
-                            </TouchableOpacity>
-                        </View>
-                    </View>
-
-                    <View style={styles.inputGroup}>
-                        <Text style={styles.label}>District</Text>
-                        <View style={styles.inputContainer}>
-                            <MapPin size={18} color={COLORS.textMuted} style={styles.inputIcon} />
-                            <TextInput
-                                style={styles.input}
-                                value={profile.district}
-                                onChangeText={(text) => setProfile({ ...profile, district: text })}
-                                placeholder="e.g. Colombo, Kandy"
-                                placeholderTextColor={COLORS.textMuted}
-                            />
-                        </View>
-                    </View>
-
-                    {profile.role === 'electrician' && (
                         <View style={styles.inputGroup}>
-                            <Text style={styles.label}>NVQ Certification Level</Text>
+                            <Text style={styles.label}>Full Name</Text>
+                            <View style={styles.inputContainer}>
+                                <User size={18} color={COLORS.textMuted} style={styles.inputIcon} />
+                                <TextInput
+                                    style={styles.input}
+                                    value={profile.full_name}
+                                    onChangeText={(text) => setProfile({ ...profile, full_name: text })}
+                                    placeholder="Full Name"
+                                    placeholderTextColor={COLORS.textMuted}
+                                />
+                            </View>
+                        </View>
+
+                        <View style={styles.row}>
+                            <View style={[styles.inputGroup, { flex: 1, marginRight: 8 }]}>
+                                <Text style={styles.label}>Username</Text>
+                                <View style={styles.inputContainer}>
+                                    <TextInput
+                                        style={styles.input}
+                                        value={profile.username}
+                                        onChangeText={(text) => setProfile({ ...profile, username: text })}
+                                        autoCapitalize="none"
+                                        placeholder="username"
+                                        placeholderTextColor={COLORS.textMuted}
+                                    />
+                                </View>
+                            </View>
+                            <View style={[styles.inputGroup, { flex: 1.2, marginLeft: 8 }]}>
+                                <Text style={styles.label}>Birthday</Text>
+                                <View style={styles.inputContainer}>
+                                    <Calendar size={18} color={COLORS.textMuted} style={styles.inputIcon} />
+                                    <TextInput
+                                        style={styles.input}
+                                        value={profile.birthday}
+                                        onChangeText={(text) => setProfile({ ...profile, birthday: text })}
+                                        placeholder="YYYY-MM-DD"
+                                        placeholderTextColor={COLORS.textMuted}
+                                    />
+                                </View>
+                            </View>
+                        </View>
+
+                        <View style={styles.inputGroup}>
+                            <Text style={styles.label}>Email Address</Text>
+                            <View style={styles.inputContainer}>
+                                <Mail size={18} color={COLORS.textMuted} style={styles.inputIcon} />
+                                <TextInput
+                                    style={styles.input}
+                                    value={profile.email}
+                                    onChangeText={(text) => setProfile({ ...profile, email: text })}
+                                    keyboardType="email-address"
+                                    autoCapitalize="none"
+                                    placeholder="Email"
+                                    placeholderTextColor={COLORS.textMuted}
+                                />
+                            </View>
+                        </View>
+
+                        <View style={styles.inputGroup}>
+                            <Text style={styles.label}>Phone Number</Text>
+                            <View style={styles.inputContainer}>
+                                <Phone size={18} color={COLORS.textMuted} style={styles.inputIcon} />
+                                <TextInput
+                                    style={styles.input}
+                                    value={profile.phone_number}
+                                    onChangeText={(text) => setProfile({ ...profile, phone_number: text })}
+                                    keyboardType="phone-pad"
+                                    placeholder="Phone"
+                                    placeholderTextColor={COLORS.textMuted}
+                                />
+                            </View>
+                        </View>
+                    </View>
+
+                    {/* Location & Energy Details */}
+                    <View style={styles.section}>
+                        <View style={styles.sectionHeader}>
+                            <Hash size={20} color={COLORS.secondary} />
+                            <Text style={styles.sectionTitle}>Energy & Location</Text>
+                        </View>
+
+                        <View style={styles.inputGroup}>
+                            <Text style={styles.label}>Electricity Account Number</Text>
                             <View style={styles.inputContainer}>
                                 <Hash size={18} color={COLORS.textMuted} style={styles.inputIcon} />
                                 <TextInput
                                     style={styles.input}
-                                    value={profile.nvq_certification}
-                                    onChangeText={(text) => setProfile({ ...profile, nvq_certification: text })}
-                                    placeholder="e.g. NVQ Level 4"
+                                    value={profile.default_account_number}
+                                    onChangeText={(text) => setProfile({ ...profile, default_account_number: text })}
+                                    placeholder="Account Number"
                                     placeholderTextColor={COLORS.textMuted}
                                 />
                             </View>
                         </View>
-                    )}
-                </View>
 
-                {/* Security Section */}
-                <View style={styles.section}>
-                    <View style={styles.sectionHeader}>
-                        <Lock size={20} color={COLORS.danger} />
-                        <Text style={styles.sectionTitle}>Security</Text>
-                    </View>
-                    <View style={styles.inputGroup}>
-                        <Text style={styles.label}>New Password</Text>
-                        <View style={styles.inputContainer}>
-                            <Lock size={18} color={COLORS.textMuted} style={styles.inputIcon} />
-                            <TextInput
-                                style={styles.input}
-                                value={profile.new_password}
-                                onChangeText={(text) => setProfile({ ...profile, new_password: text })}
-                                secureTextEntry
-                                placeholder="Leave blank to keep current"
-                                placeholderTextColor={COLORS.textMuted}
-                            />
+                        <View style={styles.inputGroup}>
+                            <Text style={styles.label}>Address</Text>
+                            <View style={styles.inputContainer}>
+                                <MapPin size={18} color={COLORS.textMuted} style={styles.inputIcon} />
+                                <TextInput
+                                    style={styles.input}
+                                    value={profile.address}
+                                    onChangeText={(text) => setProfile({ ...profile, address: text })}
+                                    placeholder="Address"
+                                    placeholderTextColor={COLORS.textMuted}
+                                />
+                            </View>
+                        </View>
+
+                        <View style={styles.row}>
+                            <View style={[styles.inputGroup, { flex: 1, marginRight: 8 }]}>
+                                <Text style={styles.label}>City</Text>
+                                <TextInput
+                                    style={styles.smallInput}
+                                    value={profile.city}
+                                    onChangeText={(text) => setProfile({ ...profile, city: text })}
+                                    placeholder="City"
+                                    placeholderTextColor={COLORS.textMuted}
+                                />
+                            </View>
+                            <View style={[styles.inputGroup, { flex: 1, marginLeft: 8 }]}>
+                                <Text style={styles.label}>Country</Text>
+                                <TextInput
+                                    style={styles.smallInput}
+                                    value={profile.country}
+                                    onChangeText={(text) => setProfile({ ...profile, country: text })}
+                                    placeholder="Country"
+                                    placeholderTextColor={COLORS.textMuted}
+                                />
+                            </View>
                         </View>
                     </View>
-                </View>
 
-                {/* Household Members Section */}
-                <View style={styles.section}>
-                    <View style={styles.sectionHeader}>
-                        <Home size={20} color={COLORS.success} />
-                        <Text style={styles.sectionTitle}>Household Members</Text>
-                        <TouchableOpacity
-                            style={styles.addBtn}
-                            onPress={() => setShowAddMember(!showAddMember)}
-                        >
-                            <Plus size={20} color={COLORS.white} />
-                        </TouchableOpacity>
-                    </View>
+                    {/* Service Professional Details */}
+                    <View style={styles.section}>
+                        <View style={styles.sectionHeader}>
+                            <User size={20} color={'#FF6B35'} />
+                            <Text style={styles.sectionTitle}>Service Professional Details</Text>
+                        </View>
 
-                    {showAddMember && (
-                        <View style={styles.addMemberCard}>
-                            <Text style={styles.cardTitle}>Add Family Member</Text>
-                            <View style={styles.memberTypeGrid}>
-                                {memberTypes.map((type) => (
-                                    <TouchableOpacity
-                                        key={type.code}
-                                        style={[
-                                            styles.typeTag,
-                                            newMember.member_type === type.code && styles.typeTagActive
-                                        ]}
-                                        onPress={() => setNewMember({ ...newMember, member_type: type.code })}
-                                    >
-                                        <Text style={[
-                                            styles.typeTagText,
-                                            newMember.member_type === type.code && styles.typeTagTextActive
-                                        ]}>{type.label}</Text>
-                                    </TouchableOpacity>
-                                ))}
-                            </View>
+                        <View style={styles.inputGroup}>
+                            <Text style={styles.label}>Account Role</Text>
                             <View style={styles.row}>
-                                <View style={[styles.inputGroup, { flex: 1, marginRight: 8 }]}>
-                                    <Text style={styles.labelSmall}>Age</Text>
-                                    <TextInput
-                                        style={styles.smallInput}
-                                        value={newMember.age}
-                                        onChangeText={(text) => setNewMember({ ...newMember, age: text })}
-                                        keyboardType="numeric"
-                                        placeholder="Age"
-                                        placeholderTextColor={COLORS.textMuted}
-                                    />
-                                </View>
-                                <View style={[styles.inputGroup, { flex: 2, marginLeft: 8 }]}>
-                                    <Text style={styles.labelSmall}>Occupation</Text>
-                                    <TextInput
-                                        style={styles.smallInput}
-                                        value={newMember.occupation_status}
-                                        onChangeText={(text) => setNewMember({ ...newMember, occupation_status: text })}
-                                        placeholder="Working/Student"
-                                        placeholderTextColor={COLORS.textMuted}
-                                    />
-                                </View>
-                            </View>
-                            <TouchableOpacity style={styles.submitMemberBtn} onPress={handleAddMember}>
-                                <Text style={styles.submitMemberBtnText}>Add Member</Text>
-                            </TouchableOpacity>
-                        </View>
-                    )}
-
-                    {isLoadingMembers ? (
-                        <ActivityIndicator size="small" color={COLORS.primary} style={{ marginVertical: 20 }} />
-                    ) : members.length === 0 ? (
-                        <View style={styles.emptyMembers}>
-                            <Text style={styles.emptyText}>No members added. Adding members helps AI predict consumption patterns better.</Text>
-                        </View>
-                    ) : (
-                        members.map((m) => (
-                            <View key={m.id} style={styles.memberItem}>
-                                <View style={styles.memberInfo}>
-                                    <Text style={styles.memberTypeLabel}>{m.member_type.replace('_', ' ').toUpperCase()}</Text>
-                                    <Text style={styles.memberSubInfo}>Age: {m.age} | {m.occupation_status}</Text>
-                                </View>
-                                <TouchableOpacity onPress={() => handleDeleteMember(m.id)}>
-                                    <Trash2 size={18} color={COLORS.danger} />
+                                <TouchableOpacity 
+                                    style={[styles.typeTag, profile.role === 'householder' && styles.typeTagActive]}
+                                    onPress={() => setProfile({ ...profile, role: 'householder' })}
+                                >
+                                    <Text style={[styles.typeTagText, profile.role === 'householder' && styles.typeTagTextActive]}>Householder</Text>
+                                </TouchableOpacity>
+                                <TouchableOpacity 
+                                    style={[styles.typeTag, profile.role === 'electrician' && { backgroundColor: '#FF6B35', borderColor: '#FF6B35' }, {marginLeft: 10}]}
+                                    onPress={() => setProfile({ ...profile, role: 'electrician' })}
+                                >
+                                    <Text style={[styles.typeTagText, profile.role === 'electrician' && styles.typeTagTextActive]}>Electrician</Text>
                                 </TouchableOpacity>
                             </View>
-                        ))
-                    )}
-                </View>
+                        </View>
 
-                <View style={{ height: 100 }} />
+                        <View style={styles.inputGroup}>
+                            <Text style={styles.label}>District</Text>
+                            <View style={styles.inputContainer}>
+                                <MapPin size={18} color={COLORS.textMuted} style={styles.inputIcon} />
+                                <TextInput
+                                    style={styles.input}
+                                    value={profile.district}
+                                    onChangeText={(text) => setProfile({ ...profile, district: text })}
+                                    placeholder="e.g. Colombo, Kandy"
+                                    placeholderTextColor={COLORS.textMuted}
+                                />
+                            </View>
+                        </View>
+
+                        {profile.role === 'electrician' && (
+                            <View style={styles.inputGroup}>
+                                <Text style={styles.label}>NVQ Certification Level</Text>
+                                <View style={styles.inputContainer}>
+                                    <Hash size={18} color={COLORS.textMuted} style={styles.inputIcon} />
+                                    <TextInput
+                                        style={styles.input}
+                                        value={profile.nvq_certification}
+                                        onChangeText={(text) => setProfile({ ...profile, nvq_certification: text })}
+                                        placeholder="e.g. NVQ Level 4"
+                                        placeholderTextColor={COLORS.textMuted}
+                                    />
+                                </View>
+                            </View>
+                        )}
+                    </View>
+
+                    {/* Security Section */}
+                    <View style={styles.section}>
+                        <View style={styles.sectionHeader}>
+                            <Lock size={20} color={COLORS.danger} />
+                            <Text style={styles.sectionTitle}>Security</Text>
+                        </View>
+                        <View style={styles.inputGroup}>
+                            <Text style={styles.label}>New Password</Text>
+                            <View style={styles.inputContainer}>
+                                <Lock size={18} color={COLORS.textMuted} style={styles.inputIcon} />
+                                <TextInput
+                                    style={styles.input}
+                                    value={profile.new_password}
+                                    onChangeText={(text) => setProfile({ ...profile, new_password: text })}
+                                    secureTextEntry
+                                    placeholder="Leave blank to keep current"
+                                    placeholderTextColor={COLORS.textMuted}
+                                />
+                            </View>
+                        </View>
+                    </View>
+
+                    {/* Household Members Section */}
+                    <View style={styles.section}>
+                        <View style={styles.sectionHeader}>
+                            <Home size={20} color={COLORS.success} />
+                            <Text style={styles.sectionTitle}>Household Members</Text>
+                            <TouchableOpacity
+                                style={styles.addBtn}
+                                onPress={() => setShowAddMember(!showAddMember)}
+                            >
+                                <Plus size={20} color={COLORS.white} />
+                            </TouchableOpacity>
+                        </View>
+
+                        {showAddMember && (
+                            <View style={styles.addMemberCard}>
+                                <Text style={styles.cardTitle}>Add Family Member</Text>
+                                <View style={styles.memberTypeGrid}>
+                                    {memberTypes.map((type) => (
+                                        <TouchableOpacity
+                                            key={type.code}
+                                            style={[
+                                                styles.typeTag,
+                                                newMember.member_type === type.code && styles.typeTagActive
+                                            ]}
+                                            onPress={() => setNewMember({ ...newMember, member_type: type.code })}
+                                        >
+                                            <Text style={[
+                                                styles.typeTagText,
+                                                newMember.member_type === type.code && styles.typeTagTextActive
+                                            ]}>{type.label}</Text>
+                                        </TouchableOpacity>
+                                    ))}
+                                </View>
+                                <View style={styles.row}>
+                                    <View style={[styles.inputGroup, { flex: 1, marginRight: 8 }]}>
+                                        <Text style={styles.labelSmall}>Age</Text>
+                                        <TextInput
+                                            style={styles.smallInput}
+                                            value={newMember.age}
+                                            onChangeText={(text) => setNewMember({ ...newMember, age: text })}
+                                            keyboardType="numeric"
+                                            placeholder="Age"
+                                            placeholderTextColor={COLORS.textMuted}
+                                        />
+                                    </View>
+                                    <View style={[styles.inputGroup, { flex: 2, marginLeft: 8 }]}>
+                                        <Text style={styles.labelSmall}>Occupation</Text>
+                                        <TextInput
+                                            style={styles.smallInput}
+                                            value={newMember.occupation_status}
+                                            onChangeText={(text) => setNewMember({ ...newMember, occupation_status: text })}
+                                            placeholder="Working/Student"
+                                            placeholderTextColor={COLORS.textMuted}
+                                        />
+                                    </View>
+                                </View>
+                                <TouchableOpacity style={styles.submitMemberBtn} onPress={handleAddMember}>
+                                    <Text style={styles.submitMemberBtnText}>Add Member</Text>
+                                </TouchableOpacity>
+                            </View>
+                        )}
+
+                        {isLoadingMembers ? (
+                            <ActivityIndicator size="small" color={COLORS.primary} style={{ marginVertical: 20 }} />
+                        ) : members.length === 0 ? (
+                            <View style={styles.emptyMembers}>
+                                <Text style={styles.emptyText}>No members added. Adding members helps AI predict consumption patterns better.</Text>
+                            </View>
+                        ) : (
+                            members.map((m) => (
+                                <View key={m.id} style={styles.memberItem}>
+                                    <View style={styles.memberInfo}>
+                                        <Text style={styles.memberTypeLabel}>{m.member_type.replace('_', ' ').toUpperCase()}</Text>
+                                        <Text style={styles.memberSubInfo}>Age: {m.age} | {m.occupation_status}</Text>
+                                    </View>
+                                    <TouchableOpacity onPress={() => handleDeleteMember(m.id)}>
+                                        <Trash2 size={18} color={COLORS.danger} />
+                                    </TouchableOpacity>
+                                </View>
+                            ))
+                        )}
+                    </View>
+
+                    <View style={{ height: 100 }} />
+                </View>
             </ScrollView>
         </KeyboardAvoidingView>
     );
@@ -518,6 +520,8 @@ const ProfileScreen = ({ navigation }) => {
 
 const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: COLORS.bg0 },
+    scrollContent: { alignItems: 'center' },
+    responsiveWrapper: { width: '100%', maxWidth: 500 },
     topHeader: {
         flexDirection: 'row',
         alignItems: 'center',

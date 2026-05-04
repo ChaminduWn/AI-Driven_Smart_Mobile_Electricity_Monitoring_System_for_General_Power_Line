@@ -17,7 +17,7 @@ from src.schemas.bill import (
 from src.services.extractor import BillExtractionService
 from src.models.bill import ElectricityBill
 from src.models.user import User
-from src.api.routes.auth import get_user_from_token
+from src.api.dependencies import get_user_from_token
 from src.config import settings
 
 router = APIRouter(prefix=settings.API_V1_PREFIX, tags=["bills"])

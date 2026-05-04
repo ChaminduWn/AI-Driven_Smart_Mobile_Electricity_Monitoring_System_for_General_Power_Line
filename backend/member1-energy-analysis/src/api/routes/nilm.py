@@ -12,7 +12,7 @@ from src.database import get_db
 from src.models.bill import ElectricityBill
 from src.models.budget_plan import HouseholdAppliance
 from src.models.user import User
-from src.api.routes.auth import get_user_from_token
+from src.api.dependencies import get_user_from_token
 from src.services.nilm_disaggregation import get_nilm_service
 import logging
 

@@ -14,7 +14,7 @@ from src.models.bill import ElectricityBill
 from src.models.user import User
 from src.models.budget_plan import BudgetPlan, MeterReading, HouseholdAppliance
 from src.services.recommendation_engine import RecommendationEngine
-from src.api.routes.auth import get_user_from_token
+from src.api.dependencies import get_user_from_token
 
 router = APIRouter(prefix="/analysis", tags=["Bill Analysis"])
 analysis_service = BillAnalysisService()

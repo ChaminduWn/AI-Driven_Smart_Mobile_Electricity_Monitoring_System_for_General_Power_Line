@@ -16,7 +16,7 @@ from pydantic import BaseModel, Field
 from src.database import get_db
 from src.models.budget_plan import HouseholdAppliance
 from src.models.user import User
-from src.api.routes.auth import get_user_from_token
+from src.api.dependencies import get_user_from_token
 from src.services.bill_analysis import BillAnalysisService
 import logging
 

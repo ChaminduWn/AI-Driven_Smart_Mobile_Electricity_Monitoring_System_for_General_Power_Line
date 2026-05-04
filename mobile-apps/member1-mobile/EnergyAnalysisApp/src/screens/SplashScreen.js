@@ -24,7 +24,7 @@ export default function SplashScreen() {
 
           <View style={styles.footer}>
             <ActivityIndicator size="small" color="#2563EB" />
-            <Text style={styles.loadingText}>Connecting to grid…</Text>
+            <Text style={styles.loadingText}>Connecting..</Text>
           </View>
 
           {Platform.OS === 'web' ? (
@@ -74,9 +74,9 @@ const styles = StyleSheet.create({
     marginTop: 8,
     ...FONTS.medium,
   },
-  footer: { 
-    flexDirection: 'row', 
-    alignItems: 'center', 
+  footer: {
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: 12,
     backgroundColor: 'rgba(255,255,255,0.03)',
     paddingHorizontal: 20,

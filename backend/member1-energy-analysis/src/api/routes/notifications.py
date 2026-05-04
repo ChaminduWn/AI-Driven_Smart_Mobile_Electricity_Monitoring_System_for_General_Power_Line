@@ -5,7 +5,7 @@ from datetime import datetime
 
 from src.database import get_db
 from src.models.user import User, Notification
-from src.api.routes.auth import get_user_from_token
+from src.api.dependencies import get_user_from_token
 
 router = APIRouter(prefix="/notifications", tags=["Notifications"])
 

@@ -15,6 +15,7 @@ import Ionicons from 'react-native-vector-icons/Ionicons';
 WebBrowser.maybeCompleteAuthSession();
 
 const LoginScreen = ({ navigation }) => {
+  // ... state same ...
   const { login } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -22,6 +23,7 @@ const LoginScreen = ({ navigation }) => {
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState({});
 
+  // ... google auth same ...
   const redirectUri = AuthSession.makeRedirectUri({
     scheme: 'energyanalysis',
     useProxy: false,
@@ -86,83 +88,87 @@ const LoginScreen = ({ navigation }) => {
 
   return (
     <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.flex}>
-      <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
-        <View style={styles.header}>
-          <View style={styles.logoCard}>
-            <Ionicons name="flash" size={36} color="#06B6D4" />
-          </View>
-          <Text style={styles.brandTitle}>
-            <Text style={{ fontWeight: '300', color: COLORS.textPrimary }}>Power</Text>
-            <Text style={{ fontWeight: '800', color: '#2563EB' }}>Link</Text>
-          </Text>
-          <Text style={styles.subtitle}>Smart Electricity Monitoring</Text>
-        </View>
-
-        <View style={styles.form}>
-          <Text style={styles.formTitle}>Welcome Back</Text>
-          <Text style={styles.formSub}>Sign in to continue to PowerLink</Text>
-
-          <View style={styles.fieldWrap}>
-            <Text style={styles.fieldLabel}>Email Address</Text>
-            <TextInput
-              style={[styles.input, errors.email && styles.inputError]}
-              placeholder="john@example.com"
-              placeholderTextColor={COLORS.textMuted}
-              value={email}
-              onChangeText={(t) => { setEmail(t); setErrors((e) => ({ ...e, email: '' })); }}
-              autoCapitalize="none"
-              keyboardType="email-address"
-            />
-            {errors.email ? <Text style={styles.errText}>{errors.email}</Text> : null}
-          </View>
-
-          <View style={styles.fieldWrap}>
-            <Text style={styles.fieldLabel}>Password</Text>
-            <View style={styles.passWrap}>
-              <TextInput
-                style={[styles.input, { paddingRight: 50 }, errors.password && styles.inputError]}
-                placeholder="••••••••"
-                placeholderTextColor={COLORS.textMuted}
-                value={password}
-                onChangeText={(t) => { setPassword(t); setErrors((e) => ({ ...e, password: '' })); }}
-                secureTextEntry={!showPass}
-              />
-              <TouchableOpacity style={styles.eyeBtn} onPress={() => setShowPass(!showPass)}>
-                <Ionicons name={showPass ? "eye-off" : "eye"} size={20} color={COLORS.textMuted} />
-              </TouchableOpacity>
+      <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
+        <View style={styles.container}>
+          <View style={styles.header}>
+            <View style={styles.logoCard}>
+              <Ionicons name="flash" size={36} color="#06B6D4" />
             </View>
-            {errors.password ? <Text style={styles.errText}>{errors.password}</Text> : null}
+            <Text style={styles.brandTitle}>
+              <Text style={{ fontWeight: '300', color: '#1E293B' }}>Power</Text>
+              <Text style={{ fontWeight: '800', color: '#2563EB' }}>Link</Text>
+            </Text>
+            <Text style={styles.subtitle}>Smart Electricity Monitoring</Text>
           </View>
 
-          <PrimaryButton
-            label="Sign In"
-            onPress={handleLogin}
-            loading={loading}
-            disabled={loading}
-            color="#2563EB"
-            style={styles.loginBtn}
-          />
+          <View style={styles.formContainer}>
+            <View style={styles.form}>
+              <Text style={styles.formTitle}>Welcome Back</Text>
+              <Text style={styles.formSub}>Sign in to continue to PowerLink</Text>
 
-          <View style={styles.divider}>
-            <View style={styles.line} />
-            <Text style={styles.dividerText}>OR</Text>
-            <View style={styles.line} />
-          </View>
+              <View style={styles.fieldWrap}>
+                <Text style={styles.fieldLabel}>Email Address</Text>
+                <TextInput
+                  style={[styles.input, errors.email && styles.inputError]}
+                  placeholder="john@example.com"
+                  placeholderTextColor="#94A3B8"
+                  value={email}
+                  onChangeText={(t) => { setEmail(t); setErrors((e) => ({ ...e, email: '' })); }}
+                  autoCapitalize="none"
+                  keyboardType="email-address"
+                />
+                {errors.email ? <Text style={styles.errText}>{errors.email}</Text> : null}
+              </View>
 
-          <TouchableOpacity
-            style={[styles.googleBtn, (!request || loading) && styles.googleBtnDisabled]}
-            onPress={() => promptAsync()}
-            disabled={!request || loading}
-          >
-            <Ionicons name="logo-google" size={20} color="#EA4335" style={{ marginRight: 10 }} />
-            <Text style={styles.googleBtnText}>Continue with Google</Text>
-          </TouchableOpacity>
+              <View style={styles.fieldWrap}>
+                <Text style={styles.fieldLabel}>Password</Text>
+                <View style={styles.passWrap}>
+                  <TextInput
+                    style={[styles.input, { paddingRight: 50 }, errors.password && styles.inputError]}
+                    placeholder="••••••••"
+                    placeholderTextColor="#94A3B8"
+                    value={password}
+                    onChangeText={(t) => { setPassword(t); setErrors((e) => ({ ...e, password: '' })); }}
+                    secureTextEntry={!showPass}
+                  />
+                  <TouchableOpacity style={styles.eyeBtn} onPress={() => setShowPass(!showPass)}>
+                    <Ionicons name={showPass ? "eye-off" : "eye"} size={20} color="#94A3B8" />
+                  </TouchableOpacity>
+                </View>
+                {errors.password ? <Text style={styles.errText}>{errors.password}</Text> : null}
+              </View>
 
-          <View style={styles.footer}>
-            <Text style={styles.footerText}>New to PowerLink? </Text>
-            <TouchableOpacity onPress={() => navigation.navigate('Register')}>
-              <Text style={styles.link}>Create Account</Text>
-            </TouchableOpacity>
+              <PrimaryButton
+                label="Sign In"
+                onPress={handleLogin}
+                loading={loading}
+                disabled={loading}
+                color="#2563EB"
+                style={styles.loginBtn}
+              />
+
+              <View style={styles.divider}>
+                <View style={styles.line} />
+                <Text style={styles.dividerText}>OR</Text>
+                <View style={styles.line} />
+              </View>
+
+              <TouchableOpacity
+                style={[styles.googleBtn, (!request || loading) && styles.googleBtnDisabled]}
+                onPress={() => promptAsync()}
+                disabled={!request || loading}
+              >
+                <Ionicons name="logo-google" size={20} color="#EA4335" style={{ marginRight: 10 }} />
+                <Text style={styles.googleBtnText}>Continue with Google</Text>
+              </TouchableOpacity>
+
+              <View style={styles.footer}>
+                <Text style={styles.footerText}>New to PowerLink? </Text>
+                <TouchableOpacity onPress={() => navigation.navigate('Register')}>
+                  <Text style={styles.link}>Create Account</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
           </View>
         </View>
       </ScrollView>
@@ -172,8 +178,9 @@ const LoginScreen = ({ navigation }) => {
 
 const styles = StyleSheet.create({
   flex: { flex: 1, backgroundColor: '#F8FAFC' },
-  container: { flexGrow: 1, padding: 24, justifyContent: 'center', paddingBottom: 40 },
-  header: { alignItems: 'center', marginBottom: 40 },
+  scrollContent: { flexGrow: 1, justifyContent: 'center' },
+  container: { padding: 24, paddingBottom: 40, alignItems: 'center' },
+  header: { alignItems: 'center', marginBottom: 40, width: '100%' },
   logoCard: {
     width: 72, height: 72,
     backgroundColor: '#fff',
@@ -184,22 +191,23 @@ const styles = StyleSheet.create({
   },
   brandTitle: { fontSize: 32, letterSpacing: -0.5 },
   subtitle: { color: '#64748B', fontSize: 14, marginTop: 4, letterSpacing: 0.5 },
+  formContainer: { width: '100%', maxWidth: 450 },
   form: {
     backgroundColor: '#fff',
-    borderRadius: 24,
-    padding: 24,
+    borderRadius: 28,
+    padding: 32,
     borderWidth: 1,
     borderColor: '#F1F5F9',
     ...SHADOW.lg,
   },
-  formTitle: { color: '#1E293B', fontSize: 22, ...FONTS.bold, marginBottom: 4 },
+  formTitle: { color: '#1E293B', fontSize: 24, ...FONTS.bold, marginBottom: 6 },
   formSub: { color: '#64748B', fontSize: 14, marginBottom: 32 },
   fieldWrap: { marginBottom: 20 },
   fieldLabel: { color: '#475569', fontSize: 13, ...FONTS.bold, marginBottom: 8 },
   input: {
     backgroundColor: '#F8FAFC',
     color: '#1E293B',
-    borderRadius: 14,
+    borderRadius: 16,
     paddingHorizontal: 16,
     paddingVertical: 14,
     fontSize: 15,
@@ -210,7 +218,7 @@ const styles = StyleSheet.create({
   passWrap: { position: 'relative' },
   eyeBtn: { position: 'absolute', right: 16, top: 14 },
   errText: { color: COLORS.danger, fontSize: 12, marginTop: 4, marginLeft: 4 },
-  loginBtn: { marginTop: 8 },
+  loginBtn: { marginTop: 8, height: 52 },
   divider: { flexDirection: 'row', alignItems: 'center', marginVertical: 24 },
   line: { flex: 1, height: 1, backgroundColor: '#E2E8F0' },
   dividerText: { color: '#94A3B8', marginHorizontal: 16, fontSize: 12, ...FONTS.bold },
@@ -219,10 +227,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: '#fff',
-    borderRadius: 14,
+    borderRadius: 16,
     paddingVertical: 14,
     borderWidth: 1,
     borderColor: '#E2E8F0',
+    height: 52,
   },
   googleBtnDisabled: { opacity: 0.5 },
   googleBtnText: { color: '#475569', fontSize: 16, ...FONTS.semiBold },

@@ -19,6 +19,7 @@ if not hasattr(bcrypt, "__about__"):
 
 from src.config import settings
 from src.database import get_db
+from src.api.dependencies import get_user_from_token
 from src.models.user import User, UserProfile
 from src.schemas.auth import (
     UserRegisterRequest,
@@ -78,37 +79,7 @@ def create_refresh_token(data: dict, expires_delta: Optional[timedelta] = None) 
     return jwt.encode(to_encode, settings.SECRET_KEY, algorithm=ALGORITHM)
 
 
-def get_user_from_token(
-    token: str = Depends(oauth2_scheme),
-    db: Session = Depends(get_db)
-) -> User:
-    credentials_exception = HTTPException(
-        status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="Could not validate credentials",
-        headers={"WWW-Authenticate": "Bearer"},
-    )
-
-    if not token:
-        logger.error("No token received")
-        raise credentials_exception
-
-    try:
-        payload    = jwt.decode(token, settings.SECRET_KEY, algorithms=[ALGORITHM])
-        user_id    = payload.get("sub")
-        token_type = payload.get("type")
-
-        if user_id is None or token_type != "access":
-            raise credentials_exception
-
-    except JWTError as e:
-        logger.error(f"JWT error: {e}")
-        raise credentials_exception
-
-    user = db.query(User).filter(User.id == int(user_id)).first()
-    if user is None or not user.is_active:
-        raise credentials_exception
-
-    return user
+# get_user_from_token moved to src.api.dependencies to resolve circular imports
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -176,12 +147,11 @@ def register_user(payload: UserRegisterRequest, db: Session = Depends(get_db)):
                 profile_image=profile.profile_image,
                 default_account_number=profile.default_account_number,
                 address=profile.address,
-                city=profile.city,
                 district=profile.district,
                 role=profile.role,
                 nvq_certificate_url=profile.nvq_certificate_url,
                 is_verified=profile.is_verified,
-                country=profile.country,
+
                 is_admin=user.is_admin,
                 created_at=user.created_at,
             ),
@@ -228,12 +198,11 @@ def login_user(payload: UserLoginRequest, db: Session = Depends(get_db)):
                 profile_image=profile.profile_image if profile else None,
                 default_account_number=profile.default_account_number if profile else None,
                 address=profile.address if profile else None,
-                city=profile.city if profile else None,
                 district=profile.district if profile else None,
                 role=profile.role if profile else "Householder",
                 nvq_certificate_url=profile.nvq_certificate_url if profile else None,
                 is_verified=profile.is_verified if profile else False,
-                country=profile.country if profile else None,
+
                 is_admin=user.is_admin,
                 created_at=user.created_at,
             ),
@@ -458,12 +427,11 @@ def google_login(payload: GoogleLoginRequest, db: Session = Depends(get_db)):
                 profile_image=profile.profile_image if profile else None,
                 default_account_number=profile.default_account_number if profile else None,
                 address=profile.address if profile else None,
-                city=profile.city if profile else None,
                 district=profile.district if profile else None,
                 role=profile.role if profile else "Householder",
                 nvq_certificate_url=profile.nvq_certificate_url if profile else None,
                 is_verified=profile.is_verified if profile else False,
-                country=profile.country if profile else None,
+
                 is_admin=user.is_admin,
                 created_at=user.created_at,
             ),
@@ -494,12 +462,11 @@ def get_me(current_user: User = Depends(get_user_from_token)):
         profile_image=profile.profile_image if profile else None,
         default_account_number=profile.default_account_number if profile else None,
         address=profile.address if profile else None,
-        city=profile.city if profile else None,
         district=profile.district if profile else None,
         role=profile.role if profile else "Householder",
         nvq_certificate_url=profile.nvq_certificate_url if profile else None,
         is_verified=profile.is_verified if profile else False,
-        country=profile.country if profile else None,
+
         is_admin=current_user.is_admin,
         created_at=current_user.created_at,
     )
@@ -550,11 +517,8 @@ def update_profile(
             profile.profile_image = payload.profile_image
         if payload.address is not None:
             profile.address = payload.address
-        if payload.city is not None:
-            profile.city = payload.city
-        if payload.country is not None:
-            profile.country = payload.country
         if payload.default_account_number is not None:
+
             profile.default_account_number = payload.default_account_number
 
         db.commit()
@@ -571,9 +535,8 @@ def update_profile(
             profile_image=profile.profile_image,
             default_account_number=profile.default_account_number,
             address=profile.address,
-            city=profile.city,
-            country=profile.country,
             is_admin=current_user.is_admin,
+
             created_at=current_user.created_at,
         )
     except Exception as e:

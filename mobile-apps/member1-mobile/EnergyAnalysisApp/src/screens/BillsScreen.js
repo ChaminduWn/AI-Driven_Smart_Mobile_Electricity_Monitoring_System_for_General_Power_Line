@@ -297,14 +297,14 @@ const BillsScreen = ({ navigation }) => {
           <TouchableOpacity style={[styles.bottomSheet, { maxHeight: '50%' }]} activeOpacity={1}>
             <Text style={styles.sheetTitle}>Rename Bill</Text>
             <Text style={styles.sheetSubtitle}>Enter a new name for this bill</Text>
-            
+
             <ManualInput
               label="Bill Title"
               value={renameTitle}
               onChangeText={setRenameTitle}
               placeholder="e.g. Home - Feb 2024"
             />
-            
+
             <PrimaryButton
               label={submitting ? "Updating..." : "Save Name"}
               onPress={handleRename}
@@ -321,14 +321,14 @@ const BillsScreen = ({ navigation }) => {
           <TouchableOpacity style={[styles.bottomSheet, { maxHeight: '50%' }]} activeOpacity={1}>
             <Text style={styles.sheetTitle}>Name this Bill</Text>
             <Text style={styles.sheetSubtitle}>Give your bill a title (e.g. Feb 2024 Bill)</Text>
-            
+
             <ManualInput
               label="Bill Title"
               value={uploadTitle}
               onChangeText={setUploadTitle}
               placeholder="e.g. February 2024"
             />
-            
+
             <PrimaryButton
               label="Upload"
               onPress={doUpload}

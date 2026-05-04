@@ -6,13 +6,14 @@ import {
 } from 'react-native';
 import { useAccount } from '../contexts/AccountContext';
 import { appliancesAPI } from '../api/appliancesAPI';
+import { SOLAR_API_BASE } from '../config';
 import { LoadingScreen } from '../components/SharedComponents';
 import { formatCurrency } from '../utils/helpers';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 /* ─── API Base ───────────────────────────────────────── */
-const API_BASE = 'http://localhost:5000';
+const API_BASE = SOLAR_API_BASE;
 
 /* ─── Design Tokens ──────────────────────────────────── */
 const C = {

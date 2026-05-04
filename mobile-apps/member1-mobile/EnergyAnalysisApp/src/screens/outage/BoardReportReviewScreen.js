@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { theme } from '../../theme/outage';
@@ -29,36 +29,52 @@ export const BoardReportReviewScreen = ({ route, navigation }) => {
             // This would normally call the backend
             // For now, we simulate success
             setTimeout(() => {
-                Alert.alert(
-                    t('member2.boardReview.successTitle'),
-                    t('member2.boardReview.successMsg'),
-                    [
-                        {
-                            text: t('member2.boardReview.viewActivities'),
-                            onPress: () => navigation.navigate('DashboardHome'),
-                        },
-                    ]
-                );
+                if (Platform.OS === 'web') {
+                    window.alert(`${t('member2.boardReview.successTitle')}\n\n${t('member2.boardReview.successMsg')}`);
+                    navigation.navigate('DashboardHome');
+                } else {
+                    Alert.alert(
+                        t('member2.boardReview.successTitle'),
+                        t('member2.boardReview.successMsg'),
+                        [
+                            {
+                                text: t('member2.boardReview.viewActivities'),
+                                onPress: () => navigation.navigate('DashboardHome'),
+                            },
+                        ]
+                    );
+                }
                 setSubmitting(false);
             }, 1500);
         } catch (error) {
-            Alert.alert(t('member2.boardReview.submitFailedTitle'), error.message || t('member2.boardReview.submitFailedMsg'));
+            if (Platform.OS === 'web') {
+                window.alert(`${t('member2.boardReview.submitFailedTitle')}\n\n${error.message || t('member2.boardReview.submitFailedMsg')}`);
+            } else {
+                Alert.alert(t('member2.boardReview.submitFailedTitle'), error.message || t('member2.boardReview.submitFailedMsg'));
+            }
             setSubmitting(false);
         }
     };
 
     const handleFinish = () => {
-        Alert.alert(
-            t('member2.boardReview.confirmTitle'),
-            t('member2.boardReview.confirmMsg'),
-            [
-                { text: t('member2.common.cancel'), style: 'cancel' },
-                {
-                    text: t('member2.boardReview.submit'),
-                    onPress: submitReport,
-                },
-            ]
-        );
+        if (Platform.OS === 'web') {
+            const confirmed = window.confirm(`${t('member2.boardReview.confirmTitle')}\n\n${t('member2.boardReview.confirmMsg')}`);
+            if (confirmed) {
+                submitReport();
+            }
+        } else {
+            Alert.alert(
+                t('member2.boardReview.confirmTitle'),
+                t('member2.boardReview.confirmMsg'),
+                [
+                    { text: t('member2.common.cancel'), style: 'cancel' },
+                    {
+                        text: t('member2.boardReview.submit'),
+                        onPress: submitReport,
+                    },
+                ]
+            );
+        }
     };
 
     return (

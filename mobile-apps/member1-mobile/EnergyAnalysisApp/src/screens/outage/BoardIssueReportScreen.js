@@ -112,102 +112,104 @@ export const BoardIssueReportScreen = ({ navigation }) => {
             </View>
 
             <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-                <View style={styles.introCard}>
-                    <View style={styles.introIcon}>
-                        <Ionicons name="business" size={24} color={theme.colors.warning} />
+                <View style={styles.responsiveWrapper}>
+                    <View style={styles.introCard}>
+                        <View style={styles.introIcon}>
+                            <Ionicons name="business" size={24} color={theme.colors.warning} />
+                        </View>
+                        <View style={styles.introTextWrap}>
+                            <Text style={styles.introTitle}>{t('member2.boardIssue.introTitle')}</Text>
+                            <Text style={styles.introSubtitle}>{t('member2.boardIssue.introSubtitle')}</Text>
+                        </View>
                     </View>
-                    <View style={styles.introTextWrap}>
-                        <Text style={styles.introTitle}>{t('member2.boardIssue.introTitle')}</Text>
-                        <Text style={styles.introSubtitle}>{t('member2.boardIssue.introSubtitle')}</Text>
-                    </View>
-                </View>
 
-                {boardReportCategories.map((category) => {
-                    const isSelected = category.id === selectedCategoryId;
+                    {boardReportCategories.map((category) => {
+                        const isSelected = category.id === selectedCategoryId;
 
-                    return (
-                        <TouchableOpacity
-                            key={category.id}
-                            style={[
-                                styles.categoryCard,
-                                isSelected && {
-                                    borderColor: category.color,
-                                    backgroundColor: `${category.color}12`,
-                                },
-                            ]}
-                            activeOpacity={0.85}
-                            onPress={() => setSelectedCategoryId(category.id)}
-                        >
-                            <View style={styles.categoryHeader}>
-                                <View style={[styles.categoryIcon, { backgroundColor: `${category.color}18` }]}>
-                                    <Ionicons name={category.icon} size={20} color={category.color} />
-                                </View>
-                                <View style={styles.categoryTextWrap}>
-                                    <Text style={[styles.categoryTitle, isSelected && { color: category.color }]}>
-                                        {category.title}
-                                    </Text>
-                                    <Text style={styles.categoryHint}>
-                                        {isSelected ? t('member2.boardIssue.selectedHint') : t('member2.boardIssue.tapHint')}
-                                    </Text>
-                                </View>
-                                <Ionicons
-                                    name={isSelected ? 'radio-button-on' : 'radio-button-off'}
-                                    size={22}
-                                    color={isSelected ? category.color : theme.colors.textMuted}
-                                />
-                            </View>
-
-                            <View style={styles.pointsList}>
-                                {Array.isArray(category.points) && category.points.map((point) => (
-                                    <View key={point} style={styles.pointRow}>
-                                        <Ionicons name="ellipse" size={8} color={isSelected ? category.color : theme.colors.textSecondary} />
-                                        <Text style={styles.pointText}>{point}</Text>
+                        return (
+                            <TouchableOpacity
+                                key={category.id}
+                                style={[
+                                    styles.categoryCard,
+                                    isSelected && {
+                                        borderColor: category.color,
+                                        backgroundColor: `${category.color}12`,
+                                    },
+                                ]}
+                                activeOpacity={0.85}
+                                onPress={() => setSelectedCategoryId(category.id)}
+                            >
+                                <View style={styles.categoryHeader}>
+                                    <View style={[styles.categoryIcon, { backgroundColor: `${category.color}18` }]}>
+                                        <Ionicons name={category.icon} size={20} color={category.color} />
                                     </View>
-                                ))}
-                            </View>
-                        </TouchableOpacity>
-                    );
-                })}
+                                    <View style={styles.categoryTextWrap}>
+                                        <Text style={[styles.categoryTitle, isSelected && { color: category.color }]}>
+                                            {category.title}
+                                        </Text>
+                                        <Text style={styles.categoryHint}>
+                                            {isSelected ? t('member2.boardIssue.selectedHint') : t('member2.boardIssue.tapHint')}
+                                        </Text>
+                                    </View>
+                                    <Ionicons
+                                        name={isSelected ? 'radio-button-on' : 'radio-button-off'}
+                                        size={22}
+                                        color={isSelected ? category.color : theme.colors.textMuted}
+                                    />
+                                </View>
 
-                <View style={styles.photoSection}>
-                    <Text style={styles.photoTitle}>{t('member2.boardIssue.photoTitle')}</Text>
-                    <Text style={styles.photoSubtitle}>{t('member2.boardIssue.photoSubtitle')}</Text>
-
-                    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.photoScroller}>
-                        {issuePhotos.map((photoUrl, index) => (
-                            <View key={`${photoUrl}-${index}`} style={styles.photoThumbWrap}>
-                                <Image source={{ uri: buildAssetUrl(photoUrl) }} style={styles.photoThumb} />
-                                <TouchableOpacity
-                                    style={styles.removePhotoButton}
-                                    onPress={() => setIssuePhotos((current) => current.filter((_, itemIndex) => itemIndex !== index))}
-                                >
-                                    <Ionicons name="close-circle" size={24} color={theme.colors.danger} />
-                                </TouchableOpacity>
-                            </View>
-                        ))}
-
-                        {issuePhotos.length < 3 && (
-                            <TouchableOpacity style={styles.addPhotoButton} onPress={pickImage} disabled={uploadingImage}>
-                                {uploadingImage ? (
-                                    <ActivityIndicator color={theme.colors.primary} />
-                                ) : (
-                                    <>
-                                        <Ionicons name="camera" size={28} color={theme.colors.primary} />
-                                        <Text style={styles.addPhotoText}>{t('member2.boardIssue.addPhoto')}</Text>
-                                    </>
-                                )}
+                                <View style={styles.pointsList}>
+                                    {Array.isArray(category.points) && category.points.map((point) => (
+                                        <View key={point} style={styles.pointRow}>
+                                            <Ionicons name="ellipse" size={8} color={isSelected ? category.color : theme.colors.textSecondary} />
+                                            <Text style={styles.pointText}>{point}</Text>
+                                        </View>
+                                    ))}
+                                </View>
                             </TouchableOpacity>
-                        )}
-                    </ScrollView>
-                </View>
+                        );
+                    })}
 
-                <GradientButton
-                    title={t('member2.boardIssue.continue')}
-                    icon="arrow-forward"
-                    iconRight="navigate"
-                    onPress={handleContinue}
-                    style={styles.continueButton}
-                />
+                    <View style={styles.photoSection}>
+                        <Text style={styles.photoTitle}>{t('member2.boardIssue.photoTitle')}</Text>
+                        <Text style={styles.photoSubtitle}>{t('member2.boardIssue.photoSubtitle')}</Text>
+
+                        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.photoScroller}>
+                            {issuePhotos.map((photoUrl, index) => (
+                                <View key={`${photoUrl}-${index}`} style={styles.photoThumbWrap}>
+                                    <Image source={{ uri: buildAssetUrl(photoUrl) }} style={styles.photoThumb} />
+                                    <TouchableOpacity
+                                        style={styles.removePhotoButton}
+                                        onPress={() => setIssuePhotos((current) => current.filter((_, itemIndex) => itemIndex !== index))}
+                                    >
+                                        <Ionicons name="close-circle" size={24} color={theme.colors.danger} />
+                                    </TouchableOpacity>
+                                </View>
+                            ))}
+
+                            {issuePhotos.length < 3 && (
+                                <TouchableOpacity style={styles.addPhotoButton} onPress={pickImage} disabled={uploadingImage}>
+                                    {uploadingImage ? (
+                                        <ActivityIndicator color={theme.colors.primary} />
+                                    ) : (
+                                        <>
+                                            <Ionicons name="camera" size={28} color={theme.colors.primary} />
+                                            <Text style={styles.addPhotoText}>{t('member2.boardIssue.addPhoto')}</Text>
+                                        </>
+                                    )}
+                                </TouchableOpacity>
+                            )}
+                        </ScrollView>
+                    </View>
+
+                    <GradientButton
+                        title={t('member2.boardIssue.continue')}
+                        icon="arrow-forward"
+                        iconRight="navigate"
+                        onPress={handleContinue}
+                        style={styles.continueButton}
+                    />
+                </View>
             </ScrollView>
 
             <VoiceCommandButton
@@ -251,6 +253,11 @@ const styles = StyleSheet.create({
     scrollContent: {
         padding: 24,
         paddingBottom: 48,
+        alignItems: 'center',
+    },
+    responsiveWrapper: {
+        width: '100%',
+        maxWidth: 500,
     },
     introCard: {
         flexDirection: 'row',

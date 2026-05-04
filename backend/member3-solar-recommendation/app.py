@@ -581,8 +581,8 @@ if __name__ == '__main__':
     load_models()
     load_climate_data()
 
-    print("\n Starting Flask server on http://localhost:5000")
+    print("\n Starting Flask server on http://localhost:8001")
  
     print()
 
-    app.run(host='0.0.0.0', port=5000, debug=False)
+    app.run(host='0.0.0.0', port=8001, debug=False)

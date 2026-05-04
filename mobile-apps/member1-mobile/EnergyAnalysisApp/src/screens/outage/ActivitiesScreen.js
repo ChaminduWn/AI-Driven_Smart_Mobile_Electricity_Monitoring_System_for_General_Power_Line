@@ -1,11 +1,12 @@
 import React from 'react';
-import { View, Text, StyleSheet, ScrollView, ActivityIndicator, Alert, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, ActivityIndicator, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { theme } from '../../theme/outage';
 import { Card } from '../../components/outage/Card';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTranslation } from '../../utils/outage/i18nShim';
+import { LinearGradient } from 'expo-linear-gradient';
 
 export const ActivitiesScreen = ({ navigation }) => {
     const { user } = useAuth();
@@ -14,7 +15,6 @@ export const ActivitiesScreen = ({ navigation }) => {
     const [loading, setLoading] = React.useState(false);
 
     React.useEffect(() => {
-        // Simulate fetching history
         setLoading(true);
         setTimeout(() => {
             setActivities({
@@ -50,43 +50,87 @@ export const ActivitiesScreen = ({ navigation }) => {
                     <Text style={styles.issueType}>
                         {item.activityKind === 'boardReport' ? item.categoryTitle : item.title}
                     </Text>
-                    <Text style={styles.subType}>
-                        {item.activityKind === 'boardReport' ? 'Reported to Electricity Board' : item.subCategory}
-                    </Text>
+                    <View style={styles.subTypeRow}>
+                        <Ionicons 
+                            name={item.activityKind === 'boardReport' ? "business-outline" : "construct-outline"} 
+                            size={12} 
+                            color={theme.colors.textSecondary} 
+                        />
+                        <Text style={styles.subType}>
+                            {item.activityKind === 'boardReport' ? 'Electricity Board' : item.subCategory}
+                        </Text>
+                    </View>
                 </View>
-                <View style={[styles.statusBadge, { backgroundColor: getStatusColor(item.status) + '15' }]}>
+                <View style={[styles.statusBadge, { backgroundColor: getStatusColor(item.status) + '25' }]}>
                     <Text style={[styles.statusText, { color: getStatusColor(item.status) }]}>{item.status}</Text>
                 </View>
             </View>
+
+            <View style={styles.divider} />
+
             <View style={styles.cardBottom}>
                 <View style={styles.detailItem}>
                     <Ionicons name="calendar-outline" size={14} color={theme.colors.textMuted} />
                     <Text style={styles.detailText}>{new Date(item.createdAt).toLocaleDateString()}</Text>
                 </View>
-                {item.estimatedCost && <Text style={styles.amount}>LKR {item.estimatedCost}</Text>}
+                {item.estimatedCost ? (
+                    <View style={styles.costBadge}>
+                        <Text style={styles.amount}>LKR {item.estimatedCost}</Text>
+                    </View>
+                ) : (
+                    <Ionicons name="chevron-forward" size={18} color={theme.colors.textMuted} />
+                )}
             </View>
         </Card>
     );
 
     return (
         <SafeAreaView style={styles.container}>
-            <View style={styles.header}>
-                <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-                    <Ionicons name="arrow-back" size={24} color={theme.colors.text} />
-                </TouchableOpacity>
-                <View>
-                    <Text style={styles.headerTitle}>{t('activities.title')}</Text>
-                    <Text style={styles.headerSubtitle}>Track your reports and service requests</Text>
+            <LinearGradient
+                colors={['#1E293B', '#0F172A']}
+                style={styles.headerGradient}
+            >
+                <View style={styles.header}>
+                    <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+                        <Ionicons name="arrow-back" size={24} color={theme.colors.text} />
+                    </TouchableOpacity>
+                    <View>
+                        <Text style={styles.headerTitle}>{t('activities.title')}</Text>
+                        <Text style={styles.headerSubtitle}>Track your reports and service requests</Text>
+                    </View>
                 </View>
-            </View>
+            </LinearGradient>
+
             {loading ? (
-                <View style={styles.centeredState}><ActivityIndicator size="large" color={theme.colors.primary} /></View>
+                <View style={styles.centeredState}>
+                    <ActivityIndicator size="large" color={theme.colors.primary} />
+                    <Text style={styles.loadingText}>Fetching activities...</Text>
+                </View>
             ) : (
-                <ScrollView contentContainerStyle={styles.list}>
-                    <Text style={styles.sectionHeading}>Electricity Board Reports</Text>
-                    {activities.boardReports.map(renderActivityCard)}
-                    <Text style={[styles.sectionHeading, { marginTop: 20 }]}>Technician Requests</Text>
-                    {activities.electricianReports.map(renderActivityCard)}
+                <ScrollView contentContainerStyle={styles.list} showsVerticalScrollIndicator={false}>
+                    <View style={styles.sectionHeader}>
+                        <View style={[styles.iconBox, { backgroundColor: theme.colors.primary + '20' }]}>
+                            <Ionicons name="megaphone" size={18} color={theme.colors.primary} />
+                        </View>
+                        <Text style={styles.sectionHeading}>Electricity Board Reports</Text>
+                    </View>
+                    {activities.boardReports.length > 0 ? (
+                        activities.boardReports.map(renderActivityCard)
+                    ) : (
+                        <Text style={styles.emptyText}>No board reports found</Text>
+                    )}
+
+                    <View style={[styles.sectionHeader, { marginTop: 24 }]}>
+                        <View style={[styles.iconBox, { backgroundColor: theme.colors.secondary + '20' }]}>
+                            <Ionicons name="build" size={18} color={theme.colors.secondary} />
+                        </View>
+                        <Text style={styles.sectionHeading}>Technician Requests</Text>
+                    </View>
+                    {activities.electricianReports.length > 0 ? (
+                        activities.electricianReports.map(renderActivityCard)
+                    ) : (
+                        <Text style={styles.emptyText}>No technician requests found</Text>
+                    )}
                 </ScrollView>
             )}
         </SafeAreaView>
@@ -95,24 +139,38 @@ export const ActivitiesScreen = ({ navigation }) => {
 
 const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: theme.colors.background },
-    header: { flexDirection: 'row', alignItems: 'center', padding: 16, borderBottomWidth: 1, borderBottomColor: theme.colors.border },
-    backBtn: { padding: 8, marginRight: 8 },
-    headerTitle: { fontSize: 20, fontWeight: '800' },
-    headerSubtitle: { fontSize: 12, color: theme.colors.textSecondary },
+    headerGradient: { borderBottomWidth: 1, borderBottomColor: theme.colors.border },
+    header: { flexDirection: 'row', alignItems: 'center', padding: 16, paddingVertical: 20 },
+    backBtn: { 
+        width: 40, height: 40, 
+        borderRadius: 20, 
+        backgroundColor: 'rgba(255,255,255,0.05)', 
+        justifyContent: 'center', alignItems: 'center', 
+        marginRight: 12 
+    },
+    headerTitle: { fontSize: 24, fontWeight: '800', color: theme.colors.text },
+    headerSubtitle: { fontSize: 13, color: theme.colors.textSecondary, marginTop: 2 },
     centeredState: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+    loadingText: { marginTop: 12, color: theme.colors.textSecondary, fontSize: 14 },
     list: { padding: 16, paddingBottom: 40 },
-    sectionHeading: { fontSize: 16, fontWeight: '700', marginBottom: 12, color: theme.colors.textMuted },
-    card: { marginBottom: 12 },
-    cardTop: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 10 },
+    sectionHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 16 },
+    iconBox: { width: 36, height: 36, borderRadius: 10, justifyContent: 'center', alignItems: 'center', marginRight: 12 },
+    sectionHeading: { fontSize: 17, fontWeight: '700', color: theme.colors.text },
+    card: { marginBottom: 16, padding: 16 },
+    cardTop: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 12 },
     typeInfo: { flex: 1 },
-    issueType: { fontSize: 15, fontWeight: '700' },
-    subType: { fontSize: 12, color: theme.colors.textSecondary, marginTop: 2 },
-    statusBadge: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8 },
-    statusText: { fontSize: 11, fontWeight: '700' },
+    issueType: { fontSize: 17, fontWeight: '700', color: theme.colors.text },
+    subTypeRow: { flexDirection: 'row', alignItems: 'center', marginTop: 4 },
+    subType: { fontSize: 13, color: theme.colors.textSecondary, marginLeft: 6 },
+    statusBadge: { paddingHorizontal: 10, paddingVertical: 5, borderRadius: 10 },
+    statusText: { fontSize: 12, fontWeight: '800', textTransform: 'uppercase' },
+    divider: { height: 1, backgroundColor: theme.colors.border, opacity: 0.5, marginVertical: 12 },
     cardBottom: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
     detailItem: { flexDirection: 'row', alignItems: 'center' },
-    detailText: { fontSize: 12, color: theme.colors.textMuted, marginLeft: 4 },
-    amount: { fontSize: 14, color: theme.colors.success, fontWeight: '700' },
+    detailText: { fontSize: 13, color: theme.colors.textMuted, marginLeft: 6 },
+    costBadge: { backgroundColor: theme.colors.success + '15', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6 },
+    amount: { fontSize: 14, color: theme.colors.success, fontWeight: '800' },
+    emptyText: { color: theme.colors.textMuted, fontSize: 14, fontStyle: 'italic', marginLeft: 48 },
 });
 
 export default ActivitiesScreen;
