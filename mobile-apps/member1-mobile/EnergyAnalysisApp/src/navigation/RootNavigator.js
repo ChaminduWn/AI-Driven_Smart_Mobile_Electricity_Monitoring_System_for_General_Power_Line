@@ -42,6 +42,20 @@ import SafetyEmergencyScreen from '../screens/safety/EmergencyScreen';
 import SafetyAppliancesScreen from '../screens/safety/SafetyAppliancesScreen';
 import SafetyAssistantScreen from '../screens/safety/AssisScreen';
 
+// ── Outage Reporting (from Member 2) ─────────────────────────────────────────
+import BoardIssueReportScreen from '../screens/outage/BoardIssueReportScreen';
+import LocationSelectionScreen from '../screens/outage/LocationSelectionScreen';
+import BoardReportReviewScreen from '../screens/outage/BoardReportReviewScreen';
+import SubCategoryScreen from '../screens/outage/SubCategoryScreen';
+import AvailableElectriciansScreen from '../screens/outage/AvailableElectriciansScreen';
+import TrackElectricianScreen from '../screens/outage/TrackElectricianScreen';
+import ActivitiesScreen from '../screens/outage/ActivitiesScreen';
+import ActivityDetailScreen from '../screens/outage/ActivityDetailScreen';
+import ElectricianDashboard from '../screens/outage/ElectricianDashboard';
+import ElectricianJobDetailsScreen from '../screens/outage/ElectricianJobDetailsScreen';
+import RatingScreen from '../screens/outage/RatingScreen';
+import ChatScreen from '../screens/outage/ChatScreen';
+
 const Tab = createBottomTabNavigator();
 const TopTab = createMaterialTopTabNavigator();
 const Stack = createStackNavigator();
@@ -120,6 +134,18 @@ const DashboardStack = () => (
     <Stack.Screen name="Solar" component={SolarRecommendationScreen} options={{ headerShown: false }} />
     <Stack.Screen name="Safety" component={SafetyManagementScreen} options={{ headerShown: false }} />
     <Stack.Screen name="Profile" component={ProfileScreen} options={{ headerShown: false }} />
+    <Stack.Screen name="BoardIssueReport" component={BoardIssueReportScreen} options={{ headerShown: false }} />
+    <Stack.Screen name="LocationSelection" component={LocationSelectionScreen} options={{ headerShown: false }} />
+    <Stack.Screen name="BoardReportReview" component={BoardReportReviewScreen} options={{ headerShown: false }} />
+    <Stack.Screen name="SubCategory" component={SubCategoryScreen} options={{ headerShown: false }} />
+    <Stack.Screen name="AvailableElectricians" component={AvailableElectriciansScreen} options={{ headerShown: false }} />
+    <Stack.Screen name="TrackElectrician" component={TrackElectricianScreen} options={{ headerShown: false }} />
+    <Stack.Screen name="Activities" component={ActivitiesScreen} options={{ headerShown: false }} />
+    <Stack.Screen name="ActivityDetail" component={ActivityDetailScreen} options={{ headerShown: false }} />
+    <Stack.Screen name="ElectricianDashboard" component={ElectricianDashboard} options={{ headerShown: false }} />
+    <Stack.Screen name="ElectricianJobDetails" component={ElectricianJobDetailsScreen} options={{ headerShown: false }} />
+    <Stack.Screen name="Rating" component={RatingScreen} options={{ headerShown: false }} />
+    <Stack.Screen name="Chat" component={ChatScreen} options={{ headerShown: false }} />
   </Stack.Navigator>
 );
 

@@ -69,7 +69,13 @@ class UserProfile(Base):
     
     address = Column(String(500), nullable=True)
     city = Column(String(100), nullable=True)
+    district = Column(String(100), nullable=True)
     country = Column(String(100), nullable=True)
+    
+    # Member 2 integration fields
+    role = Column(String(50), default="Householder") # Householder, Electrician
+    nvq_certificate_url = Column(Text, nullable=True)
+    is_verified = Column(Boolean, default=False)
     
     # For linking to electricity account if needed later
     default_account_number = Column(String(100), nullable=True)

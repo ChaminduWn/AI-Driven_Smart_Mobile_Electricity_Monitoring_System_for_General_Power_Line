@@ -38,6 +38,9 @@ const ProfileScreen = ({ navigation }) => {
         default_account_number: user?.default_account_number || '',
         profile_image: user?.profile_image || null,
         new_password: '',
+        role: user?.role || 'householder',
+        district: user?.district || '',
+        nvq_certification: user?.nvq_certification || '',
     });
 
     // Household Members State
@@ -344,6 +347,62 @@ const ProfileScreen = ({ navigation }) => {
                             />
                         </View>
                     </View>
+                </View>
+
+                {/* Service Professional Details */}
+                <View style={styles.section}>
+                    <View style={styles.sectionHeader}>
+                        <User size={20} color={'#FF6B35'} />
+                        <Text style={styles.sectionTitle}>Service Professional Details</Text>
+                    </View>
+
+                    <View style={styles.inputGroup}>
+                        <Text style={styles.label}>Account Role</Text>
+                        <View style={styles.row}>
+                            <TouchableOpacity 
+                                style={[styles.typeTag, profile.role === 'householder' && styles.typeTagActive]}
+                                onPress={() => setProfile({ ...profile, role: 'householder' })}
+                            >
+                                <Text style={[styles.typeTagText, profile.role === 'householder' && styles.typeTagTextActive]}>Householder</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity 
+                                style={[styles.typeTag, profile.role === 'electrician' && { backgroundColor: '#FF6B35', borderColor: '#FF6B35' }, {marginLeft: 10}]}
+                                onPress={() => setProfile({ ...profile, role: 'electrician' })}
+                            >
+                                <Text style={[styles.typeTagText, profile.role === 'electrician' && styles.typeTagTextActive]}>Electrician</Text>
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+
+                    <View style={styles.inputGroup}>
+                        <Text style={styles.label}>District</Text>
+                        <View style={styles.inputContainer}>
+                            <MapPin size={18} color={COLORS.textMuted} style={styles.inputIcon} />
+                            <TextInput
+                                style={styles.input}
+                                value={profile.district}
+                                onChangeText={(text) => setProfile({ ...profile, district: text })}
+                                placeholder="e.g. Colombo, Kandy"
+                                placeholderTextColor={COLORS.textMuted}
+                            />
+                        </View>
+                    </View>
+
+                    {profile.role === 'electrician' && (
+                        <View style={styles.inputGroup}>
+                            <Text style={styles.label}>NVQ Certification Level</Text>
+                            <View style={styles.inputContainer}>
+                                <Hash size={18} color={COLORS.textMuted} style={styles.inputIcon} />
+                                <TextInput
+                                    style={styles.input}
+                                    value={profile.nvq_certification}
+                                    onChangeText={(text) => setProfile({ ...profile, nvq_certification: text })}
+                                    placeholder="e.g. NVQ Level 4"
+                                    placeholderTextColor={COLORS.textMuted}
+                                />
+                            </View>
+                        </View>
+                    )}
                 </View>
 
                 {/* Security Section */}

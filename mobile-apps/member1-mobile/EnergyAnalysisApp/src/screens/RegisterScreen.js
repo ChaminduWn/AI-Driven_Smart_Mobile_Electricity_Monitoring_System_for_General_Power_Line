@@ -10,8 +10,19 @@ import { PrimaryButton } from '../components/SharedComponents';
 import * as Google from 'expo-auth-session/providers/google';
 import * as WebBrowser from 'expo-web-browser';
 import * as AuthSession from 'expo-auth-session';
+import Ionicons from 'react-native-vector-icons/Ionicons';
+import * as ImagePicker from 'expo-image-picker';
+import * as FileSystem from 'expo-file-system';
 
 WebBrowser.maybeCompleteAuthSession();
+
+const DISTRICTS = [
+  'Colombo', 'Gampaha', 'Kalutara', 'Kandy', 'Matale',
+  'Nuwara Eliya', 'Galle', 'Matara', 'Hambantota', 'Jaffna',
+  'Kilinochchi', 'Mannar', 'Vavuniya', 'Mullaitivu', 'Batticaloa',
+  'Ampara', 'Trincomalee', 'Kurunegala', 'Puttalam', 'Anuradhapura',
+  'Polonnaruwa', 'Badulla', 'Monaragala', 'Ratnapura', 'Kegalle',
+];
 
 const Field = ({ label, error, children }) => (
   <View style={styles.fieldWrap}>
@@ -23,25 +34,24 @@ const Field = ({ label, error, children }) => (
 
 const RegisterScreen = ({ navigation }) => {
   const { login } = useAuth();
+  const [role, setRole] = useState('Householder');
   const [form, setForm] = useState({
     full_name: '',
     username: '',
     email: '',
     phone_number: '',
     account_number: '',
+    address: '',
+    district: '',
     password: '',
     confirm: '',
   });
+  const [nvqImage, setNvqImage] = useState(null);
+  const [showDistrictPicker, setShowDistrictPicker] = useState(false);
   const [showPass, setShowPass] = useState(false);
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState({});
   const [agreeTerms, setAgreeTerms] = useState(false);
-
-  const passwordRequirements = [
-    { label: 'Minimum 8 characters', met: form.password.length >= 8 },
-    { label: 'At least one uppercase letter', met: /[A-Z]/.test(form.password) },
-    { label: 'One number or symbol', met: /[0-9!@#$%^&*(),.?":{}|<>]/.test(form.password) },
-  ];
 
   // ── Google Auth Setup ───────────────────────────────────────────────────────
   const redirectUri = AuthSession.makeRedirectUri({
@@ -56,83 +66,27 @@ const RegisterScreen = ({ navigation }) => {
     redirectUri,
   });
 
-  // ── Handle Google response ──────────────────────────────────────────────────
   React.useEffect(() => {
     if (!response) return;
-
     if (response.type === 'success') {
       const idToken = response.params?.id_token;
-
-      if (!idToken) {
-        const accessToken = response.params?.access_token;
-        if (accessToken) {
-          fetchGoogleUserInfo(accessToken);
-        } else {
-          Alert.alert('Google Error', 'No token received from Google. Try again.');
-        }
-        return;
-      }
-
-      handleGoogleLogin(idToken);
-
+      if (idToken) handleGoogleLogin(idToken);
     } else if (response.type === 'error') {
       Alert.alert('Google Sign-In Failed', response.error?.message || 'Please try again.');
     }
   }, [response]);
 
-  // ── Fetch user info via access_token (fallback) ───────────────────────────
-  const fetchGoogleUserInfo = async (accessToken) => {
-    try {
-      setLoading(true);
-      const res = await fetch(
-        `https://www.googleapis.com/oauth2/v3/userinfo`,
-        { headers: { Authorization: `Bearer ${accessToken}` } }
-      );
-      const userInfo = await res.json();
-
-      if (!userInfo.email) {
-        Alert.alert('Google Error', 'Could not get email from Google account.');
-        return;
-      }
-
-      const backendRes = await authAPI.googleLogin(accessToken, userInfo);
-      const data = backendRes.data;
-
-      const appAccessToken = data.access_token || data.accessToken || data.token;
-      const appRefreshToken = data.refresh_token || data.refreshToken || appAccessToken;
-      const userData = data.user || data.profile;
-
-      await login(appAccessToken, appRefreshToken, userData);
-
-    } catch (err) {
-      console.error('Google user info error:', err);
-      Alert.alert('Google Auth Failed', 'Could not complete Google sign-in.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // ── Standard Google login with id_token ────────────────────────────────────
   const handleGoogleLogin = async (idToken) => {
     setLoading(true);
     try {
       const res = await authAPI.googleLogin(idToken);
       const data = res.data;
-
       const accessToken = data.access_token || data.accessToken || data.token;
       const refreshToken = data.refresh_token || data.refreshToken || accessToken;
       const userData = data.user || data.profile;
-
-      if (!accessToken) {
-        Alert.alert('Error', 'No token received from server.');
-        return;
-      }
-
       await login(accessToken, refreshToken, userData);
-
     } catch (err) {
-      console.error('Google Login Error:', err.response?.data || err.message);
-      Alert.alert('Google Auth Failed', err.response?.data?.detail || 'Could not authenticate with Google.');
+      Alert.alert('Google Auth Failed', err.response?.data?.detail || 'Could not authenticate.');
     } finally {
       setLoading(false);
     }
@@ -143,21 +97,31 @@ const RegisterScreen = ({ navigation }) => {
     setErrors((e) => ({ ...e, [key]: '' }));
   };
 
+  const pickImage = async () => {
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      quality: 0.8,
+    });
+    if (!result.canceled) {
+      setNvqImage(result.assets[0]);
+    }
+  };
+
   const validate = () => {
     const e = {};
+    if (!form.full_name.trim()) e.full_name = 'Required';
     if (!form.email.trim()) e.email = 'Required';
     else if (!/\S+@\S+\.\S+/.test(form.email)) e.email = 'Invalid email';
-    
+    if (!form.address.trim()) e.address = 'Required';
+    if (!form.district) e.district = 'Required';
     if (!form.password) e.password = 'Required';
-    else if (form.password.length < 1) e.password = 'Required';
-    
     if (form.password !== form.confirm) e.confirm = 'Passwords do not match';
-    
+    if (role === 'Electrician' && !nvqImage) e.nvq = 'NVQ Certificate required';
     if (!agreeTerms) {
       Alert.alert('Terms & Conditions', 'Please agree to the Terms and Privacy Policy');
       return false;
     }
-    
     setErrors(e);
     return Object.keys(e).length === 0;
   };
@@ -166,83 +130,81 @@ const RegisterScreen = ({ navigation }) => {
     if (!validate()) return;
     setLoading(true);
     try {
+      let nvqUrl = null;
+      if (nvqImage) nvqUrl = nvqImage.uri;
+
       const payload = {
         email: form.email.trim().toLowerCase(),
         username: form.username.trim() || null,
         password: form.password,
-        full_name: form.full_name.trim() || null,
+        full_name: form.full_name.trim(),
         phone_number: form.phone_number.replace(/\D/g, '') || null,
         default_account_number: form.account_number.trim() || null,
+        address: form.address.trim(),
+        district: form.district,
+        role: role,
+        nvq_certificate_url: nvqUrl,
       };
+
       const res = await authAPI.register(payload);
       const data = res.data;
-
       const accessToken = data.access_token || data.accessToken || data.token;
       const refreshToken = data.refresh_token || data.refreshToken || accessToken;
-      const userData = data.user || data.profile || { email: form.email.trim().toLowerCase() };
-
-      if (!accessToken) {
-        Alert.alert('Error', 'Server response missing token.');
-        return;
-      }
-
+      const userData = data.user || data.profile;
       await login(accessToken, refreshToken, userData);
-
     } catch (err) {
-      const msg = err.response?.data?.detail || 'Registration failed.';
-      Alert.alert('Registration Failed', msg);
+      Alert.alert('Registration Failed', err.response?.data?.detail || 'Failed to register.');
     } finally {
       setLoading(false);
     }
   };
 
-  // ── UI ──────────────────────────────────────────────────────────────────────
   return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      style={styles.flex}
-    >
-      <ScrollView
-        style={[styles.flex, Platform.OS === 'web' && { overflow: 'scroll' }]}
-        contentContainerStyle={styles.container}
-        keyboardShouldPersistTaps="handled"
-        showsVerticalScrollIndicator={true}
-        alwaysBounceVertical={true}
-      >
+    <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.flex}>
+      <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
         <View style={styles.header}>
-          <View style={styles.logoWrap}>
-            <Text style={styles.logoIcon}>⚡</Text>
+          <View style={styles.logoCard}>
+            <Ionicons name="flash" size={32} color="#06B6D4" />
           </View>
-          <Text style={styles.title}>Create Account</Text>
-          <Text style={styles.subtitle}>Start tracking your energy</Text>
+          <Text style={styles.brandTitle}>
+            <Text style={{ fontWeight: '300', color: COLORS.textPrimary }}>Power</Text>
+            <Text style={{ fontWeight: '800', color: '#2563EB' }}>Link</Text>
+          </Text>
+          <Text style={styles.subtitle}>Create your smart energy account</Text>
+        </View>
+
+        <View style={styles.roleContainer}>
+          <TouchableOpacity
+            style={[styles.roleTab, role === 'Householder' && styles.activeRoleTab]}
+            onPress={() => setRole('Householder')}
+          >
+            <Ionicons name="person" size={16} color={role === 'Householder' ? '#fff' : '#64748B'} />
+            <Text style={[styles.roleText, role === 'Householder' && styles.activeRoleText]}>Householder</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.roleTab, role === 'Electrician' && styles.activeRoleTab]}
+            onPress={() => setRole('Electrician')}
+          >
+            <Ionicons name="construct" size={16} color={role === 'Electrician' ? '#fff' : '#64748B'} />
+            <Text style={[styles.roleText, role === 'Electrician' && styles.activeRoleText]}>Electrician</Text>
+          </TouchableOpacity>
         </View>
 
         <View style={styles.form}>
-          <Field label="Full Name">
+          <Field label="Full Name *" error={errors.full_name}>
             <TextInput
               style={styles.input}
-              placeholder="Your name"
+              placeholder="John Doe"
               placeholderTextColor={COLORS.textMuted}
               value={form.full_name}
               onChangeText={(t) => set('full_name', t)}
             />
           </Field>
 
-          <Field label="Username (optional)">
-            <TextInput
-              style={styles.input}
-              placeholder="CoolUser123"
-              placeholderTextColor={COLORS.textMuted}
-              value={form.username}
-              onChangeText={(t) => set('username', t)}
-              autoCapitalize="none"
-            />
-          </Field>
-
           <Field label="Email *" error={errors.email}>
             <TextInput
-              style={[styles.input, errors.email && styles.inputError]}
-              placeholder="you@example.com"
+              style={styles.input}
+              placeholder="john@example.com"
               placeholderTextColor={COLORS.textMuted}
               value={form.email}
               onChangeText={(t) => set('email', t)}
@@ -251,48 +213,97 @@ const RegisterScreen = ({ navigation }) => {
             />
           </Field>
 
-          <Field label="Phone (optional)">
+          <Field label="Address *" error={errors.address}>
             <TextInput
               style={styles.input}
-              placeholder="0771234567"
+              placeholder="123 Grid Lane, Colombo"
               placeholderTextColor={COLORS.textMuted}
-              value={form.phone_number}
-              onChangeText={(t) => set('phone_number', t)}
-              keyboardType="phone-pad"
+              value={form.address}
+              onChangeText={(t) => set('address', t)}
             />
           </Field>
 
-          <Field label="Electricity Account Number">
-            <TextInput
-              style={styles.input}
-              placeholder="e.g. 1234567890"
-              placeholderTextColor={COLORS.textMuted}
-              value={form.account_number}
-              onChangeText={(t) => set('account_number', t)}
-            />
+          <Field label="District *" error={errors.district}>
+            <TouchableOpacity
+              style={styles.pickerBtn}
+              onPress={() => setShowDistrictPicker(!showDistrictPicker)}
+            >
+              <Text style={[styles.pickerText, !form.district && { color: COLORS.textMuted }]}>
+                {form.district || 'Select District'}
+              </Text>
+              <Ionicons name={showDistrictPicker ? "chevron-up" : "chevron-down"} size={20} color={COLORS.textMuted} />
+            </TouchableOpacity>
+            {showDistrictPicker && (
+              <View style={styles.districtList}>
+                <ScrollView nestedScrollEnabled style={{ maxHeight: 200 }}>
+                  {DISTRICTS.map((d) => (
+                    <TouchableOpacity
+                      key={d}
+                      style={styles.districtItem}
+                      onPress={() => {
+                        set('district', d);
+                        setShowDistrictPicker(false);
+                      }}
+                    >
+                      <Text style={styles.districtItemText}>{d}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+              </View>
+            )}
           </Field>
+
+          {role === 'Householder' && (
+            <Field label="Electricity Account Number">
+              <TextInput
+                style={styles.input}
+                placeholder="10-digit number"
+                placeholderTextColor={COLORS.textMuted}
+                value={form.account_number}
+                onChangeText={(t) => set('account_number', t)}
+                keyboardType="numeric"
+              />
+            </Field>
+          )}
+
+          {role === 'Electrician' && (
+            <Field label="NVQ Certificate *" error={errors.nvq}>
+              <TouchableOpacity
+                style={[styles.uploadBtn, nvqImage && styles.uploadBtnActive]}
+                onPress={pickImage}
+              >
+                <Ionicons 
+                  name={nvqImage ? "checkmark-circle" : "cloud-upload"} 
+                  size={24} 
+                  color={nvqImage ? "#10B981" : "#64748B"} 
+                />
+                <Text style={[styles.uploadText, nvqImage && { color: "#10B981" }]}>
+                  {nvqImage ? 'Certificate Selected' : 'Upload NVQ Certificate'}
+                </Text>
+              </TouchableOpacity>
+            </Field>
+          )}
 
           <Field label="Password *" error={errors.password}>
             <View style={styles.passWrap}>
               <TextInput
-                style={[styles.input, styles.passInput, errors.password && styles.inputError]}
-                placeholder="Create a strong password"
+                style={[styles.input, { paddingRight: 50 }]}
+                placeholder="••••••••"
                 placeholderTextColor={COLORS.textMuted}
                 value={form.password}
                 onChangeText={(t) => set('password', t)}
                 secureTextEntry={!showPass}
               />
               <TouchableOpacity style={styles.eyeBtn} onPress={() => setShowPass(!showPass)}>
-                <Text style={{ fontSize: 18 }}>{showPass ? '🙈' : '👁️'}</Text>
+                <Ionicons name={showPass ? "eye-off" : "eye"} size={20} color={COLORS.textMuted} />
               </TouchableOpacity>
             </View>
-            {/* Password requirements hidden for development */}
           </Field>
 
           <Field label="Confirm Password *" error={errors.confirm}>
             <TextInput
-              style={[styles.input, errors.confirm && styles.inputError]}
-              placeholder="Re-enter password"
+              style={styles.input}
+              placeholder="••••••••"
               placeholderTextColor={COLORS.textMuted}
               value={form.confirm}
               onChangeText={(t) => set('confirm', t)}
@@ -300,17 +311,11 @@ const RegisterScreen = ({ navigation }) => {
             />
           </Field>
 
-          <TouchableOpacity 
-            style={styles.termsWrap} 
-            onPress={() => setAgreeTerms(!agreeTerms)}
-            activeOpacity={0.7}
-          >
+          <TouchableOpacity style={styles.termsWrap} onPress={() => setAgreeTerms(!agreeTerms)}>
             <View style={[styles.checkbox, agreeTerms && styles.checkboxChecked]}>
-              {agreeTerms && <Text style={styles.checkIcon}>✓</Text>}
+              {agreeTerms && <Ionicons name="checkmark" size={12} color="#fff" />}
             </View>
-            <Text style={styles.termsText}>
-              I agree to <Text style={styles.termsLink}>Terms & Conditions</Text> and <Text style={styles.termsLink}>Privacy Policy</Text>
-            </Text>
+            <Text style={styles.termsText}>I agree to the Terms and Privacy Policy</Text>
           </TouchableOpacity>
 
           <PrimaryButton
@@ -318,30 +323,14 @@ const RegisterScreen = ({ navigation }) => {
             onPress={handleRegister}
             loading={loading}
             disabled={loading}
-            icon="🚀"
-            color={COLORS.secondary}
-            style={styles.btn}
+            color="#2563EB"
+            style={styles.registerBtn}
           />
-
-          <View style={styles.divider}>
-            <View style={styles.line} />
-            <Text style={styles.dividerText}>OR</Text>
-            <View style={styles.line} />
-          </View>
-
-          <TouchableOpacity
-            style={[styles.googleBtn, (!request || loading) && styles.googleBtnDisabled]}
-            onPress={() => promptAsync()}
-            disabled={!request || loading}
-          >
-            <Text style={styles.googleIcon}>G</Text>
-            <Text style={styles.googleBtnText}>Continue with Google</Text>
-          </TouchableOpacity>
 
           <View style={styles.footer}>
             <Text style={styles.footerText}>Already have an account? </Text>
             <TouchableOpacity onPress={() => navigation.goBack()}>
-              <Text style={[styles.link, { color: COLORS.secondary }]}>Sign in</Text>
+              <Text style={styles.link}>Sign In</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -351,87 +340,97 @@ const RegisterScreen = ({ navigation }) => {
 };
 
 const styles = StyleSheet.create({
-  flex: { flex: 1, backgroundColor: COLORS.bg1 },
-  container: {
-    flexGrow: 1,
-    padding: SPACING.lg,
-    paddingTop: Platform.OS === 'web' ? SPACING.xl : SPACING.xxl,
-    paddingBottom: SPACING.xxxl
-  },
-  header: { alignItems: 'center', marginBottom: SPACING.lg },
-  logoWrap: {
-    width: 60, height: 60,
-    backgroundColor: COLORS.secondary,
-    borderRadius: RADIUS.lg,
+  flex: { flex: 1, backgroundColor: '#F8FAFC' },
+  container: { padding: 24, paddingTop: 60, paddingBottom: 40 },
+  header: { alignItems: 'center', marginBottom: 32 },
+  logoCard: {
+    width: 64, height: 64,
+    backgroundColor: '#fff',
+    borderRadius: 20,
     justifyContent: 'center', alignItems: 'center',
-    marginBottom: SPACING.sm,
+    marginBottom: 12,
     ...SHADOW.md,
   },
-  logoIcon: { fontSize: 30 },
-  title: { color: COLORS.textPrimary, fontSize: 24, ...FONTS.bold },
-  subtitle: { color: COLORS.textSecondary, fontSize: 13, marginTop: 2 },
-  form: {
-    backgroundColor: COLORS.bg2,
-    borderRadius: RADIUS.xl,
-    padding: SPACING.lg,
-    ...SHADOW.md,
+  brandTitle: { fontSize: 28, letterSpacing: -0.5 },
+  subtitle: { color: '#64748B', fontSize: 14, marginTop: 4 },
+  roleContainer: {
+    flexDirection: 'row',
+    backgroundColor: '#F1F5F9',
+    padding: 4,
+    borderRadius: 14,
+    marginBottom: 24,
   },
-  fieldWrap: { marginBottom: SPACING.md },
-  fieldLabel: { color: COLORS.textSecondary, fontSize: 13, ...FONTS.medium, marginBottom: 4 },
-  input: {
-    backgroundColor: COLORS.bg3,
-    color: COLORS.textPrimary,
-    borderRadius: RADIUS.md,
-    paddingHorizontal: SPACING.lg,
-    paddingVertical: SPACING.md,
-    fontSize: 15,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-  },
-  inputError: { borderColor: COLORS.danger },
-  passWrap: { position: 'relative' },
-  passInput: { paddingRight: 50 },
-  eyeBtn: { position: 'absolute', right: SPACING.md, top: '50%', transform: [{ translateY: -12 }] },
-  errText: { color: COLORS.danger, fontSize: 12, marginTop: 4 },
-  btn: { marginTop: SPACING.sm },
-  footer: { flexDirection: 'row', justifyContent: 'center', marginTop: SPACING.xl },
-  footerText: { color: COLORS.textSecondary },
-  link: { color: COLORS.primary, ...FONTS.semiBold },
-  divider: { flexDirection: 'row', alignItems: 'center', marginVertical: SPACING.lg },
-  line: { flex: 1, height: 1, backgroundColor: COLORS.border },
-  dividerText: { color: COLORS.textMuted, marginHorizontal: SPACING.md, fontSize: 12 },
-  googleBtn: {
+  roleTab: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
+    paddingVertical: 10,
+    gap: 8,
+    borderRadius: 10,
+  },
+  activeRoleTab: { backgroundColor: '#2563EB' },
+  roleText: { color: '#64748B', fontSize: 14, ...FONTS.medium },
+  activeRoleText: { color: '#fff' },
+  form: { gap: 4 },
+  fieldWrap: { marginBottom: 16 },
+  fieldLabel: { color: '#475569', fontSize: 13, ...FONTS.bold, marginBottom: 6 },
+  input: {
     backgroundColor: '#fff',
-    borderRadius: RADIUS.md,
-    paddingVertical: SPACING.md,
+    borderRadius: 12,
+    padding: 14,
+    fontSize: 15,
     borderWidth: 1,
-    borderColor: '#ddd',
-    ...SHADOW.sm,
+    borderColor: '#E2E8F0',
+    color: '#1E293B',
   },
-  googleBtnDisabled: { opacity: 0.5 },
-  googleIcon: { color: '#4285F4', fontSize: 20, fontWeight: 'bold', marginRight: 10 },
-  googleBtnText: { color: '#757575', fontSize: 16, fontWeight: '600' },
-  
-  /* Password Requirements */
-  reqsWrap: { marginTop: 10, gap: 4 },
-  reqRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  reqIcon: { fontSize: 12, color: COLORS.textMuted },
-  reqText: { fontSize: 11, color: COLORS.textSecondary },
-  
-  /* Terms Checkbox */
-  termsWrap: { flexDirection: 'row', alignItems: 'center', marginVertical: SPACING.md, gap: 10 },
-  checkbox: { 
-    width: 20, height: 20, borderRadius: 4, 
-    borderWidth: 2, borderColor: COLORS.secondary,
-    justifyContent: 'center', alignItems: 'center' 
+  pickerBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
   },
-  checkboxChecked: { backgroundColor: COLORS.secondary },
-  checkIcon: { color: '#fff', fontSize: 12, fontWeight: 'bold' },
-  termsText: { flex: 1, fontSize: 12, color: COLORS.textSecondary },
-  termsLink: { color: COLORS.secondary, fontWeight: '600' },
+  pickerText: { fontSize: 15, color: '#1E293B' },
+  districtList: {
+    marginTop: 8,
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    maxHeight: 200,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    overflow: 'hidden',
+  },
+  districtItem: { padding: 14, borderBottomWidth: 1, borderBottomColor: '#F1F5F9' },
+  districtItemText: { fontSize: 14, color: '#1E293B' },
+  passWrap: { position: 'relative' },
+  eyeBtn: { position: 'absolute', right: 14, top: 14 },
+  errText: { color: COLORS.danger, fontSize: 12, marginTop: 4 },
+  uploadBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 16,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderStyle: 'dashed',
+    borderColor: '#CBD5E1',
+    backgroundColor: '#F8FAFC',
+    gap: 10,
+  },
+  uploadBtnActive: { borderColor: '#10B981', backgroundColor: '#ECFDF5', borderStyle: 'solid' },
+  uploadText: { color: '#64748B', fontSize: 14, ...FONTS.medium },
+  termsWrap: { flexDirection: 'row', alignItems: 'center', gap: 10, marginVertical: 12 },
+  checkbox: { width: 20, height: 20, borderRadius: 6, borderWidth: 2, borderColor: '#2563EB', justifyContent: 'center', alignItems: 'center' },
+  checkboxChecked: { backgroundColor: '#2563EB' },
+  termsText: { fontSize: 13, color: '#64748B' },
+  registerBtn: { marginTop: 8 },
+  footer: { flexDirection: 'row', justifyContent: 'center', marginTop: 24 },
+  footerText: { color: '#64748B' },
+  link: { color: '#2563EB', ...FONTS.bold },
 });
 
 export default RegisterScreen;

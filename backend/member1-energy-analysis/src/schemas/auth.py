@@ -12,6 +12,10 @@ class UserRegisterRequest(BaseModel):
     phone_number: Optional[str] = Field(None, max_length=32)
     password: str = Field(..., min_length=1, max_length=128)
     full_name: Optional[str] = Field(None, max_length=255)
+    address: Optional[str] = Field(None, max_length=500)
+    district: Optional[str] = Field(None, max_length=100)
+    role: Optional[str] = Field("Householder", description="User role: Householder or Electrician")
+    nvq_certificate_url: Optional[str] = None
     default_account_number: Optional[str] = Field(None, max_length=100)
     admin_code: Optional[str] = Field(None, description="Optional passcode to register as admin")
 
@@ -62,6 +66,10 @@ class UserProfileResponse(BaseModel):
     default_account_number: Optional[str]
     address: Optional[str] = None
     city: Optional[str] = None
+    district: Optional[str] = None
+    role: Optional[str] = "Householder"
+    nvq_certificate_url: Optional[str] = None
+    is_verified: bool = False
     country: Optional[str] = None
     is_admin: bool = False
     created_at: datetime

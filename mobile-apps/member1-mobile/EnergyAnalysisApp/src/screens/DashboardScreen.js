@@ -413,11 +413,17 @@ const DashboardScreen = ({ navigation }) => {
       <ModuleCard
         icon="🔴"
         title="Outage Reporting & Management"
-        subtitle="Report outages · live status · area fault map"
+        subtitle={user?.role === 'Electrician' ? "View job requests · manage availability" : "Report outages · live status · area fault map"}
         accent={C.outage}
         badge="Live"
         badgeColor={C.outage}
-        onPress={() => navigation.navigate('Outage')}
+        onPress={() => {
+          if (user?.role === 'Electrician') {
+            navigation.navigate('ElectricianDashboard');
+          } else {
+            navigation.navigate('BoardIssueReport');
+          }
+        }}
       />
 
       <ModuleCard
