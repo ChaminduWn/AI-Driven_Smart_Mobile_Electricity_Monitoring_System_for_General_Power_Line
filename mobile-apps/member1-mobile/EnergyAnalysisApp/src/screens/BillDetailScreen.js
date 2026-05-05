@@ -7,7 +7,7 @@ import { billsAPI } from '../api/billsAPI';
 import { appliancesAPI } from '../api/appliancesAPI';
 import {
   Card, SectionHeader, InfoRow, Divider, PrimaryButton, SecondaryButton,
-  StatCard, ProgressBar,
+  StatCard, ProgressBar, StatusModal,
 } from '../components/SharedComponents';
 import { COLORS, SPACING, RADIUS, FONTS } from '../utils/theme';
 import { formatCurrency, formatKwh, formatDate, calcCEB } from '../utils/helpers';
@@ -29,6 +29,16 @@ const BillDetailScreen = ({ route, navigation }) => {
   const [submittingRename, setSubmittingRename] = useState(false);
   const [showPlanForm, setShowPlanForm] = useState(false);
   const [applianceCount, setApplianceCount] = useState(0);
+  const [hasActivePlan, setHasActivePlan] = useState(false);
+  const [activePlan, setActivePlan] = useState(null);
+  const [statusModal, setStatusModal] = useState({
+    visible: false,
+    type: 'info',
+    title: '',
+    message: '',
+    confirmLabel: 'OK',
+    onConfirm: () => {},
+  });
 
   const id = billId || bill?.id;
 
@@ -38,10 +48,22 @@ const BillDetailScreen = ({ route, navigation }) => {
     try {
       await billsAPI.update(id, { title: renameTitle });
       setBill({ ...bill, title: renameTitle });
-      Alert.alert('Success', 'Bill renamed.');
+      setStatusModal({
+        visible: true,
+        type: 'success',
+        title: 'Success',
+        message: 'Bill renamed successfully.',
+        onConfirm: () => setStatusModal(prev => ({ ...prev, visible: false }))
+      });
       setShowRenameModal(false);
     } catch (err) {
-      Alert.alert('Error', 'Failed to rename bill.');
+      setStatusModal({
+        visible: true,
+        type: 'error',
+        title: 'Error',
+        message: 'Failed to rename bill.',
+        onConfirm: () => setStatusModal(prev => ({ ...prev, visible: false }))
+      });
     } finally {
       setSubmittingRename(false);
     }
@@ -107,8 +129,19 @@ const BillDetailScreen = ({ route, navigation }) => {
         if (bill?.account_number || initBill?.account_number) {
           const acct = bill?.account_number || initBill?.account_number;
           try {
-            const appRes = await appliancesAPI.getByAccount(acct);
+            const [appRes, plansRes] = await Promise.all([
+              appliancesAPI.getByAccount(acct),
+              analysisAPI.getPlansByAccount(acct, true)
+            ]);
             setApplianceCount(appRes.data?.count || 0);
+            const activePlans = plansRes.data?.plans || [];
+            if (activePlans.length > 0) {
+              setHasActivePlan(true);
+              setActivePlan(activePlans[0]);
+            } else {
+              setHasActivePlan(false);
+              setActivePlan(null);
+            }
           } catch (_) { }
         }
       } catch (err) {
@@ -163,14 +196,19 @@ const BillDetailScreen = ({ route, navigation }) => {
 
   const createPlan = async () => {
     if (applianceCount < 5) {
-      Alert.alert(
-        '⚠️ Appliances Required',
-        `You need at least 5 appliances registered to create a budget plan.\n\nYou currently have ${applianceCount}. Add ${5 - applianceCount} more in the Appliances tab.`,
-        [
-          { text: 'Cancel', style: 'cancel' },
-          { text: 'Add Appliances', onPress: () => navigation.navigate('Appliances') },
-        ],
-      );
+      setStatusModal({
+        visible: true,
+        type: 'warning',
+        title: '⚠️ Appliances Required',
+        message: `You need at least 5 appliances registered to create a budget plan.\n\nYou currently have ${applianceCount}. Add ${5 - applianceCount} more in the Appliances tab.`,
+        confirmLabel: 'Add Appliances',
+        cancelLabel: 'Cancel',
+        onConfirm: () => {
+          setStatusModal(prev => ({ ...prev, visible: false }));
+          navigation.navigate('Appliances');
+        },
+        onCancel: () => setStatusModal(prev => ({ ...prev, visible: false }))
+      });
       return;
     }
 
@@ -179,44 +217,103 @@ const BillDetailScreen = ({ route, navigation }) => {
     const prevCost = budgetRecs?.current_cost || 0;
 
     if (!targetBudget || isNaN(budgetVal)) {
-      Alert.alert('Error', 'Enter a valid target budget.');
+      setStatusModal({
+        visible: true,
+        type: 'error',
+        title: 'Invalid Budget',
+        message: 'Please enter a valid target budget amount.',
+        onConfirm: () => setStatusModal(prev => ({ ...prev, visible: false }))
+      });
+      return;
+    }
+
+    // Days Validation: 10 - 60
+    if (isNaN(daysVal) || daysVal < 10 || daysVal > 60) {
+      setStatusModal({
+        visible: true,
+        type: 'error',
+        title: 'Invalid Period',
+        message: 'Planning period must be between 10 and 60 days for effective tracking.',
+        onConfirm: () => setStatusModal(prev => ({ ...prev, visible: false }))
+      });
       return;
     }
 
     // Dynamic Validation: 50% - 150%
     const minB = prevCost * 0.5;
     const maxB = prevCost * 1.5;
-    if (budgetVal < minB || budgetVal > maxB) {
-      Alert.alert(
-        'Invalid Budget',
-        `Budget must be between 50% (Rs. ${Math.round(minB)}) and 150% (Rs. ${Math.round(maxB)}) of your previous bill.`
-      );
-      return;
-    }
+    const isExtreme = budgetVal < minB || budgetVal > maxB;
 
-    // Days Validation: 10 - 60
-    if (isNaN(daysVal) || daysVal < 10 || daysVal > 60) {
-      Alert.alert('Invalid Period', 'Planning period must be between 10 and 60 days.');
-      return;
-    }
-
-    setCreatingPlan(true);
-    try {
-      const planStartDateISO = new Date(startDate).toISOString();
-      const res = await analysisAPI.createBudgetPlan(id, budgetVal, daysVal, planStartDateISO);
-      if (res.data.success) {
-        Alert.alert('✅ Budget Plan Created!', `Plan ID: ${res.data.plan_id}\nTrack your meter readings to monitor progress.`, [
-          { text: 'Start Tracking', onPress: () => navigation.navigate('Tracking') },
-          { text: 'OK' },
-        ]);
-        setShowPlanForm(false);
+    const proceedWithCreation = async () => {
+      setCreatingPlan(true);
+      try {
+        const planStartDateISO = new Date(startDate).toISOString();
+        const res = await analysisAPI.createBudgetPlan(id, budgetVal, daysVal, planStartDateISO);
+        if (res.data.success) {
+          setStatusModal({
+            visible: true,
+            type: 'success',
+            title: '✅ Plan Created!',
+            message: `Plan ID: ${res.data.plan_id}\nTrack your meter readings to monitor progress and stay within budget.`,
+            confirmLabel: 'Start Tracking',
+            cancelLabel: 'Later',
+            onConfirm: () => {
+              setStatusModal(prev => ({ ...prev, visible: false }));
+              navigation.navigate('Tracking');
+            },
+            onCancel: () => {
+              setStatusModal(prev => ({ ...prev, visible: false }));
+              setShowPlanForm(false);
+              setHasActivePlan(true);
+            }
+          });
+        }
+      } catch (err) {
+        const msg = err.response?.data?.detail || 'Failed to create plan.';
+        setStatusModal({
+          visible: true,
+          type: 'error',
+          title: 'Creation Failed',
+          message: msg,
+          onConfirm: () => setStatusModal(prev => ({ ...prev, visible: false }))
+        });
+      } finally {
+        setCreatingPlan(false);
       }
-    } catch (err) {
-      const msg = err.response?.data?.detail || 'Failed to create plan.';
-      Alert.alert('Error', msg);
-    } finally {
-      setCreatingPlan(false);
+    };
+
+    if (isExtreme || hasActivePlan) {
+      let title = "⚠️ Attention Required";
+      let msg = "";
+      let type = 'warning';
+      
+      if (isExtreme && hasActivePlan) {
+        msg = `You already have an active plan for this account which will be replaced. Also, your target budget (Rs. ${budgetVal}) is outside the recommended range (Rs. ${Math.round(minB)} - ${Math.round(maxB)}).\n\nDo you want to proceed anyway?`;
+      } else if (isExtreme) {
+        msg = `Your target budget (Rs. ${budgetVal}) is ${budgetVal < minB ? 'very low' : 'very high'} compared to your previous bill. We recommend staying between Rs. ${Math.round(minB)} and Rs. ${Math.round(maxB)} for the most accurate tracking.\n\nProceed anyway?`;
+      } else {
+        msg = `You already have an active budget plan for this account. Creating a new one will automatically end the current one so you can start fresh.\n\nDo you want to replace it?`;
+        type = 'confirm';
+      }
+
+      setStatusModal({
+        visible: true,
+        type,
+        title,
+        message: msg,
+        confirmLabel: isExtreme ? 'Proceed Anyway' : 'Replace Plan',
+        cancelLabel: 'Go Back',
+        onConfirm: () => {
+          setStatusModal(prev => ({ ...prev, visible: false }));
+          proceedWithCreation();
+        },
+        onCancel: () => setStatusModal(prev => ({ ...prev, visible: false }))
+      });
+      return;
     }
+
+    // Normal path
+    proceedWithCreation();
   };
 
   if (loading) {
@@ -305,7 +402,39 @@ const BillDetailScreen = ({ route, navigation }) => {
       )}
 
       {/* Budget Plan Section */}
-      <SectionHeader title="Create Budget Plan" />
+      <SectionHeader title="Budget Planning" />
+
+      {hasActivePlan && activePlan && (
+        <Card style={styles.activePlanCard} accentColor={COLORS.success}>
+          <View style={styles.rowBetween}>
+            <Text style={styles.activePlanTitle}>✅ Active Plan Found</Text>
+            <View style={styles.activeTag}>
+              <Text style={styles.activeTagText}>TRACKING</Text>
+            </View>
+          </View>
+          <Text style={styles.activePlanText}>
+            You already have an active {activePlan.planning_days}-day budget plan for this account.
+          </Text>
+          <View style={styles.activePlanStats}>
+            <View>
+              <Text style={styles.activePlanLabel}>Target</Text>
+              <Text style={styles.activePlanVal}>{formatCurrency(activePlan.target_budget)}</Text>
+            </View>
+            <View>
+              <Text style={styles.activePlanLabel}>Ends On</Text>
+              <Text style={styles.activePlanVal}>{formatDate(activePlan.plan_end_date)}</Text>
+            </View>
+          </View>
+          <PrimaryButton
+            label="View Progress Tracking →"
+            onPress={() => navigation.navigate('Tracking')}
+            style={{ marginTop: SPACING.md }}
+          />
+          <Text style={styles.activePlanNote}>
+            Need to start fresh? You can create a new plan below to replace this one.
+          </Text>
+        </Card>
+      )}
 
       {applianceCount < 5 && (
         <Card style={styles.warningCard} accentColor={COLORS.warning}>
@@ -401,7 +530,7 @@ const BillDetailScreen = ({ route, navigation }) => {
               />
             </View>
             <Text style={styles.inputHint}>
-              Allowed: Rs. {Math.round(budgetRecs?.current_cost * 0.5 || 0)} - Rs. {Math.round(budgetRecs?.current_cost * 1.5 || 0)} (50%-150%)
+              💡 Recommended Range: Rs. {Math.round(budgetRecs?.current_cost * 0.5 || 0)} - {Math.round(budgetRecs?.current_cost * 1.5 || 0)} (50%-150% of last bill)
             </Text>
           </View>
 
@@ -482,11 +611,32 @@ const BillDetailScreen = ({ route, navigation }) => {
       )}
 
       <View style={{ height: SPACING.xxxl }} />
+
+      <StatusModal
+        visible={statusModal.visible}
+        type={statusModal.type}
+        title={statusModal.title}
+        message={statusModal.message}
+        confirmLabel={statusModal.confirmLabel}
+        cancelLabel={statusModal.cancelLabel}
+        onConfirm={statusModal.onConfirm}
+        onCancel={statusModal.onCancel}
+        loading={creatingPlan}
+      />
     </ScrollView>
   );
 };
 
 const styles = StyleSheet.create({
+  activePlanCard: { borderLeftWidth: 4, borderLeftColor: COLORS.success },
+  activePlanTitle: { color: COLORS.success, fontSize: 16, ...FONTS.bold },
+  activeTag: { backgroundColor: 'rgba(76, 175, 80, 0.15)', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 4 },
+  activeTagText: { color: COLORS.success, fontSize: 10, ...FONTS.bold },
+  activePlanText: { color: COLORS.textSecondary, fontSize: 14, marginTop: 4 },
+  activePlanStats: { flexDirection: 'row', gap: 40, marginTop: SPACING.md, padding: SPACING.md, backgroundColor: COLORS.bg3, borderRadius: RADIUS.md },
+  activePlanLabel: { color: COLORS.textMuted, fontSize: 11, textTransform: 'uppercase' },
+  activePlanVal: { color: COLORS.textPrimary, fontSize: 15, ...FONTS.semiBold },
+  activePlanNote: { color: COLORS.textMuted, fontSize: 12, marginTop: SPACING.md, textAlign: 'center', fontStyle: 'italic' },
   container: { flex: 1, backgroundColor: COLORS.bg1, padding: SPACING.lg },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: COLORS.bg1 },
   loadingText: { color: COLORS.textSecondary, marginTop: SPACING.md },

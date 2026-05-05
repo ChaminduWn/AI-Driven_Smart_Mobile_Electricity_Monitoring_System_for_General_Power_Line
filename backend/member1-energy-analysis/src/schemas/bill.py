@@ -28,7 +28,7 @@ class BillData(BaseModel):
     bill_date: Optional[datetime] = None
     units_consumed: Optional[int] = None
     billing_period_days: Optional[int] = None
-    total_charge: Optional[float] = None  # ✅ Changed from total_due
+    total_charge: Optional[float] = None  # Changed from total_due
     
     # Meter Readings
     previous_reading: Optional[int] = None

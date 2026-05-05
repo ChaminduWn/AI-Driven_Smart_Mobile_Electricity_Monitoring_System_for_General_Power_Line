@@ -1,10 +1,10 @@
 """
-src/api/routes/iot.py  — FIXED VERSION
+src/api/routes/iot.py  
 ========================================
-Fixes applied:
-  ✅ end_session returns data (not 400) if already completed — supports frontend polling
-  ✅ websocket sends snapshot with live data immediately on connect
-  ✅ account_number correctly passed through session creation
+ applied:
+   end_session returns data (not 400) if already completed — supports frontend polling
+   websocket sends snapshot with live data immediately on connect
+   account_number correctly passed through session creation
 """
 import csv, io, json, logging, random
 from datetime import datetime, timezone
@@ -19,7 +19,7 @@ from src.database import get_db
 from src.models.device_session import DeviceApplianceEvent, DeviceReading, DeviceSession
 from src.services.iot_service import iot_service
 from src.api.dependencies import get_current_user
-from src.api.routes.relay import _publish_relay_command  # ← NEW: to reset hardware on session start
+from src.api.routes.relay import _publish_relay_command  # to reset hardware on session start
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/iot", tags=["IoT"])
@@ -93,7 +93,7 @@ def start_session(req: StartSessionRequest, db: Session = Depends(get_db),
 
     iot_service.set_active_session(req.device_id, session.id, user.id)
 
-    # ✅ SYNC: Inform hardware to reset its internal session counters (kWh, cost, local read count)
+    # SYNC: Inform hardware to reset its internal session counters (kWh, cost, local read count)
     # This ensures "Session kWh" and "Est. Cost" start from zero in the app.
     _publish_relay_command(req.device_id, {"cmd": "reset_energy"})
 
@@ -117,7 +117,7 @@ async def end_session(session_id: int, db: Session = Depends(get_db),
     if not session:
         raise HTTPException(404, "Session not found")
 
-    # ✅ FIX: If already completed, return the data (supports frontend polling)
+    # If already completed, return the data (supports frontend polling)
     if session.status == "completed":
         return session.to_dict()
 
@@ -335,7 +335,7 @@ async def websocket_endpoint(
     iot_service.register_websocket(user_id, websocket, device_id)
 
     try:
-        # ✅ FIX: Send snapshot immediately so frontend shows live data on connect
+        # Send snapshot immediately so frontend shows live data on connect
         latest  = iot_service.get_latest(device_id) if device_id else None
         history = iot_service.get_history(device_id) if device_id else []
         events  = iot_service.get_appliance_events(device_id) if device_id else []

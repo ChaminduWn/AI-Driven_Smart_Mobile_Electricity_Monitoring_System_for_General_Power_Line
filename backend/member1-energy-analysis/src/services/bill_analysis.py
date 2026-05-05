@@ -310,6 +310,12 @@ class BillAnalysisService:
     def track_progress(self, plan_data: Dict, current_reading: int, reading_date: datetime,
                       start_reading: int, start_date: datetime) -> Dict:
         """Track progress against the plan"""
+        # Normalize datetimes for subtraction (ensure both are naive)
+        if reading_date and reading_date.tzinfo:
+            reading_date = reading_date.replace(tzinfo=None)
+        if start_date and start_date.tzinfo:
+            start_date = start_date.replace(tzinfo=None)
+
         units_used = current_reading - start_reading
         
         # 1. Calculate time elapsed (days as float for trend precision)

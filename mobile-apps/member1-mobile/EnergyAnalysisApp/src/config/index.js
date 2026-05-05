@@ -5,7 +5,7 @@ const WS_ENV = process.env.EXPO_PUBLIC_WS_URL;
 
 // ─── Fallback Configuration ──────────────────────────────────────────────────
 // Update FALLBACK_IP if your PC's IP changes (check with `ipconfig` on Windows).
-const FALLBACK_IP = '192.168.24.242';
+const FALLBACK_IP = '192.168.93.242';
 const FALLBACK_API = `http://${FALLBACK_IP}:8000/api/v1`;
 const FALLBACK_WS = `ws://${FALLBACK_IP}:8000/api/v1`;
 

@@ -1,17 +1,16 @@
 /**
- * LiveMeterScreen.jsx  — EnergyIQ Appliance Tester (FIXED v3)
+ * LiveMeterScreen.jsx  — EnergyIQ Appliance Tester 
  *
- * Fixes applied:
- *  ✅ RelayControlCard imported and wired into MonitorScreen
- *  ✅ getToken passed correctly to RelayControlCard
- *  ✅ WebSocket reconnect loop fixed — no rapid open/close spam
- *  ✅ Polling fallback when WS disconnects (every 3s via /iot/latest/:device_id)
- *  ✅ Stop button: POST to end session, then POLL /sessions/:id until completed
- *  ✅ All live metrics shown: power, voltage, current, PF, PQ, env, session stats
- *  ✅ Temperature/humidity displayed correctly (temperature_c, humidity_pct)
- *  ✅ Download JSON/CSV — actual file download via expo-file-system
- *  ✅ Report screen shown after stop, even if WS session_ended never arrives
- *  ✅ Custom duration input alongside preset chips (any minutes user wants)
+ *  RelayControlCard imported and wired into MonitorScreen
+ *   getToken passed correctly to RelayControlCard
+ *   WebSocket reconnect loop fixed — no rapid open/close spam
+ *   Polling fallback when WS disconnects (every 3s via /iot/latest/:device_id)
+ *   Stop button: POST to end session, then POLL /sessions/:id until completed
+ *   All live metrics shown: power, voltage, current, PF, PQ, env, session stats
+ *   Temperature/humidity displayed correctly (temperature_c, humidity_pct)
+ *   Download JSON/CSV — actual file download via expo-file-system
+ *   Report screen shown after stop, even if WS session_ended never arrives
+ *   Custom duration input alongside preset chips (any minutes user wants)
  */
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
@@ -812,20 +811,20 @@ const MonitorScreen = ({ account, deviceId, sessionId, applianceName, plannedMin
           ]} />
         </View>
 
-        <TouchableOpacity 
-          style={[panel.testBtn, testLoading && { opacity: 0.6 }]} 
+        <TouchableOpacity
+          style={[panel.testBtn, testLoading && { opacity: 0.6 }]}
           onPress={async () => {
             if (testLoading) return;
             setTestLoading(true);
             try {
-              const r = await fetch(`${API_BASE}/iot/test-telegram`, { 
-                method: 'POST', 
-                headers: authHeaders() 
+              const r = await fetch(`${API_BASE}/iot/test-telegram`, {
+                method: 'POST',
+                headers: authHeaders()
               });
               const d = await r.json();
               Alert.alert(d.success ? '✅ Success' : '❌ Failed', d.message);
-            } catch (e) { 
-              Alert.alert('Error', 'Could not reach server. Check connection.'); 
+            } catch (e) {
+              Alert.alert('Error', 'Could not reach server. Check connection.');
             } finally {
               setTestLoading(false);
             }
@@ -935,9 +934,9 @@ const panel = StyleSheet.create({
   },
   track: { height: 5, backgroundColor: C.border, borderRadius: 3, overflow: 'hidden', marginTop: 4, marginBottom: 8 },
   fill: { height: 5, borderRadius: 3 },
-  testBtn: { 
-    backgroundColor: '#0D1422', borderRadius: 10, paddingVertical: 10, 
-    alignItems: 'center', marginBottom: 12, borderWidth: 1, borderColor: C.accent + '30' 
+  testBtn: {
+    backgroundColor: '#0D1422', borderRadius: 10, paddingVertical: 10,
+    alignItems: 'center', marginBottom: 12, borderWidth: 1, borderColor: C.accent + '30'
   },
   testBtnTxt: { color: C.accent, fontSize: 12, fontWeight: '700' },
 });
@@ -1048,24 +1047,24 @@ const ReportScreen = ({ sessionData, onNewTest }) => {
 
       <HealthRing score={health.health_score} />
 
-        <View style={rp.statsGrid}>
-          {[
-            { l: 'Avg Power', v: `${fmtF(st.avg_power_w, 0)} W`, c: C.accent },
-            { l: 'Peak Power', v: `${fmtF(st.peak_power_w, 0)} W`, c: C.red },
-            { l: 'Avg PF', v: fmtF(st.avg_power_factor, 3), c: pfColor(st.avg_power_factor) },
-            { l: 'kWh Used', v: fmtF(st.total_session_kwh, 4), c: C.green },
-            { l: 'Cost', v: `Rs ${fmtF(st.total_cost_rs, 2)}`, c: C.yellow },
-            { l: 'Readings', v: `${st.total_readings || 0}`, c: C.textPrimary },
-            { l: 'Proj. kWh/hr', v: fmtF((st.avg_power_w || 0) / 1000, 4), c: C.green },
-            { l: 'Proj. Cost/hr', v: `Rs ${fmtF(((st.avg_power_w || 0) / 1000) * 15, 2)}`, c: C.yellow },
-            { l: 'Duration', v: `${fmtF(st.actual_duration_min, 1)}m`, c: C.accent },
-          ].map(({ l, v, c }) => (
-            <View key={l} style={rp.statCell}>
-              <Text style={[rp.statVal, { color: c }]}>{v}</Text>
-              <Text style={rp.statLbl}>{l}</Text>
-            </View>
-          ))}
-        </View>
+      <View style={rp.statsGrid}>
+        {[
+          { l: 'Avg Power', v: `${fmtF(st.avg_power_w, 0)} W`, c: C.accent },
+          { l: 'Peak Power', v: `${fmtF(st.peak_power_w, 0)} W`, c: C.red },
+          { l: 'Avg PF', v: fmtF(st.avg_power_factor, 3), c: pfColor(st.avg_power_factor) },
+          { l: 'kWh Used', v: fmtF(st.total_session_kwh, 4), c: C.green },
+          { l: 'Cost', v: `Rs ${fmtF(st.total_cost_rs, 2)}`, c: C.yellow },
+          { l: 'Readings', v: `${st.total_readings || 0}`, c: C.textPrimary },
+          { l: 'Proj. kWh/hr', v: fmtF((st.avg_power_w || 0) / 1000, 4), c: C.green },
+          { l: 'Proj. Cost/hr', v: `Rs ${fmtF(((st.avg_power_w || 0) / 1000) * 15, 2)}`, c: C.yellow },
+          { l: 'Duration', v: `${fmtF(st.actual_duration_min, 1)}m`, c: C.accent },
+        ].map(({ l, v, c }) => (
+          <View key={l} style={rp.statCell}>
+            <Text style={[rp.statVal, { color: c }]}>{v}</Text>
+            <Text style={rp.statLbl}>{l}</Text>
+          </View>
+        ))}
+      </View>
 
       {(st.avg_temperature != null) && (
         <View style={rp.section}>
@@ -1256,9 +1255,9 @@ const LiveMeterScreen = () => {
       </View>
 
       {screen === 'SCAN' && (
-        <ScanScreen onSelect={id => { 
-          setDeviceId(id); 
-          setScreen('SETUP'); 
+        <ScanScreen onSelect={id => {
+          setDeviceId(id);
+          setScreen('SETUP');
           require('@react-native-async-storage/async-storage').default.setItem('last_iot_device', id);
         }} />
       )}

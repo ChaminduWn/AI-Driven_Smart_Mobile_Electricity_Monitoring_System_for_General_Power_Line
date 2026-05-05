@@ -3,10 +3,9 @@ src/api/routes/relay.py
 Relay Control API — sends MQTT commands to ESP32 relay module
 and reads relay state from live readings / device sessions.
 
-FIXED:
-  ✅ Uses get_current_user from dependencies (same as iot.py) — no more 401 mismatch
-  ✅ Better MQTT error logging — logs clearly when broker is disconnected
-  ✅ /status endpoint also checks iot_service active session
+]  Uses get_current_user from dependencies (same as iot.py) — no more 401 mismatch
+   Better MQTT error logging — logs clearly when broker is disconnected
+   /status endpoint also checks iot_service active session
 """
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
@@ -18,7 +17,7 @@ from src.database import get_db
 from src.models.user import User
 from src.models.device_session import DeviceSession
 from src.models.iot_reading import LiveMeterReading
-from src.api.dependencies import get_current_user          # ← FIXED: was get_user_from_token from auth
+from src.api.dependencies import get_current_user          #  get_user_from_token from auth
 from src.services.iot_service import iot_service, _normalize_id
 
 logger = logging.getLogger(__name__)
@@ -194,7 +193,7 @@ def relay_toggle(
 @router.post("/set-limits")
 def set_relay_limits(
     req: RelayLimitsRequest,
-    current_user: User = Depends(get_current_user),    # ← FIXED
+    current_user: User = Depends(get_current_user),    
 ):
     """
     Adjust safety limits on the ESP32 (custom ceiling below hardware max).
@@ -214,7 +213,7 @@ def set_relay_limits(
 def get_relay_status(
     device_id: str,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),    # ← FIXED
+    current_user: User = Depends(get_current_user),  
 ):
     """
     Get current relay state from the latest live reading stored in DB.
@@ -319,7 +318,7 @@ def get_relay_history(
 def get_safety_events(
     device_id: str,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),    # ← FIXED
+    current_user: User = Depends(get_current_user),  
 ):
     """Return readings where a safety trip was recorded."""
     readings = (

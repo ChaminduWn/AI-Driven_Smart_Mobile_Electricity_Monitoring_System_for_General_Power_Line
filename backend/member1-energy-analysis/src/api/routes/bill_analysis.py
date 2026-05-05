@@ -290,10 +290,10 @@ def create_budget_plan(
     ).first()
 
     if existing_plan:
-        raise HTTPException(
-            status_code=400,
-            detail="You already have an active budget plan for this account. Please end or delete it before creating a new one."
-        )
+        # Instead of blocking, we automatically deactivate the old plan to allow replacement
+        existing_plan.is_active = False
+        existing_plan.status = 'replaced'
+        db.commit()
 
     appliances_count = db.query(HouseholdAppliance).filter(
         HouseholdAppliance.account_number == bill.account_number,
@@ -569,13 +569,17 @@ def update_meter_reading(
         'total_targets': {'days': plan.planning_days},
         'budget_info': {'target_budget': plan.target_budget}
     }
+    # Normalize datetimes for subtraction (prevent naive/aware offset error)
+    norm_reading_date = request.reading_date.replace(tzinfo=None) if request.reading_date and getattr(request.reading_date, 'tzinfo', None) else request.reading_date
+    norm_start_date = start_date.replace(tzinfo=None) if start_date and getattr(start_date, 'tzinfo', None) else start_date
+
     try:
         progress = analysis_service.track_progress(
             plan_data,
             request.reading_value,
-            request.reading_date,
+            norm_reading_date,
             start_reading,
-            start_date
+            norm_start_date
         )
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Error recalculating progress: {str(e)}")

@@ -85,7 +85,7 @@ async def insights_summary(
                     "billing_month": b.bill_date.month if b.bill_date else 1,
                     "billing_year": b.bill_date.year if b.bill_date else 2025,
                     "billing_days": int(b.billing_period_days or 30),
-                    "amount_rs": float(b.total_charge or 0),   # ✅ was total_amount
+                    "amount_rs": float(b.total_charge or 0),   # was total_amount
                     "meter_start": float(b.previous_reading or 0),
                     "meter_end": float(b.current_reading or kwh),
                 })
@@ -101,7 +101,7 @@ async def insights_summary(
         billing_start = 0.0
 
         if plan:
-            # ✅ Fix: use correct field names from your BudgetPlan model
+            # use correct field names from your BudgetPlan model
             billing_start = float(
                 getattr(plan, 'reference_bill_current_reading', None) or 0
             )
@@ -112,10 +112,10 @@ async def insights_summary(
             for r in readings_db:
                 try:
                     reading_dicts.append({
-                        "reading_value": float(r.reading_value),  # ✅ was r.current_reading
+                        "reading_value": float(r.reading_value),  #  was r.current_reading
                         "reading_date": str(r.reading_date),
-                        "billing_period_start": str(plan.plan_start_date),  # ✅ was plan.start_date
-                        "billing_period_end": str(plan.plan_end_date),      # ✅ was plan.end_date
+                        "billing_period_start": str(plan.plan_start_date),  #  was plan.start_date
+                        "billing_period_end": str(plan.plan_end_date),      # plan.end_date
                     })
                 except Exception:
                     continue

@@ -1,7 +1,7 @@
 import streamlit as st
 import requests
 
-API_URL = "http://localhost:8000/ask"
+API_URL = "http://localhost:8005/ask"
 
 st.set_page_config(page_title="⚡ Electricity Safety Assistant", page_icon="⚡", layout="centered")
 st.title("⚡ Electricity Safety Assistant")

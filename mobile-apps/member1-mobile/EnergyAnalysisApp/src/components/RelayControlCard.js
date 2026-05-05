@@ -5,9 +5,9 @@
  * Shows relay ON/OFF toggle, safety status, custom power limits,
  * and safety event log.
  *
- * UPDATED: Matches new Backend Relay API (action instead of command)
- * UPDATED: Refined color palette — softer, intentional semantic colors
- * UPDATED: Fully responsive for all mobile screen sizes
+ * Matches new Backend Relay API (action instead of command)
+ * Refined color palette — softer, intentional semantic colors
+ * Fully responsive for all mobile screen sizes
  */
 
 import React, { useState, useEffect, useCallback } from 'react';

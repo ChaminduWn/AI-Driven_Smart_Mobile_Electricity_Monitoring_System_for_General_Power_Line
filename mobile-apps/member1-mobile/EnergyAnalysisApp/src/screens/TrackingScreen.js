@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View, Text, ScrollView, StyleSheet, RefreshControl, TouchableOpacity,
-  Modal, TextInput, Platform, Animated, Easing, Dimensions,
+  Modal, TextInput, Platform, Animated, Easing, Dimensions, Alert,
 } from 'react-native';
 import { ArrowLeft, Target, Cpu, Zap } from 'lucide-react-native';
 import { universalAlert } from '../utils/alerts';
@@ -9,7 +9,7 @@ import { analysisAPI } from '../api/analysisAPI';
 import { useAccount } from '../contexts/AccountContext';
 import {
   Card, SectionHeader, EmptyState, LoadingScreen, PrimaryButton, SecondaryButton,
-  InfoRow, Divider, ProgressBar, PremiumEmptyState,
+  InfoRow, Divider, ProgressBar, PremiumEmptyState, StatusModal,
 } from '../components/SharedComponents';
 import { COLORS, SPACING, RADIUS, FONTS, SHADOW } from '../utils/theme';
 import { formatCurrency, formatDate, getStatusColor, getStatusLabel } from '../utils/helpers';
@@ -386,6 +386,14 @@ const TrackingScreen = ({ navigation }) => {
   const [readingDate, setReadingDate] = useState('');
   const [readingTime, setReadingTime] = useState('');
   const [activeTab, setActiveTab] = useState('status');
+  const [statusModal, setStatusModal] = useState({
+    visible: false,
+    type: 'info',
+    title: '',
+    message: '',
+    confirmLabel: 'OK',
+    onConfirm: () => {},
+  });
 
   const account = selectedAccount;
 
@@ -440,17 +448,35 @@ const TrackingScreen = ({ navigation }) => {
   const submitReading = async () => {
     const val = parseInt(readingInput);
     if (!val || isNaN(val) || val < 0) {
-      Alert.alert('Invalid', 'Enter a valid meter reading.');
+      setStatusModal({
+        visible: true,
+        type: 'error',
+        title: 'Invalid Input',
+        message: 'Please enter a valid meter reading.',
+        onConfirm: () => setStatusModal(prev => ({ ...prev, visible: false }))
+      });
       return;
     }
     if (!selectedPlan) {
-      Alert.alert('No Plan', 'No active budget plan found.');
+      setStatusModal({
+        visible: true,
+        type: 'warning',
+        title: 'No Plan',
+        message: 'No active budget plan found for this account.',
+        onConfirm: () => setStatusModal(prev => ({ ...prev, visible: false }))
+      });
       return;
     }
 
     const startReading = selectedPlan?.reference_bill_current_reading;
     if (startReading && val < startReading) {
-      Alert.alert('Invalid Reading', `Reading must be ≥ ${startReading}`);
+      setStatusModal({
+        visible: true,
+        type: 'warning',
+        title: 'Invalid Reading',
+        message: `Current reading must be greater than or equal to the starting reading (${startReading} kWh).`,
+        onConfirm: () => setStatusModal(prev => ({ ...prev, visible: false }))
+      });
       return;
     }
 
@@ -480,20 +506,39 @@ const TrackingScreen = ({ navigation }) => {
 
         let title = editingReading ? '✅ Updated' : '✅ Reading Saved';
         let msg = '';
+        let type = 'success';
+
         if (status === 'over_budget') {
           title = '⚠️ Over Budget!';
           msg = `You're over target.\nVariance: +${formatCurrency(progress?.current_status?.variance_cost || 0)}\nProjected: ${formatCurrency(progress?.projection?.projected_total_cost || 0)}`;
+          type = 'warning';
         } else if (status === 'under_budget') {
           title = '🎉 Under Budget!';
           msg = `Great work! Projected savings: ${formatCurrency(Math.abs(progress?.projection?.budget_variance || 0))}`;
         } else {
           msg = `On track ✓\nDay ${progress?.current_status?.days_elapsed} · ${progress?.current_status?.units_used} kWh used`;
         }
-        Alert.alert(title, msg);
-        setShowReadingModal(false);
+
+        setStatusModal({
+          visible: true,
+          type,
+          title,
+          message: msg,
+          onConfirm: () => {
+            setStatusModal(prev => ({ ...prev, visible: false }));
+            setShowReadingModal(false);
+          }
+        });
       }
     } catch (err) {
-      Alert.alert('Error', err.response?.data?.detail || 'Failed to record reading.');
+      const msg = err.response?.data?.detail || 'Failed to record reading.';
+      setStatusModal({
+        visible: true,
+        type: 'error',
+        title: 'Error',
+        message: msg,
+        onConfirm: () => setStatusModal(prev => ({ ...prev, visible: false }))
+      });
     } finally {
       setSubmitting(false);
     }
@@ -503,35 +548,43 @@ const TrackingScreen = ({ navigation }) => {
     if (!selectedPlan) return;
     console.log(`🔘 Stop tracking pressed (TrackingScreen): ${selectedPlan.id}`);
 
-    universalAlert(
-      'Stop Tracking',
-      'Are you sure you want to end this budget plan? This is usually done when you receive a new monthly bill.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Stop Tracking',
-          style: 'destructive',
-          onPress: async () => {
-            console.log('🏃 Stopping tracking...');
-            try {
-              setLoading(true);
-              const res = await analysisAPI.endPlan(selectedPlan.id);
-              console.log('✅ End plan response:', res.data);
-              if (res.data?.success) {
-                universalAlert('Success', 'Budget plan ended. You can now create a new plan for the next month.');
-              } else {
-                universalAlert('Notice', res.data?.message || 'Plan ended.');
-              }
-              await fetchData();
-            } catch (err) {
-              console.error('❌ Stop tracking error:', err);
-              universalAlert('Error', 'Failed to stop tracking');
-              setLoading(false);
-            }
-          }
+    setStatusModal({
+      visible: true,
+      type: 'confirm',
+      title: 'Stop Tracking',
+      message: 'Are you sure you want to end this budget plan? This is usually done when you receive a new monthly bill.',
+      confirmLabel: 'Stop Tracking',
+      onConfirm: async () => {
+        setStatusModal(prev => ({ ...prev, visible: false }));
+        console.log('🏃 Stopping tracking...');
+        try {
+          setLoading(true);
+          const res = await analysisAPI.endPlan(selectedPlan.id);
+          console.log('✅ End plan response:', res.data);
+          
+          setStatusModal({
+            visible: true,
+            type: 'success',
+            title: 'Plan Ended',
+            message: res.data?.message || 'Budget plan ended. You can now create a new plan for the next month.',
+            onConfirm: () => setStatusModal(prev => ({ ...prev, visible: false }))
+          });
+          
+          await fetchData();
+        } catch (err) {
+          console.error('❌ Stop tracking error:', err);
+          setStatusModal({
+            visible: true,
+            type: 'error',
+            title: 'Error',
+            message: 'Failed to stop tracking.',
+            onConfirm: () => setStatusModal(prev => ({ ...prev, visible: false }))
+          });
+          setLoading(false);
         }
-      ]
-    );
+      },
+      onCancel: () => setStatusModal(prev => ({ ...prev, visible: false }))
+    });
   };
 
   const handleSetPriority = async () => {
@@ -547,24 +600,41 @@ const TrackingScreen = ({ navigation }) => {
 
   const deleteReading = (readingId) => {
     console.log(`🔘 Delete reading pressed: ${readingId}`);
-    universalAlert('Delete Reading', 'Remove this meter reading?', [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Delete', style: 'destructive',
-        onPress: async () => {
-          console.log(`🏃 Deleting reading ID: ${readingId}...`);
-          try {
-            const res = await analysisAPI.deleteReading(readingId);
-            console.log('✅ Delete reading response:', res.data);
-            universalAlert('Success', 'Reading removed.');
-            await fetchData();
-          } catch (err) {
-            console.error('❌ Delete reading error:', err);
-            universalAlert('Error', 'Could not delete reading.');
-          }
-        },
+    setStatusModal({
+      visible: true,
+      type: 'confirm',
+      title: 'Delete Reading',
+      message: 'Are you sure you want to remove this meter reading?',
+      confirmLabel: 'Delete',
+      onConfirm: async () => {
+        setStatusModal(prev => ({ ...prev, visible: false }));
+        console.log(`🏃 Deleting reading ID: ${readingId}...`);
+        try {
+          const res = await analysisAPI.deleteReading(readingId);
+          console.log('✅ Delete reading response:', res.data);
+          
+          setStatusModal({
+            visible: true,
+            type: 'success',
+            title: 'Deleted',
+            message: 'Reading removed successfully.',
+            onConfirm: () => setStatusModal(prev => ({ ...prev, visible: false }))
+          });
+          
+          await fetchData();
+        } catch (err) {
+          console.error('❌ Delete reading error:', err);
+          setStatusModal({
+            visible: true,
+            type: 'error',
+            title: 'Error',
+            message: 'Could not delete reading.',
+            onConfirm: () => setStatusModal(prev => ({ ...prev, visible: false }))
+          });
+        }
       },
-    ]);
+      onCancel: () => setStatusModal(prev => ({ ...prev, visible: false }))
+    });
   };
 
   // Re-run recommendations by re-submitting the latest reading value
@@ -923,6 +993,18 @@ const TrackingScreen = ({ navigation }) => {
           </TouchableOpacity>
         </TouchableOpacity>
       </Modal>
+
+      <StatusModal
+        visible={statusModal.visible}
+        type={statusModal.type}
+        title={statusModal.title}
+        message={statusModal.message}
+        confirmLabel={statusModal.confirmLabel}
+        cancelLabel={statusModal.cancelLabel}
+        onConfirm={statusModal.onConfirm}
+        onCancel={statusModal.onCancel}
+        loading={submitting}
+      />
     </View>
   );
 };

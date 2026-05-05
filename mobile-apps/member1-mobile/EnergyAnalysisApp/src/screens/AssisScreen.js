@@ -42,7 +42,7 @@ const AssistantScreen = () => {
     setLoading(true);
 
     try {
-      const response = await fetch('http://192.168.90.242:8001/ask', {
+      const response = await fetch('http://192.168.93.242:8005/ask', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

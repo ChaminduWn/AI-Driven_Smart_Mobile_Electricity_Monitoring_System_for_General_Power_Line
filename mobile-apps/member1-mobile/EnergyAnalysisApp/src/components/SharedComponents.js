@@ -179,52 +179,76 @@ export const ProgressBar = ({ progress, color = COLORS.primary, height = 8 }) =>
   );
 };
 
-// ─── Confirm Modal ────────────────────────────────────────────────────────────
-export const ConfirmModal = ({
+// ─── Status Modal (Premium Alert/Confirm) ───────────────────────────────────
+export const StatusModal = ({
   visible,
+  type = 'info', // 'info', 'success', 'warning', 'error', 'confirm'
   title,
   message,
   onConfirm,
   onCancel,
-  confirmLabel = 'Confirm',
+  confirmLabel = 'OK',
   cancelLabel = 'Cancel',
-  confirmColor = COLORS.primary,
-  isLoading = false,
-}) => (
-  <Modal
-    transparent
-    visible={visible}
-    animationType="fade"
-    onRequestClose={onCancel}
-  >
-    <View style={styles.modalOverlay}>
-      <View style={styles.modalContent}>
-        <Text style={styles.modalTitle}>{title}</Text>
-        <Text style={styles.modalMessage}>{message}</Text>
-        <View style={styles.modalActions}>
-          <TouchableOpacity
-            style={[styles.modalBtn, styles.modalBtnCancel]}
-            onPress={onCancel}
-            disabled={isLoading}
-          >
-            <Text style={styles.modalBtnCancelText}>{cancelLabel}</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.modalBtn, { backgroundColor: confirmColor }]}
-            onPress={onConfirm}
-            disabled={isLoading}
-          >
-            {isLoading ? (
-              <ActivityIndicator size="small" color="#fff" />
-            ) : (
-              <Text style={styles.modalBtnConfirmText}>{confirmLabel}</Text>
+  loading = false,
+}) => {
+  const getIcon = () => {
+    switch (type) {
+      case 'success': return '✅';
+      case 'warning': return '⚠️';
+      case 'error': return '❌';
+      case 'confirm': return '❓';
+      default: return 'ℹ️';
+    }
+  };
+
+  const getColor = () => {
+    switch (type) {
+      case 'success': return COLORS.success;
+      case 'warning': return COLORS.warning;
+      case 'error': return '#f44336';
+      case 'confirm': return COLORS.primary;
+      default: return COLORS.primary;
+    }
+  };
+
+  return (
+    <Modal transparent visible={visible} animationType="fade">
+      <View style={styles.modalOverlay}>
+        <View style={styles.statusModalContent}>
+          <View style={[styles.statusIconCircle, { backgroundColor: getColor() + '15' }]}>
+            <Text style={styles.statusIconText}>{getIcon()}</Text>
+          </View>
+          
+          <Text style={styles.statusTitle}>{title}</Text>
+          <Text style={styles.statusMessage}>{message}</Text>
+          
+          <View style={styles.statusActions}>
+            {(type === 'confirm' || onCancel) && (
+              <TouchableOpacity 
+                style={styles.statusCancelBtn} 
+                onPress={onCancel}
+                disabled={loading}
+              >
+                <Text style={styles.statusCancelText}>{cancelLabel}</Text>
+              </TouchableOpacity>
             )}
-          </TouchableOpacity>
+            <TouchableOpacity 
+              style={[styles.statusConfirmBtn, { backgroundColor: getColor() }]} 
+              onPress={onConfirm}
+              disabled={loading}
+            >
+              {loading ? (
+                <ActivityIndicator size="small" color="#fff" />
+              ) : (
+                <Text style={styles.statusConfirmText}>{confirmLabel}</Text>
+              )}
+            </TouchableOpacity>
+          </View>
         </View>
       </View>
-    </View>
-  </Modal>
-);
+    </Modal>
+  );
+};
 
 const styles = StyleSheet.create({
   center: {
@@ -497,6 +521,79 @@ const styles = StyleSheet.create({
     fontStyle: 'italic',
     ...FONTS.medium,
   },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.7)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: SPACING.xl,
+  },
+  statusModalContent: {
+    backgroundColor: COLORS.bg2,
+    borderRadius: RADIUS.xl,
+    padding: SPACING.xl,
+    width: '100%',
+    maxWidth: 400,
+    alignItems: 'center',
+    ...SHADOW.lg,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+  statusIconCircle: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: SPACING.lg,
+  },
+  statusIconText: {
+    fontSize: 32,
+  },
+  statusTitle: {
+    color: COLORS.textPrimary,
+    fontSize: 20,
+    ...FONTS.bold,
+    textAlign: 'center',
+    marginBottom: SPACING.sm,
+  },
+  statusMessage: {
+    color: COLORS.textSecondary,
+    fontSize: 14,
+    textAlign: 'center',
+    lineHeight: 22,
+    marginBottom: SPACING.xl,
+  },
+  statusActions: {
+    flexDirection: 'row',
+    width: '100%',
+    gap: SPACING.md,
+  },
+  statusCancelBtn: {
+    flex: 1,
+    paddingVertical: SPACING.md,
+    borderRadius: RADIUS.lg,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    alignItems: 'center',
+  },
+  statusCancelText: {
+    color: COLORS.textSecondary,
+    fontSize: 15,
+    ...FONTS.semiBold,
+  },
+  statusConfirmBtn: {
+    flex: 2,
+    paddingVertical: SPACING.md,
+    borderRadius: RADIUS.lg,
+    alignItems: 'center',
+    ...SHADOW.sm,
+  },
+  statusConfirmText: {
+    color: '#FFFFFF',
+    fontSize: 15,
+    ...FONTS.bold,
+  },
   premiumEmptyBlob1: {
     position: 'absolute',
     top: 20,
@@ -519,4 +616,4 @@ const styles = StyleSheet.create({
     opacity: 0.08,
     zIndex: 0,
   },
-});
+});

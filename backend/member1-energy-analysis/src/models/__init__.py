@@ -17,8 +17,8 @@ from src.models.budget_plan import (
     TariffStructure
 )
 from src.models.iot_reading import LiveMeterReading, ApplianceEvent, IoTReading
-from src.models.device_session import DeviceSession, DeviceReading, DeviceApplianceEvent  # ← ADDED
-from src.models.outage import BoardReport, Job, Message  # ← ADDED (Outage Integration)
+from src.models.device_session import DeviceSession, DeviceReading, DeviceApplianceEvent  
+from src.models.outage import BoardReport, Job, Message  #  (Outage Integration)
 
 # Export all models
 __all__ = [
@@ -35,10 +35,10 @@ __all__ = [
     'LiveMeterReading',
     'ApplianceEvent',
     'IoTReading',
-    'DeviceSession',            # ← ADDED
-    'DeviceReading',            # ← ADDED
-    'DeviceApplianceEvent',     # ← ADDED
-    'BoardReport',              # ← ADDED (Outage)
-    'Job',                      # ← ADDED (Outage)
-    'Message',                  # ← ADDED (Outage)
+    'DeviceSession',           
+    'DeviceReading',            
+    'DeviceApplianceEvent',     
+    'BoardReport',              # (Outage)
+    'Job',                      # (Outage)
+    'Message',                  # (Outage)
 ]
