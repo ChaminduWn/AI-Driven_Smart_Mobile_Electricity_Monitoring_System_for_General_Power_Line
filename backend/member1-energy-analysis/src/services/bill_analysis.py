@@ -1,6 +1,6 @@
 """
 services/bill_analysis.py
-✅ COMPLETE FIX: Uses correct tariff calculation with dynamic fixed charges
+ Uses correct tariff calculation with dynamic fixed charges
 Based on CEB Domestic Tariff - Effective October 15, 2025
 """
 from typing import Dict, List, Optional

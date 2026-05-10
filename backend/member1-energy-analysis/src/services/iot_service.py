@@ -1,13 +1,12 @@
 """
 src/services/iot_service.py  — FIXED VERSION
 =============================================
-Fixes applied:
-  ✅ _save_reading_to_db uses correct normalized field names
-  ✅ account_number pulled from session (not null anymore)
-  ✅ temperature_c / humidity_pct / heat_index_c saved correctly
-  ✅ last_env_readings cache — fills null DHT reads from last good value
-  ✅ _broadcast_to_device_watchers fixed (device_id matching)
-  ✅ WebSocket snapshot sends live data immediately on connect
+  _save_reading_to_db uses correct normalized field names
+  account_number pulled from session (not null anymore)
+  temperature_c / humidity_pct / heat_index_c saved correctly
+  last_env_readings cache — fills null DHT reads from last good value
+  _broadcast_to_device_watchers fixed (device_id matching)
+  WebSocket snapshot sends live data immediately on connect
 """
 
 import asyncio
@@ -41,7 +40,7 @@ def _normalize_id(device_id: str) -> str:
 
 # ── Typical wattage reference database ───────────────────────────────────────
 TYPICAL_WATTAGE_DB = {
-    "led bulb":           {"min": 5,    "max": 15,   "typical": 9,    "category": "Lighting"},
+    "led bulb":           {"min": 2,    "max": 15,   "typical": 9,    "category": "Lighting"},
     "tube light":         {"min": 15,   "max": 40,   "typical": 20,   "category": "Lighting"},
     "incandescent bulb":  {"min": 40,   "max": 100,  "typical": 60,   "category": "Lighting"},
     "cfl bulb":           {"min": 10,   "max": 25,   "typical": 15,   "category": "Lighting"},

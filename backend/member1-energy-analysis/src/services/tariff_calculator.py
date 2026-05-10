@@ -1,6 +1,6 @@
 """
 services/tariff_calculator.py
-✅ FIXED: Correct CEB slab scaling for non-30-day billing periods
+ Correct CEB slab scaling for non-30-day billing periods
 Verified against real CEB bills:
   - Bill 1: 31 units, 29 days → Rs. 356.50 (pre-SSCL) → Rs. 365.64 total
   - Bill 2: 62 units, 29 days → Rs. 1,213.50 (pre-SSCL) → Rs. 1,244.62 total

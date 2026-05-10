@@ -26,7 +26,7 @@ class CEBBillParser:
             'fixed_charge': self._extract_fixed_charge(text),
             'unit_charge': self._extract_unit_charge(text),
             'charge_for_consumed': self._extract_charge_for_consumed(text),
-            'total_charge': self._extract_total_charge(text),  # ✅ FIXED!
+            'total_charge': self._extract_total_charge(text),  
             'customer_name': self._extract_customer_name(text),
             'customer_address': self._extract_customer_address(text),
             'tariff_type': self._extract_tariff_type(text),

@@ -10,15 +10,15 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
-import { 
-  ArrowLeft, 
-  Bot, 
-  User, 
-  Send, 
-  Trash2, 
-  ShieldAlert, 
-  Zap, 
-  AlertTriangle, 
+import {
+  ArrowLeft,
+  Bot,
+  User,
+  Send,
+  Trash2,
+  ShieldAlert,
+  Zap,
+  AlertTriangle,
   Flame,
   Info
 } from 'lucide-react-native';
@@ -61,7 +61,7 @@ const AssistantScreen = ({ navigation }) => {
       if (data.hazard_type && data.hazard_type !== 'Unknown') {
         botResponse += `\n\n🚨 Hazard Type: ${data.hazard_type}`;
       }
-      
+
       const botMessage = {
         type: 'bot',
         text: botResponse,
@@ -109,7 +109,7 @@ const AssistantScreen = ({ navigation }) => {
           <ArrowLeft size={24} color={COLORS.textPrimary} />
         </TouchableOpacity>
         <View style={styles.headerTitleGroup}>
-          <Text style={styles.headerTitleMain}>Safety AI</Text>
+          <Text style={styles.headerTitleMain}>Safety Assistant</Text>
           <View style={styles.statusRow}>
             <View style={styles.statusDot} />
             <Text style={styles.statusText}>PUCSL Guidelines</Text>
@@ -201,7 +201,7 @@ const AssistantScreen = ({ navigation }) => {
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: COLORS.bg1 },
   flex: { flex: 1 },
-  
+
   topHeader: {
     flexDirection: 'row',
     alignItems: 'center',
