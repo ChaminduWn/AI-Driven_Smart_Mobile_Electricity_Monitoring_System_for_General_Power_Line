@@ -1,0 +1,567 @@
+{
+  "trainedAt": "2026-05-02T09:44:58.514Z",
+  "rawDatasetPath": "C:\\Users\\HP\\Desktop\\Research\\Electricity\\mobile-apps\\member2-mobile\\backend\\voice-intent\\data\\raw\\powerlink_voice_command_dataset_6500.xlsx",
+  "processedDatasetPath": "C:\\Users\\HP\\Desktop\\Research\\Electricity\\mobile-apps\\member2-mobile\\backend\\voice-intent\\data\\processed\\voice_intent_dataset.csv",
+  "modelType": "tfidf-char-ngram-centroid",
+  "totalSamples": 7447,
+  "baseSamples": 7250,
+  "syntheticSamples": 197,
+  "intentsCount": 68,
+  "intents": [
+    "accept_job",
+    "add_photo",
+    "cancel_dialog",
+    "cancel_request",
+    "change_language",
+    "confirm_location_and_report_issue",
+    "confirm_location_technician",
+    "continue_next",
+    "continue_to_location",
+    "find_available_technicians",
+    "go_back",
+    "go_home",
+    "logout",
+    "make_payment",
+    "open_about_us",
+    "open_account",
+    "open_activities",
+    "open_activity_details",
+    "open_chat",
+    "open_earnings",
+    "open_help_support",
+    "open_history",
+    "open_infrastructure_issues",
+    "open_jobs",
+    "open_monitoring_device_issues",
+    "open_power_supply_issues",
+    "open_profile_settings",
+    "open_report_to_electricity_board",
+    "open_safety_related_issues",
+    "open_service_setup",
+    "open_voltage_technical_issues",
+    "rate_technician",
+    "review_and_confirm_issue",
+    "search_location",
+    "select_area_power_failure",
+    "select_broken_meter_box",
+    "select_burning_smell",
+    "select_complete_power_outage",
+    "select_damaged_power_lines",
+    "select_device_connectivity",
+    "select_dim_lights",
+    "select_electric_shock_risk",
+    "select_exposed_wiring",
+    "select_external_or_human_causes",
+    "select_fallen_pole",
+    "select_faulty_meter_reading",
+    "select_fluctuating_voltage",
+    "select_high_voltage",
+    "select_intermittent_supply",
+    "select_low_voltage",
+    "select_meter_or_service_line_issues",
+    "select_partial_power_outage",
+    "select_pole_issues",
+    "select_power_line_faults",
+    "select_scheduled_power_cut",
+    "select_short_circuit_or_fire",
+    "select_smart_meter_issue",
+    "select_sparks_from_meter",
+    "select_substation_issues",
+    "select_sudden_power_loss",
+    "select_transformer_issues",
+    "select_unknown_investigation_required",
+    "select_weather_related_damage",
+    "submit_report",
+    "track_technician",
+    "use_current_location",
+    "view_activities",
+    "view_job_details"
+  ],
+  "config": {
+    "ngramMin": 3,
+    "ngramMax": 5
+  },
+  "intentActions": {
+    "open_report_to_electricity_board": "navigate_board_report",
+    "open_power_supply_issues": "navigate_category",
+    "open_voltage_technical_issues": "navigate_category",
+    "open_safety_related_issues": "navigate_category",
+    "open_infrastructure_issues": "navigate_category",
+    "open_monitoring_device_issues": "navigate_category",
+    "open_activities": "navigate_activities",
+    "view_activities": "navigate_activities",
+    "open_account": "navigate_account",
+    "open_profile_settings": "navigate_profile_settings",
+    "open_help_support": "navigate_help",
+    "open_about_us": "navigate_about",
+    "change_language": "toggle_language",
+    "go_home": "go_home",
+    "go_back": "go_back",
+    "select_transformer_issues": "select_board_category",
+    "select_power_line_faults": "select_board_category",
+    "select_weather_related_damage": "select_board_category",
+    "select_pole_issues": "select_board_category",
+    "select_short_circuit_or_fire": "select_board_category",
+    "select_area_power_failure": "select_board_category",
+    "select_substation_issues": "select_board_category",
+    "select_meter_or_service_line_issues": "select_board_category",
+    "select_external_or_human_causes": "select_board_category",
+    "select_unknown_investigation_required": "select_board_category",
+    "add_photo": "add_photo",
+    "continue_next": "continue",
+    "continue_to_location": "continue",
+    "use_current_location": "use_current_location",
+    "search_location": "search_location",
+    "review_and_confirm_issue": "confirm",
+    "confirm_location_and_report_issue": "confirm",
+    "confirm_location_technician": "confirm",
+    "find_available_technicians": "confirm",
+    "submit_report": "submit",
+    "select_complete_power_outage": "select_service_issue",
+    "select_partial_power_outage": "select_service_issue",
+    "select_intermittent_supply": "select_service_issue",
+    "select_scheduled_power_cut": "select_service_issue",
+    "select_sudden_power_loss": "select_service_issue",
+    "select_low_voltage": "select_service_issue",
+    "select_high_voltage": "select_service_issue",
+    "select_fluctuating_voltage": "select_service_issue",
+    "select_dim_lights": "select_service_issue",
+    "select_sparks_from_meter": "select_service_issue",
+    "select_burning_smell": "select_service_issue",
+    "select_exposed_wiring": "select_service_issue",
+    "select_electric_shock_risk": "select_service_issue",
+    "select_damaged_power_lines": "select_service_issue",
+    "select_fallen_pole": "select_service_issue",
+    "select_broken_meter_box": "select_service_issue",
+    "select_faulty_meter_reading": "select_service_issue",
+    "select_smart_meter_issue": "select_service_issue",
+    "select_device_connectivity": "select_service_issue",
+    "open_jobs": "navigate_jobs",
+    "open_history": "navigate_history",
+    "open_earnings": "navigate_earnings",
+    "open_service_setup": "navigate_service_setup",
+    "open_chat": "open_chat",
+    "track_technician": "track_technician",
+    "make_payment": "make_payment",
+    "rate_technician": "rate_technician",
+    "accept_job": "accept_job",
+    "view_job_details": "view_job_details",
+    "cancel_request": "cancel_job",
+    "cancel_dialog": "cancel_dialog"
+  },
+  "evaluation": {
+    "intentAccuracy": 0.8771,
+    "actionAccuracy": 0.9083,
+    "testSamples": 1505,
+    "perIntent": {
+      "use_current_location": {
+        "precision": 0.9286,
+        "recall": 1,
+        "f1": 0.963,
+        "support": 26
+      },
+      "select_high_voltage": {
+        "precision": 0.7647,
+        "recall": 1,
+        "f1": 0.8667,
+        "support": 26
+      },
+      "open_activities": {
+        "precision": 0.8947,
+        "recall": 0.6538,
+        "f1": 0.7556,
+        "support": 26
+      },
+      "open_profile_settings": {
+        "precision": 0.9615,
+        "recall": 1,
+        "f1": 0.9804,
+        "support": 25
+      },
+      "confirm_location_and_report_issue": {
+        "precision": 0.4107,
+        "recall": 0.8846,
+        "f1": 0.561,
+        "support": 26
+      },
+      "select_intermittent_supply": {
+        "precision": 1,
+        "recall": 0.8846,
+        "f1": 0.9388,
+        "support": 26
+      },
+      "open_power_supply_issues": {
+        "precision": 0.9643,
+        "recall": 1,
+        "f1": 0.9818,
+        "support": 27
+      },
+      "select_power_line_faults": {
+        "precision": 1,
+        "recall": 0.5385,
+        "f1": 0.7,
+        "support": 26
+      },
+      "select_substation_issues": {
+        "precision": 1,
+        "recall": 0.8462,
+        "f1": 0.9167,
+        "support": 26
+      },
+      "open_report_to_electricity_board": {
+        "precision": 0.92,
+        "recall": 0.8519,
+        "f1": 0.8846,
+        "support": 27
+      },
+      "select_low_voltage": {
+        "precision": 0.8276,
+        "recall": 0.9231,
+        "f1": 0.8727,
+        "support": 26
+      },
+      "select_short_circuit_or_fire": {
+        "precision": 1,
+        "recall": 0.4,
+        "f1": 0.5714,
+        "support": 25
+      },
+      "go_back": {
+        "precision": 0.8387,
+        "recall": 1,
+        "f1": 0.9123,
+        "support": 26
+      },
+      "open_safety_related_issues": {
+        "precision": 0.697,
+        "recall": 0.8519,
+        "f1": 0.7667,
+        "support": 27
+      },
+      "confirm_location_technician": {
+        "precision": 0.7188,
+        "recall": 0.8846,
+        "f1": 0.7931,
+        "support": 26
+      },
+      "select_unknown_investigation_required": {
+        "precision": 1,
+        "recall": 0.92,
+        "f1": 0.9583,
+        "support": 25
+      },
+      "select_electric_shock_risk": {
+        "precision": 1,
+        "recall": 1,
+        "f1": 1,
+        "support": 25
+      },
+      "search_location": {
+        "precision": 1,
+        "recall": 0.9615,
+        "f1": 0.9804,
+        "support": 26
+      },
+      "find_available_technicians": {
+        "precision": 0.8261,
+        "recall": 0.7308,
+        "f1": 0.7755,
+        "support": 26
+      },
+      "select_broken_meter_box": {
+        "precision": 1,
+        "recall": 1,
+        "f1": 1,
+        "support": 25
+      },
+      "continue_to_location": {
+        "precision": 1,
+        "recall": 0.963,
+        "f1": 0.9811,
+        "support": 27
+      },
+      "select_external_or_human_causes": {
+        "precision": 1,
+        "recall": 0.64,
+        "f1": 0.7805,
+        "support": 25
+      },
+      "select_sparks_from_meter": {
+        "precision": 0.641,
+        "recall": 1,
+        "f1": 0.7813,
+        "support": 25
+      },
+      "select_faulty_meter_reading": {
+        "precision": 0.9615,
+        "recall": 1,
+        "f1": 0.9804,
+        "support": 25
+      },
+      "open_activity_details": {
+        "precision": 0.8929,
+        "recall": 1,
+        "f1": 0.9434,
+        "support": 25
+      },
+      "select_weather_related_damage": {
+        "precision": 1,
+        "recall": 0.88,
+        "f1": 0.9362,
+        "support": 25
+      },
+      "select_burning_smell": {
+        "precision": 1,
+        "recall": 1,
+        "f1": 1,
+        "support": 25
+      },
+      "go_home": {
+        "precision": 0.9583,
+        "recall": 0.8846,
+        "f1": 0.92,
+        "support": 26
+      },
+      "add_photo": {
+        "precision": 0.9615,
+        "recall": 1,
+        "f1": 0.9804,
+        "support": 25
+      },
+      "select_device_connectivity": {
+        "precision": 0.7429,
+        "recall": 1,
+        "f1": 0.8525,
+        "support": 26
+      },
+      "select_damaged_power_lines": {
+        "precision": 0.7143,
+        "recall": 1,
+        "f1": 0.8333,
+        "support": 25
+      },
+      "logout": {
+        "precision": 0.8846,
+        "recall": 0.92,
+        "f1": 0.902,
+        "support": 25
+      },
+      "continue_next": {
+        "precision": 0.9615,
+        "recall": 1,
+        "f1": 0.9804,
+        "support": 25
+      },
+      "select_pole_issues": {
+        "precision": 1,
+        "recall": 0.92,
+        "f1": 0.9583,
+        "support": 25
+      },
+      "change_language": {
+        "precision": 0.9615,
+        "recall": 1,
+        "f1": 0.9804,
+        "support": 25
+      },
+      "select_complete_power_outage": {
+        "precision": 0.6667,
+        "recall": 0.3846,
+        "f1": 0.4878,
+        "support": 26
+      },
+      "select_fallen_pole": {
+        "precision": 0.8929,
+        "recall": 1,
+        "f1": 0.9434,
+        "support": 25
+      },
+      "open_monitoring_device_issues": {
+        "precision": 1,
+        "recall": 0.8519,
+        "f1": 0.92,
+        "support": 27
+      },
+      "cancel_request": {
+        "precision": 1,
+        "recall": 0.96,
+        "f1": 0.9796,
+        "support": 25
+      },
+      "select_meter_or_service_line_issues": {
+        "precision": 1,
+        "recall": 0.92,
+        "f1": 0.9583,
+        "support": 25
+      },
+      "select_exposed_wiring": {
+        "precision": 0.8065,
+        "recall": 1,
+        "f1": 0.8929,
+        "support": 25
+      },
+      "view_activities": {
+        "precision": 0.7931,
+        "recall": 0.92,
+        "f1": 0.8519,
+        "support": 25
+      },
+      "select_sudden_power_loss": {
+        "precision": 0.8125,
+        "recall": 1,
+        "f1": 0.8966,
+        "support": 26
+      },
+      "select_smart_meter_issue": {
+        "precision": 1,
+        "recall": 0.92,
+        "f1": 0.9583,
+        "support": 25
+      },
+      "select_scheduled_power_cut": {
+        "precision": 1,
+        "recall": 1,
+        "f1": 1,
+        "support": 26
+      },
+      "open_infrastructure_issues": {
+        "precision": 0.9,
+        "recall": 1,
+        "f1": 0.9474,
+        "support": 27
+      },
+      "open_about_us": {
+        "precision": 0.963,
+        "recall": 1,
+        "f1": 0.9811,
+        "support": 26
+      },
+      "select_transformer_issues": {
+        "precision": 1,
+        "recall": 0.8519,
+        "f1": 0.92,
+        "support": 27
+      },
+      "open_account": {
+        "precision": 0.8947,
+        "recall": 0.6538,
+        "f1": 0.7556,
+        "support": 26
+      },
+      "open_help_support": {
+        "precision": 1,
+        "recall": 0.4615,
+        "f1": 0.6316,
+        "support": 26
+      },
+      "cancel_dialog": {
+        "precision": 0.9565,
+        "recall": 0.88,
+        "f1": 0.9167,
+        "support": 25
+      },
+      "select_partial_power_outage": {
+        "precision": 0.6341,
+        "recall": 1,
+        "f1": 0.7761,
+        "support": 26
+      },
+      "submit_report": {
+        "precision": 0.7576,
+        "recall": 1,
+        "f1": 0.8621,
+        "support": 25
+      },
+      "review_and_confirm_issue": {
+        "precision": 1,
+        "recall": 0.64,
+        "f1": 0.7805,
+        "support": 25
+      },
+      "select_fluctuating_voltage": {
+        "precision": 1,
+        "recall": 1,
+        "f1": 1,
+        "support": 26
+      },
+      "open_voltage_technical_issues": {
+        "precision": 1,
+        "recall": 0.5926,
+        "f1": 0.7442,
+        "support": 27
+      },
+      "select_area_power_failure": {
+        "precision": 1,
+        "recall": 0.6538,
+        "f1": 0.7907,
+        "support": 26
+      },
+      "select_dim_lights": {
+        "precision": 1,
+        "recall": 1,
+        "f1": 1,
+        "support": 25
+      },
+      "open_jobs": {
+        "precision": 0.5,
+        "recall": 0.5,
+        "f1": 0.5,
+        "support": 2
+      },
+      "open_history": {
+        "precision": 0.5,
+        "recall": 0.5,
+        "f1": 0.5,
+        "support": 2
+      },
+      "open_earnings": {
+        "precision": 0,
+        "recall": 0,
+        "f1": 0,
+        "support": 2
+      },
+      "open_service_setup": {
+        "precision": 1,
+        "recall": 0.5,
+        "f1": 0.6667,
+        "support": 2
+      },
+      "open_chat": {
+        "precision": 0.6667,
+        "recall": 1,
+        "f1": 0.8,
+        "support": 2
+      },
+      "track_technician": {
+        "precision": 1,
+        "recall": 0.5,
+        "f1": 0.6667,
+        "support": 2
+      },
+      "make_payment": {
+        "precision": 0,
+        "recall": 0,
+        "f1": 0,
+        "support": 1
+      },
+      "rate_technician": {
+        "precision": 0,
+        "recall": 0,
+        "f1": 0,
+        "support": 1
+      },
+      "accept_job": {
+        "precision": 0,
+        "recall": 0,
+        "f1": 0,
+        "support": 1
+      },
+      "view_job_details": {
+        "precision": 0,
+        "recall": 0,
+        "f1": 0,
+        "support": 1
+      }
+    }
+  }
+}

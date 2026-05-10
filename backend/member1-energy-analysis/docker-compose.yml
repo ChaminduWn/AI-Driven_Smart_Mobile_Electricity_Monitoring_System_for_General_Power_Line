@@ -1,0 +1,57 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  db:
+    image: postgres:15-alpine
+    container_name: energy_db
+    environment:
+      POSTGRES_DB: energy_db
+      POSTGRES_USER: energy_user
+      POSTGRES_PASSWORD: energy_password
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U energy_user -d energy_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis Cache
+  redis:
+    image: redis:7-alpine
+    container_name: energy_redis
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # FastAPI Application
+  api:
+    build: .
+    container_name: energy_api
+    ports:
+      - "8000:8000"
+    environment:
+      DATABASE_URL: postgresql://energy_user:energy_password@db:5432/energy_db
+      REDIS_URL: redis://redis:6379/0
+      TESSERACT_CMD: /usr/bin/tesseract
+      DEBUG: "True"
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - ./uploads:/app/uploads
+      - ./logs:/app/logs
+      - ./src:/app/src
+    restart: unless-stopped
+
+volumes:
+  postgres_data:

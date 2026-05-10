@@ -1,0 +1,217 @@
+{
+  "hazardTypes": {
+    "lightning": {
+      "immediate": [
+        "Unplug non-essential electronics and avoid using wired phones.",
+        "Stay indoors and avoid contact with metal fixtures and water.",
+        "Do not touch electrical panels or exposed wiring during the storm."
+      ],
+      "preventive": [
+        "Install lightning arrestors and surge protectors on main distribution panels.",
+        "Ensure proper earthing/grounding of all major electrical installations.",
+        "Avoid tall isolated structures near antennae or external wiring." 
+      ],
+      "emergency": [
+        "If a strike causes sparks or fire, isolate the supply if safe and call emergency services.",
+        "Keep distance from downed power lines and report to the Ceylon Electricity Board immediately."
+      ]
+    },
+    "heavy_rain": {
+      "immediate": [
+        "Avoid operating electrical devices with wet hands or near water ingress points.",
+        "Cover external outlets and elevate sensitive electronics if water is rising."
+      ],
+      "preventive": [
+        "Use waterproof covers for outdoor sockets and junction boxes.",
+        "Inspect roof and drainage before monsoon season to reduce infiltration near electrics."
+      ],
+      "emergency": [
+        "If water enters distribution boards, do not touch; shut off supply at main breaker if safe and call a professional.",
+        "Avoid turning power back on until a qualified electrician verifies safety."
+      ]
+    },
+    "flood_risk": {
+      "immediate": [
+        "Turn off mains power and disconnect appliances if safe to do so before water reaches electrical points.",
+        "Move portable electronics and essential appliances to higher ground."
+      ],
+      "preventive": [
+        "Elevate critical equipment and sockets above expected flood levels.",
+        "Install ELCBs/RCDs to reduce electrocution risk when water ingress occurs."
+      ],
+      "emergency": [
+        "Do not attempt to restore power to submerged equipment — a full inspection is required.",
+        "Contact licensed electricians and your electricity provider for post-flood checks."
+      ]
+    },
+    "high_wind": {
+      "immediate": [
+        "Secure or bring inside loose electrical appliances and outdoor cables.",
+        "Keep away from fallen lines and report faults to relevant authorities."
+      ],
+      "preventive": [
+        "Trim trees near overhead lines and secure rooftop installations.",
+        "Ensure antennas and satellite dishes are properly mounted."
+      ],
+      "emergency": [
+        "If power poles or conductors fall, do not approach and keep a safe perimeter until professionals arrive.",
+        "Switch off mains if there is visible damage to home wiring and call a licensed electrician."
+      ]
+    }
+  },
+  "emergencyProtocols": {
+    "flood": {
+      "before": [
+        "Prepare an evacuation plan and move valuables and electronics to higher ground.",
+        "Install ELCBs and ensure main breaker access is clear."
+      ],
+      "during": [
+        "Never touch electrical equipment while standing in water.",
+        "Turn off mains supply if it can be done safely and avoid using electrical appliances."
+      ],
+      "after": [
+        "Do not switch on appliances that have been submerged until professionally checked.",
+        "Have distribution boards and wiring inspected by a licensed electrician before restoring power."
+      ]
+    },
+    "thunderstorm": {
+      "before": [
+        "Unplug non-essential electronics and secure outdoor items that may attract lightning.",
+        "Ensure surge protection and earthing are in place for important systems."
+      ],
+      "during": [
+        "Stay indoors, avoid baths or showers, and do not use wired phones.",
+        "Keep away from windows and external metal fixtures."
+      ],
+      "after": [
+        "Wait 30 minutes after the last thunder before using sensitive equipment.",
+        "Inspect antennas and external wiring for physical damage."
+      ]
+    },
+    "heavy_rain": {
+      "before": [
+        "Clear gutters and drains to reduce water pooling near electrical outlets.",
+        "Protect outdoor distribution boards with waterproof enclosures."
+      ],
+      "during": [
+        "Avoid using electrical appliances near water and monitor for leaks near switches and sockets.",
+        "Power down non-essential circuits if water ingress is suspected."
+      ],
+      "after": [
+        "Dry and inspect affected areas before reconnecting power.",
+        "Engage a professional to test residual current devices and grounding."
+      ]
+    },
+    "cyclone": {
+      "before": [
+        "Secure outdoor equipment and disconnect non-essential electrical supplies.",
+        "Backup critical electronics with UPS and ensure emergency lighting is available."
+      ],
+      "during": [
+        "Stay away from windows and external electrical fittings; keep flashlight and battery packs ready.",
+        "Avoid contact with any exposed wiring or fallen cables."
+      ],
+      "after": [
+        "Wait for authorities to declare it safe before restoring major power loads.",
+        "Have a full inspection of wiring, masts and connections before re-energizing."
+      ]
+    }
+  },
+  "applianceGuidelines": {
+    "refrigerator": {
+      "priority": "high",
+      "general": [
+        "Keep fridge elevated on stable stands where minor flooding is possible.",
+        "Use surge protectors for sensitive compressors and electronic controls."
+      ],
+      "duringThunderstorm": [
+        "Unplug refrigerator if lightning risk is severe and you expect long outages.",
+        "Avoid plugging in until mains are stable after the storm."
+      ],
+      "duringFlood": [
+        "Do not attempt to power on a refrigerator that has been submerged; have it inspected.",
+        "Discard food if the appliance lost power for long periods unless temperature was maintained."
+      ]
+    },
+    "air_conditioner": {
+      "priority": "medium",
+      "general": [
+        "Ensure outdoor units are secured and electrical isolators are elevated.",
+        "Use licensed technicians for installation and earthing checks."
+      ],
+      "duringThunderstorm": [
+        "Switch off and unplug if lightning activity is high and storms are nearby." 
+      ],
+      "duringFlood": [
+        "Do not operate split-system outdoor units if water levels are high; isolate power and consult a technician."
+      ]
+    },
+    "water_heater": {
+      "priority": "high",
+      "general": [
+        "Install ELCB/RCD protection for water heater circuits.",
+        "Avoid using if there are signs of moisture ingress or after storms until inspected."
+      ],
+      "duringThunderstorm": [
+        "Do not use electric showers or water heaters during a thunderstorm if lightning risk is present." 
+      ],
+      "duringFlood": [
+        "Turn off and isolate water heaters if water levels reach electrical fittings; do not touch when wet."
+      ]
+    },
+    "washing_machine": {
+      "priority": "medium",
+      "general": [
+        "Keep washing machines elevated where possible and ensure supply cords are dry before use.",
+        "Use ELCBs on circuits that feed wet areas."
+      ],
+      "duringThunderstorm": [
+        "Avoid running washing machines during heavy lightning activity to reduce risk from surges." 
+      ],
+      "duringFlood": [
+        "Do not operate if the socket or machine base is wet; have unit serviced before reuse."
+      ]
+    },
+    "television": {
+      "priority": "medium",
+      "general": [
+        "Use surge protection and unplug antennas during severe storms.",
+        "Avoid connecting via long exposed antenna cables; use surge arrestors where needed."
+      ],
+      "duringThunderstorm": [
+        "Unplug TV and external antenna during storms to avoid damage from lightning strikes." 
+      ],
+      "duringFlood": [
+        "Do not power on if TV or stand has been in contact with water until professionally checked."
+      ]
+    },
+    "computer": {
+      "priority": "high",
+      "general": [
+        "Use UPS for graceful shutdowns and surge protection for sensitive equipment.",
+        "Disconnect ethernet and external antenna lines during storms to reduce surge paths."
+      ],
+      "duringThunderstorm": [
+        "Shut down and unplug desktop computers; keep laptops on battery if needed and unplug chargers." 
+      ],
+      "duringFlood": [
+        "Do not attempt to dry and power on computers that were submerged; seek professional data recovery if needed."
+      ]
+    }
+  },
+  "emergencyContacts": {
+    "sriLanka": {
+      "emergencyServices": "119",
+      "ceylonElectricityBoard": "1987",
+      "ceylonElectricityBoardFaults": "1955",
+      "disasterManagement": "117",
+      "police": "119",
+      "fire": "110",
+      "ambulance": "1990"
+    },
+    "electricalEmergency": [
+      "If you encounter exposed live conductors or sparking equipment, keep clear and call CEB faults immediately.",
+      "Do not attempt repairs on distribution equipment — wait for licensed crews."
+    ]
+  }
+}

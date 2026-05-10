@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Outlet, useNavigate, useLocation } from 'react-router-dom';
+import { Outlet, useNavigate } from 'react-router-dom';
 import {
   Box,
   Drawer,
@@ -13,8 +13,10 @@ import {
   ListItemButton,
   ListItemIcon,
   ListItemText,
-  Badge,
+  Menu,
+  MenuItem,
   Avatar,
+  Tooltip,
 } from '@mui/material';
 import {
   Menu as MenuIcon,
@@ -23,112 +25,173 @@ import {
   ReportProblem,
   WbSunny,
   Security,
-  Notifications,
-  Person,
+  AccountCircle,
+  ExitToApp,
+  Analytics,
+  Receipt,
+  FactCheck,
+  Kitchen,
+  Lightbulb,
+  Calculate
 } from '@mui/icons-material';
+import { useAuth } from '../../contexts/AuthContext';
 
-const drawerWidth = 260;
+const drawerWidth = 240;
 
 const menuItems = [
-  { text: 'Overview', icon: <DashboardIcon />, path: '/' },
-  { text: 'Energy Analysis', icon: <ElectricBolt />, path: '/member1' },
-  { text: 'Outage Reports', icon: <ReportProblem />, path: '/member2' },
-  { text: 'Solar Recommendations', icon: <WbSunny />, path: '/member3' },
-  { text: 'Safety Assistant', icon: <Security />, path: '/member4' },
+  { text: 'Overview', icon: <DashboardIcon />, path: '/d' },
+  { text: 'Appliances', icon: <Kitchen />, path: '/d/appliances' },
+  { text: 'Bills & Usage', icon: <Receipt />, path: '/d/bills' },
+  { text: 'Budget Plans', icon: <FactCheck />, path: '/d/plans' },
+  { text: 'Tariff Calculator', icon: <Calculate />, path: '/d/tariff' },
+  { text: 'Smart Insights', icon: <Lightbulb />, path: '/d/insights' },
+  { text: 'Energy Analysis', icon: <ElectricBolt />, path: '/d/analysis' },
+  { text: 'NILM Report', icon: <Analytics />, path: '/d/nilm' },
+  { text: 'Live Monitoring', icon: <ReportProblem />, path: '/d/monitoring' },
+  { text: 'Solar Intelligence', icon: <WbSunny />, path: '/d/solar' },
+  { text: 'Safety Assistant', icon: <Security />, path: '/d/safety' },
 ];
 
 export default function DashboardLayout() {
+  const { logout, user } = useAuth();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [anchorEl, setAnchorEl] = useState(null);
   const navigate = useNavigate();
-  const location = useLocation();
 
   const handleDrawerToggle = () => {
     setMobileOpen(!mobileOpen);
   };
 
-  const isActive = (path) => {
-    if (path === '/') {
-      return location.pathname === '/';
-    }
-    return location.pathname.startsWith(path);
+  const handleProfileMenuOpen = (event) => {
+    setAnchorEl(event.currentTarget);
+  };
+
+  const handleProfileMenuClose = () => {
+    setAnchorEl(null);
+  };
+
+  const handleProfile = () => {
+    handleProfileMenuClose();
+    navigate('/d/profile');
+  };
+
+  const handleLogoutClick = async () => {
+    handleProfileMenuClose();
+    await logout();
   };
 
   const drawer = (
-    <Box sx={{ height: '100%', bgcolor: '#1976d2' }}>
-      <Box sx={{ p: 3, color: 'white' }}>
-        <Typography variant="h5" fontWeight="bold" gutterBottom>
-          Admin Panel
+    <div>
+      <Toolbar sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+        <Box sx={{ 
+          width: 32, height: 32, 
+          backgroundColor: '#3B82F6', 
+          borderRadius: 2, 
+          display: 'flex', justifyContent: 'center', alignItems: 'center' 
+        }}>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="#F97316">
+            <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />
+          </svg>
+        </Box>
+        <Typography variant="h6" noWrap component="div" sx={{ fontWeight: 800, fontFamily: 'var(--font-display)', letterSpacing: '-0.5px' }}>
+          EnergyIQ
         </Typography>
-        <Typography variant="body2" sx={{ opacity: 0.9 }}>
-          Electricity Management
-        </Typography>
-      </Box>
-      <Divider sx={{ bgcolor: 'rgba(255,255,255,0.2)' }} />
-      <List sx={{ pt: 2 }}>
+      </Toolbar>
+      <Divider />
+      <List>
         {menuItems.map((item) => (
           <ListItem key={item.text} disablePadding>
-            <ListItemButton
-              onClick={() => navigate(item.path)}
-              sx={{
-                mx: 1,
-                mb: 0.5,
-                borderRadius: 1,
-                bgcolor: isActive(item.path) ? 'rgba(255,255,255,0.2)' : 'transparent',
-                color: 'white',
-                '&:hover': {
-                  bgcolor: 'rgba(255,255,255,0.1)',
-                },
-              }}
-            >
-              <ListItemIcon sx={{ color: 'white', minWidth: 40 }}>
-                {item.icon}
-              </ListItemIcon>
+            <ListItemButton onClick={() => navigate(item.path)}>
+              <ListItemIcon>{item.icon}</ListItemIcon>
               <ListItemText primary={item.text} />
             </ListItemButton>
           </ListItem>
         ))}
       </List>
-    </Box>
+      <Divider />
+      <List>
+        <ListItem disablePadding>
+          <ListItemButton onClick={logout}>
+            <ListItemIcon>
+              <ExitToApp />
+            </ListItemIcon>
+            <ListItemText primary="Logout" />
+          </ListItemButton>
+        </ListItem>
+      </List>
+    </div>
   );
 
   return (
-    <Box sx={{ display: 'flex', minHeight: '100vh' }}>
+    <Box sx={{ display: 'flex' }}>
       <AppBar
         position="fixed"
         sx={{
           width: { sm: `calc(100% - ${drawerWidth}px)` },
           ml: { sm: `${drawerWidth}px` },
-          bgcolor: '#1565c0',
-          zIndex: (theme) => theme.zIndex.drawer + 1,
         }}
       >
-        <Toolbar sx={{ justifyContent: 'space-between' }}>
+        <Toolbar>
+          <IconButton
+            color="inherit"
+            edge="start"
+            onClick={handleDrawerToggle}
+            sx={{ mr: 2, display: { sm: 'none' } }}
+          >
+            <MenuIcon />
+          </IconButton>
+          <Typography variant="h6" noWrap component="div" sx={{ fontFamily: 'var(--font-display)', fontWeight: 600 }}>
+            EnergyIQ Admin Panel
+          </Typography>
+          <Box sx={{ flexGrow: 1 }} />
           <Box sx={{ display: 'flex', alignItems: 'center' }}>
-            <IconButton
-              color="inherit"
-              edge="start"
-              onClick={handleDrawerToggle}
-              sx={{ mr: 2, display: { sm: 'none' } }}
-            >
-              <MenuIcon />
-            </IconButton>
-            <Typography variant="h6" noWrap component="div" fontWeight="bold">
-              Electricity Management System
+            <Typography variant="body2" sx={{ mr: 1, display: { xs: 'none', sm: 'block' } }}>
+              {user?.name || user?.email || 'Admin'}
             </Typography>
+            <Tooltip title="Account settings">
+              <IconButton
+                onClick={handleProfileMenuOpen}
+                size="small"
+                sx={{ ml: 1 }}
+                aria-controls={anchorEl ? 'account-menu' : undefined}
+                aria-haspopup="true"
+                aria-expanded={anchorEl ? 'true' : undefined}
+              >
+                <Avatar>
+                  {(user?.name || user?.email || 'A')[0].toUpperCase()}
+                </Avatar>
+              </IconButton>
+            </Tooltip>
           </Box>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-            <IconButton color="inherit">
-              <Badge badgeContent={3} color="error">
-                <Notifications />
-              </Badge>
-            </IconButton>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-              <Avatar sx={{ width: 32, height: 32, bgcolor: 'rgba(255,255,255,0.2)' }}>
-                <Person fontSize="small" />
-              </Avatar>
-              <Typography variant="body2">Admin User</Typography>
-            </Box>
-          </Box>
+          <Menu
+            anchorEl={anchorEl}
+            id="account-menu"
+            open={Boolean(anchorEl)}
+            onClose={handleProfileMenuClose}
+            onClick={handleProfileMenuClose}
+            PaperProps={{
+              elevation: 2,
+              sx: {
+                mt: 1.5,
+                minWidth: 150,
+              },
+            }}
+            transformOrigin={{ horizontal: 'right', vertical: 'top' }}
+            anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
+          >
+            <MenuItem onClick={handleProfile}>
+              <ListItemIcon>
+                <AccountCircle fontSize="small" />
+              </ListItemIcon>
+              Profile
+            </MenuItem>
+            <MenuItem onClick={handleLogoutClick}>
+              <ListItemIcon>
+                <ExitToApp fontSize="small" />
+              </ListItemIcon>
+              Logout
+            </MenuItem>
+          </Menu>
         </Toolbar>
       </AppBar>
       <Box
@@ -151,7 +214,7 @@ export default function DashboardLayout() {
           variant="permanent"
           sx={{
             display: { xs: 'none', sm: 'block' },
-            '& .MuiDrawer-paper': { boxSizing: 'border-box', width: drawerWidth, borderRight: 'none' },
+            '& .MuiDrawer-paper': { boxSizing: 'border-box', width: drawerWidth },
           }}
           open
         >
@@ -165,8 +228,6 @@ export default function DashboardLayout() {
           p: 3,
           width: { sm: `calc(100% - ${drawerWidth}px)` },
           mt: 8,
-          bgcolor: '#f5f5f5',
-          minHeight: '100vh',
         }}
       >
         <Outlet />

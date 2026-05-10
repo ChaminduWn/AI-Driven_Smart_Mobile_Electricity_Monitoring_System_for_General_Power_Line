@@ -1,0 +1,77 @@
+/* src/index.css */
+:root {
+  --color-background-primary: #111827;
+  --color-background-secondary: #1f2937;
+  --color-background-tertiary: #374151;
+  --color-background-success: rgba(76, 175, 80, 0.1);
+  --color-background-danger: rgba(244, 67, 54, 0.1);
+  --color-background-warning: rgba(255, 152, 0, 0.1);
+  --color-text-primary: #ffffff;
+  --color-text-secondary: #9ca3af;
+  --color-text-tertiary: #6b7280;
+  --color-text-success: #4caf50;
+  --color-text-danger: #f44336;
+  --color-text-warning: #ff9800;
+  --color-text-info: #2196f3;
+  --color-border-primary: #374151;
+  --color-border-secondary: #4b5563;
+  --color-border-tertiary: rgba(255, 255, 255, 0.08);
+  --border-radius-md: 8px;
+  --border-radius-lg: 12px;
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+@tailwind base;
+
+@tailwind components;
+@tailwind utilities;
+
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+/* Ensure Tailwind colors work properly */
+.bg-gray-800 {
+  background-color: #1f2937 !important;
+}
+
+.bg-gray-900 {
+  background-color: #111827 !important;
+}
+
+.bg-gray-700 {
+  background-color: #374151 !important;
+}
+
+.text-white {
+  color: #ffffff !important;
+}
+
+/* Add custom gradient backgrounds */
+.bg-gradient-to-br {
+  background-image: linear-gradient(to bottom right, var(--tw-gradient-stops)) !important;
+}
+
+.from-gray-900 {
+  --tw-gradient-from: #111827 !important;
+  --tw-gradient-to: rgb(17 24 39 / 0) !important;
+  --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to) !important;
+}
+
+.via-gray-800 {
+  --tw-gradient-to: rgb(31 41 55 / 0) !important;
+  --tw-gradient-stops: var(--tw-gradient-from), #1f2937, var(--tw-gradient-to) !important;
+}
+
+.to-gray-900 {
+  --tw-gradient-to: #111827 !important;
+}
