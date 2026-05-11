@@ -21,6 +21,10 @@ The system integrates:
 - 🌐 Real-time Backend APIs
 - ☀️ Solar Recommendation System
 - 🚨 Smart Outage & Safety Management
+- 🎙️ Multilingual Voice Command and Smart Assistant System
+- 📍 Location-Based Electricity Service Coordination
+- 🛠️ Electrician and Electricity Board Management Platform
+- 📊 Real-Time Issue Monitoring and Reporting Dashboard
 
 The project focuses on reducing electricity costs while improving electrical safety and energy efficiency for Sri Lankan households.
 
@@ -35,6 +39,10 @@ The main goals of the system are:
 - Warn users before crossing expensive tariff limits
 - Provide real-time electricity monitoring
 - Enable smart outage reporting and technician management
+- Provide multilingual voice-command-based system interaction
+- Enable real-time electricity issue reporting and tracking
+- Support location-based electrician allocation and navigation
+- Provide web-based dashboards for electricity board monitoring and management
 - Recommend suitable solar systems
 - Improve electrical safety using weather-aware alerts
 - Provide a complete cyber-physical smart energy ecosystem
