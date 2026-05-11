@@ -78,9 +78,16 @@ AI-Driven_Smart_Mobile_Electricity_Monitoring_System_for_General_Power_Line/
 │   │   └── recommendation_engine/
 │   │
 │   ├── member2-outage-system/
-│   │   ├── socket_tracking/
+│   │   ├── issue_reporting/
 │   │   ├── technician_management/
-│   │   └── realtime_chat/
+│   │   ├── realtime_tracking/
+│   │   ├── voice_command_system/
+│   │   │   ├── speech_to_text/
+│   │   │   ├── intent_classifier/
+│   │   │   ├── command_mapper/
+│   │   │   └── multilingual_processing/
+│   │   ├── electricity_board_dashboard/
+│   │   └── task_assignment/
 │   │
 │   ├── member3-solar-recommendation/
 │   │   ├── solar_ml_models.pkl
