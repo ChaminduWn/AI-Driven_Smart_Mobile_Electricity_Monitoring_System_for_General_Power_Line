@@ -700,6 +700,7 @@ to the ESP32 using Arduino IDE.
 - Real-time tariff prediction
 - NILM appliance detection
 - AI-powered electricity optimization
+- Voice command system
 - Smart outage ecosystem
 - Real-time technician tracking
 - Weather-aware electrical safety
@@ -747,6 +748,7 @@ This project was collaboratively developed as part of a Smart Energy Management 
 - Artificial Intelligence
 - IoT Systems
 - Mobile Computing
+- Voice command system
 - Smart Energy Analytics
 - Cloud-based APIs
 - Real-Time Monitoring
