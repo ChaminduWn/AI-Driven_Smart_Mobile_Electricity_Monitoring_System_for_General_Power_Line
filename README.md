@@ -491,18 +491,18 @@ A web-based dashboard is implemented for electricity board administrators to mon
 - React Navigation
 - AsyncStorage
 - Tailwind CSS
-- 
+  
 🌐 Backend Technologies
 - Node.js
 - Express.js
 - Socket.io
 - JWT Authentication
 - RESTful APIs
-- 
+  
 🗄️ Database Technologies
 - PostgreSQL
 - Redis (Caching & Realtime)
-- 
+  
 🤖 AI & Voice Processing
 - Python
 - Scikit-learn
