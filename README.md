@@ -361,32 +361,154 @@ backend/member2-outage-system
 
 # ⚙️ Features
 
-## ⚡ Outage Reporting
-Users can:
+## 🔥 Smart Outage Reporting System
+Users can report electricity-related issues directly through the mobile application using structured workflows.
+
+**Supported Reporting Features:**
 - Report power outages
-- Upload outage photos
+- Report low-voltage issues
+- Report damaged power lines
+- Upload issue images
+- Add textual descriptions
 - Share GPS location
-- Notify the electricity board
+- Categorize issue severity
+- Notify electricity board authorities
+- Track issue status in real time
+  
+**Technical Implementation: **
+- React Native mobile forms
+- RESTful API integration
+- Image upload handling
+- PostgreSQL data storage
+- Location capture using GPS APIs
+- Real-time backend synchronization
+---
+
+## 🎙️ Multilingual Voice Command Assistant
+
+The system integrates an AI-powered voice-command assistant that allows users to interact with the application using Sinhala and English voice commands.
+
+**Supported Voice Features:**
+- Voice-based issue reporting
+- Voice navigation
+- Voice-assisted form filling
+- Intent-based command execution
+- Sinhala-English mixed command handling
+- Speech-to-text conversion
+
+Example Commands:
+- "Report power outage"
+- "Find nearby electrician"
+- "Check my active requests"
+- "විදුලිය නැතිවෙලා"
+- "Electrician කෙනෙක් හොයන්න"
+
+ ** Technical Implementation:**
+ - Speech-to-Text processing
+ - Intent classification pipeline
+ - TF-IDF vectorization
+ - Lightweight NLP models
+ - REST API communication
+ - Command-to-action mapping
 
 ---
 
-## 👨‍🔧 Technician Marketplace
+## 👨‍🔧 Technician Marketplace & Management
 
-An Uber-style technician management system:
+An Uber-style technician coordination system is implemented to efficiently assign electricians to reported issues.
+
+**Technician Features:**
 - Find nearby electricians
 - Real-time technician tracking
+- Accept/reject jobs
+- Navigation support
+- Job status updates
+- Work history management
+- Earnings tracking
 - In-app messaging
-- Job acceptance system
-- Payment workflow
+- Job completion verification
+  
+**Technical Implementation:**
+- Geolocation services
+- Distance calculation algorithms
+- Real-time location synchronization
+- Socket.io communication
+- PostgreSQL relational storage
+- Role-based access management
 
 ---
 
+## 🗺️ Real-Time Location & Tracking System
+
+The system provides GPS-based tracking functionalities to improve service coordination and response efficiency.
+
+**Technician Features:**
+- Live technician tracking
+- ETA estimation
+- Route visualization
+- Interactive maps
+- Nearby technician discovery
+- GPS-based issue tagging
+  
+**Technical Implementation:**
+- Expo Location API
+- Google Maps integration
+- Geospatial filtering
+- Reverse geocoding
+- Distance calculation services
+
+---
+
+## 🏢 Electricity Board Monitoring Dashboard
+
+A web-based dashboard is implemented for electricity board administrators to monitor and manage large-scale electricity issues.
+
+**Dashboard Features:**
+- Real-time issue monitoring
+- Analytics and reporting
+- Field team coordination
+- Issue categorization
+- Task assignment
+- User management
+- Issue trend visualization
+- Location-based monitoring
+  
+**Technical Implementation:**
+- React-based admin dashboard
+- REST API integration
+- Chart visualization libraries
+- Role-based authentication
+- Centralized backend architecture
+
+---
+
+
 ## 🌐 Technologies
+
+📱 Frontend Technologies
+- React Native
+- Expo Framework
+- React Navigation
+- AsyncStorage
+- Tailwind CSS
+- 
+🌐 Backend Technologies
 - Node.js
 - Express.js
-- Sequelize
 - Socket.io
+- JWT Authentication
+- RESTful APIs
+- 
+🗄️ Database Technologies
 - PostgreSQL
+- Redis (Caching & Realtime)
+- 
+🤖 AI & Voice Processing
+- Python
+- Scikit-learn
+- TF-IDF Vectorizer
+- Speech-to-Text APIs
+- NLP Intent Classification
 
 ---
 
