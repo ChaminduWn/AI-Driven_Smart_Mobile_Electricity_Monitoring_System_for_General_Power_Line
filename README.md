@@ -128,7 +128,7 @@ AI-Driven_Smart_Mobile_Electricity_Monitoring_System_for_General_Power_Line/
 | Member | IT Number | Main Contribution |
 |---|---|---|
 | **Chamindu W N** | IT22562388 | Energy Analysis, Bill Management, AI Prediction & IoT Integration |
-| **CHANDRASEKARA N K D R** | IT22052988 | Outage Reporting & Technician Management |
+| **CHANDRASEKARA N K D R** | IT22052988 | Outage Reporting & Technician Management with voice command system |
 | **Wijekoon W.M.M.G.K.P** | IT22575562 | Solar Power Recommendation System |
 | **Gamage K.P** | IT22202390 | Safety & Disaster Management |
 
